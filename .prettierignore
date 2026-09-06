@@ -1,0 +1,9 @@
+node_modules
+.next
+.vercel
+package-lock.json
+LICENSE
+docs/sources/
+work
+convex/_generated
+coverage

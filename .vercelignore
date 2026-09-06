@@ -1,0 +1,8 @@
+work/
+.env*
+**/.env*
+node_modules/
+**/node_modules/
+**/.next/
+.git/
+docs/sources/

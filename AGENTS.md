@@ -6,4 +6,4 @@
 - Make the interface distinctive, friendly and clear on desktop and mobile. Follow `docs/design-direction.md` and verify real layouts.
 - Use focused Conventional Commits and `codex/` branches when useful. Use SemVer prerelease tags for milestones, keep `CHANGELOG.md` current, and push coherent verified changes. Reserve `v1.0.0` for operational, verified V1.
 - Keep secrets and personal setup notes out of Git. Use private defaults and server authorization. Record incomplete integrations honestly; never substitute fake data or claim an unverified launch.
-- Do not upgrade Vercel. Resend is free-tier only. Prefer APIs/CLIs for setup; use signed-in dashboards when necessary. Finish the current setup phase before beginning full V1 implementation.
+- Do not upgrade Vercel. Resend is free-tier only. Prefer APIs/CLIs for setup; use signed-in dashboards when necessary. Respect the requested phase boundaries in `docs/decisions.md`.

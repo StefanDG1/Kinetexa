@@ -33,6 +33,15 @@ it("supports owned workspace updates and deletion, validates plan and goal data,
       description: "Easy",
     };
     const planId = await a.mutation(api.workspace.savePlan, plan);
+    await a.mutation(api.workspace.savePlan, {
+      ...plan,
+      id: planId,
+      intensity: "Easy",
+    });
+    await a.mutation(api.workspace.savePlan, { ...plan, id: planId });
+    expect(
+      (await a.query(api.workspace.overview)).plans[0].intensity,
+    ).toBeUndefined();
     await expect(
       a.mutation(api.workspace.savePlan, { ...plan, start: Number.NaN }),
     ).rejects.toThrow();
@@ -47,6 +56,18 @@ it("supports owned workspace updates and deletion, validates plan and goal data,
       target: 1200,
     };
     const goalId = await a.mutation(api.workspace.saveGoal, goal);
+    await a.mutation(api.workspace.saveGoal, {
+      ...goal,
+      id: goalId,
+      manualProgress: 1250,
+    });
+    await a.mutation(api.workspace.saveGoal, { ...goal, id: goalId });
+    expect(
+      (await a.query(api.workspace.overview)).goals[0].manualProgress,
+    ).toBeUndefined();
+    await expect(
+      a.mutation(api.workspace.saveGoal, { ...goal, end: 1e20 }),
+    ).rejects.toThrow("dates");
     await expect(
       a.mutation(api.workspace.saveGoal, { ...goal, manualProgress: 0 }),
     ).rejects.toThrow();

@@ -120,13 +120,19 @@ export const saveGear = mutation({
         args.maintenanceHours ?? 0,
       ].every(Number.isFinite) ||
       (args.maintenanceKm ?? 0) < 0 ||
-      (args.maintenanceHours ?? 0) < 0
+      (args.maintenanceHours ?? 0) < 0 ||
+      Number.isNaN(new Date(args.servicedAt).getTime()) ||
+      args.servicedAt > Date.now()
     )
       throw new ConvexError("Check the gear name and service interval.");
     if (id) {
       const old = await ctx.db.get(id);
       if (old?.athleteId !== a._id) throw new ConvexError("Gear unavailable.");
-      await ctx.db.patch(id, args);
+      await ctx.db.patch(id, {
+        ...args,
+        maintenanceKm: args.maintenanceKm,
+        maintenanceHours: args.maintenanceHours,
+      });
       return id;
     }
     return ctx.db.insert("gear", { ...args, athleteId: a._id });
@@ -161,6 +167,9 @@ export const saveGoal = mutation({
           (args.manualProgress !== undefined &&
             ![0, 1].includes(args.manualProgress)))) ||
       args.end <= args.start ||
+      [args.start, args.end].some((value) =>
+        Number.isNaN(new Date(value).getTime()),
+      ) ||
       ![
         "distance",
         "duration",
@@ -175,7 +184,7 @@ export const saveGoal = mutation({
     if (id) {
       const old = await ctx.db.get(id);
       if (old?.athleteId !== a._id) throw new ConvexError("Goal unavailable.");
-      await ctx.db.patch(id, args);
+      await ctx.db.patch(id, { ...args, manualProgress: args.manualProgress });
       return id;
     }
     await recordProductEvent(ctx, a, "goal_created");
@@ -211,7 +220,7 @@ export const savePlan = mutation({
       const old = await ctx.db.get(id);
       if (old?.athleteId !== a._id)
         throw new ConvexError("Workout unavailable.");
-      await ctx.db.patch(id, args);
+      await ctx.db.patch(id, { ...args, intensity: args.intensity });
       return id;
     }
     await recordProductEvent(ctx, a, "calendar_workout_planned");

@@ -16,6 +16,15 @@ const severity: Record<string, number> = {
   bounced: 3,
   complained: 4,
 };
+// One Resend Free account serves all three environments. Their combined
+// allowance is 90/day, at most 2,790 in any 31-day month, including retries.
+export function dailyEmailAllowance(environment: string | undefined) {
+  return environment === "production"
+    ? 80
+    : environment === "staging" || environment === "development"
+      ? 5
+      : 0;
+}
 function newerDelivery(
   old: { status: string; occurredAt: number },
   next: { status: string; occurredAt: number },
@@ -113,7 +122,10 @@ export const claim = internalMutation({
       .query("systemCounters")
       .withIndex("by_key", (q) => q.eq("key", key))
       .unique();
-    if ((counter?.count ?? 0) >= 90) {
+    if (
+      (counter?.count ?? 0) >=
+      dailyEmailAllowance(process.env.KINETEXA_ENVIRONMENT)
+    ) {
       await ctx.db.patch(id, { status: "retrying" });
       await ctx.scheduler.runAt(
         Date.UTC(

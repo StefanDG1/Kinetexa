@@ -6,8 +6,37 @@ import schema from "./schema";
 import { api, internal } from "./_generated/api";
 const modules = import.meta.glob("./**/*.ts");
 beforeEach(() => {
+  vi.stubEnv("KINETEXA_ENVIRONMENT", "development");
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-09-06T10:00:00Z"));
+});
+it("reserves a shared Free-tier allowance across environments and defers excess work without consuming an attempt", async () => {
+  const { dailyEmailAllowance } = await import("./email");
+  expect(
+    ["production", "staging", "development"].reduce(
+      (sum, environment) => sum + dailyEmailAllowance(environment),
+      0,
+    ),
+  ).toBe(90);
+  expect(dailyEmailAllowance("restore")).toBe(0);
+  expect(dailyEmailAllowance(undefined)).toBe(0);
+  const { t, athleteId, id } = await setup("quota");
+  await t.run((ctx) =>
+    ctx.db.insert("systemCounters", { key: "resend-2026-09-06", count: 4 }),
+  );
+  const next = (await t.mutation(internal.email.enqueue, {
+    athleteId,
+    template: "export",
+    dedupeKey: "quota-next",
+  }))!;
+  expect(await t.mutation(internal.email.claim, { id })).not.toBeNull();
+  expect(await t.mutation(internal.email.claim, { id: next })).toBeNull();
+  expect(await t.run((ctx) => ctx.db.get(next))).toMatchObject({
+    status: "retrying",
+    attempts: 0,
+  });
+  vi.setSystemTime(new Date("2026-09-07T00:01:00Z"));
+  expect(await t.mutation(internal.email.claim, { id: next })).not.toBeNull();
 });
 afterEach(() => {
   vi.clearAllTimers();

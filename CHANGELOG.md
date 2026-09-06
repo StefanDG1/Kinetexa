@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Divide email send reservations across production, staging and development to keep their combined allowance within Resend Free.
+
 - Record private job outcomes, cost and latency; add guarded operator retries, queue alerts, OTLP trace export and scheduled checks. Keep production athlete APIs closed until release.
 
 - Retain verified calculations with an explicit notice when AI explanation fails, while preserving consent withdrawal.

@@ -24,6 +24,8 @@ Operational events expire after 30 days. Athlete-owned events follow account exp
 
 ## Scheduled checks and response
 
+Resend Free uses one account across environments. Transactional send attempts are reserved atomically against daily allocations of 80 production, 5 staging and 5 development. Unknown or recovery environments cannot send. The combined maximum is 90/day and 2,790 in a 31-day month. Excess work waits until the next UTC day without consuming a job attempt; uncertain prior sends still obey the 23-hour safety boundary. These allocations leave room under the account's published 100/day and 3,000/month limits, which also count inbound messages. Other applications or inbound mail can still consume that headroom. Provider quota rejection remains a visible delivery failure, never a paid upgrade. [Resend limits](https://resend.com/docs/knowledge-base/account-quotas-and-limits).
+
 `.github/workflows/operations.yml` checks staging and production every 15 minutes and supports manual dispatch. GitHub scheduling is best effort. Production also checks the public web health endpoint. Secrets are separate for each deployment. Logs contain only environment, timestamp and alert change counts because this repository is public.
 
 New alerts fail the workflow. Unchanged active alerts remain visible as `actionRequired: true` but do not repeatedly fail runs. A successful subsequent workflow does not prove every incident is resolved. Review `operations:latest` and confirm the alert disappears after correcting its cause. Recovered alerts are counted in the next check. Reachability and execution errors always fail the run.

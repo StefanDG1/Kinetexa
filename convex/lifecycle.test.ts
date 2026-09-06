@@ -6,10 +6,12 @@ import { api, internal } from "./_generated/api";
 const modules = import.meta.glob("./**/*.ts");
 describe("destructive lifecycle boundaries", () => {
   afterEach(() => {
+    vi.unstubAllEnvs();
     vi.clearAllTimers();
     vi.useRealTimers();
   });
   it("waits for the deletion grace period, recovers stale work and removes the recipient after confirmation acceptance", async () => {
+    vi.stubEnv("KINETEXA_ENVIRONMENT", "development");
     vi.useFakeTimers();
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "delete-with-notice" }),

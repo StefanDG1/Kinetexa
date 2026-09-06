@@ -1,4 +1,5 @@
-import { fitness } from "./analytics";
+import { fitness, metric, FITNESS_PARAMETERS } from "./analytics";
+import { VERSION } from "./model";
 import type { QueryActivity } from "./query";
 export const WIDGETS = [
   ["timeline", "Fitness, fatigue and form"],
@@ -120,12 +121,13 @@ export function dashboardData(
         0,
       ),
     }));
-  const lastSeven = daily.slice(-7).map((d) => d.load);
-  while (lastSeven.length < 7) lastSeven.unshift(0);
+  const lastSevenDays = daily.slice(-7).map((d) => (d.missing ? null : d.load));
+  while (lastSevenDays.length < 7) lastSevenDays.unshift(0);
+  const missingDays = lastSevenDays.filter((load) => load === null).length;
+  const lastSeven = lastSevenDays.map((load) => load ?? 0);
   const mean = lastSeven.reduce((a, b) => a + b, 0) / 7,
     sd = Math.sqrt(lastSeven.reduce((n, x) => n + (x - mean) ** 2, 0) / 7),
-    monotony =
-      sd > 0 && !daily.slice(-7).some((d) => d.missing) ? mean / sd : null,
+    monotony = sd > 0 && missingDays === 0 ? mean / sd : null,
     strain = monotony === null ? null : monotony * mean * 7;
   let streak = 0;
   let day = Date.parse(dayKey(to, timezone));
@@ -144,6 +146,41 @@ export function dashboardData(
     zones,
     monotony,
     strain,
+    explanations: {
+      fitness: {
+        definition: "Fitness, fatigue and form from daily activity load",
+        formula:
+          "state = previous state + (daily load − previous state) × (1 − exp(−1 / days)); form = prior-day fitness − prior-day fatigue",
+        inputs: { ...FITNESS_PARAMETERS, initialChronic: 0, initialAcute: 0 },
+        version: VERSION,
+        caveat:
+          "The curve contains each day's recorded load and previous states, including the selected range boundary. Missing activity load makes subsequent state unavailable until repaired. Zero initialization understates fitness when earlier history is absent. Mixed power, HR and pace load models may not be comparable.",
+      },
+      monotony: metric(
+        monotony,
+        "ratio",
+        "Seven-day training monotony",
+        "mean daily load / population standard deviation of daily load",
+        {
+          meanDailyLoad: missingDays ? null : mean,
+          standardDeviation: missingDays ? null : sd,
+          days: 7,
+          missingDays,
+          ...Object.fromEntries(
+            lastSevenDays.map((load, i) => [`day${i + 1}Load`, load]),
+          ),
+        },
+        "Uses the seven calendar days ending at the selected end date. Days without activities have zero recorded load; days with missing activity load make the result unavailable. Constant load has no finite estimate. This is a training description, not an injury prediction.",
+      ),
+      strain: metric(
+        strain,
+        "points",
+        "Seven-day training strain",
+        "seven-day load sum × training monotony",
+        { weeklyLoad: missingDays ? null : mean * 7, monotony },
+        "Unavailable when monotony or any activity load in the seven-day window is unavailable. This is a training description, not an injury prediction.",
+      ),
+    },
     streak,
     activeDays: new Set(selected.map((a) => dayKey(a.start, timezone))).size,
     missingLoad: selected.filter((a) => a.metrics.metrics.load.value === null)

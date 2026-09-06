@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Publish reproducible metric inputs and dashboard model explanations, preserve missing paired output and reject inverted HR thresholds before saving.
+
 - Separate running and cycling record defaults, add all-time/year/period API scopes, exclude future efforts and verify private exclusion/reinstatement without changing local effort data.
 
 - Pin CI actions to verified commit revisions, disable persisted checkout credentials and scan complete Git history with a checksum-verified, redacted Gitleaks release.

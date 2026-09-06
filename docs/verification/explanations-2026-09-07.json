@@ -1,0 +1,31 @@
+{
+  "verifiedAt": "2026-09-06T23:09:56.267Z",
+  "environment": "staging",
+  "owners": [
+    {
+      "account": 1,
+      "activities": 4,
+      "version": "0.4.0-alpha.6",
+      "numericResultsUnchanged": true,
+      "originalChecksumsAndEditsPreserved": true,
+      "previousCalculationVersionsRetained": true,
+      "explanationInputsPresent": true,
+      "dashboardModelInputsVerified": true,
+      "invalidThresholdsRejectedWithoutMutation": true
+    },
+    {
+      "account": 2,
+      "activities": 3,
+      "version": "0.4.0-alpha.6",
+      "numericResultsUnchanged": true,
+      "originalChecksumsAndEditsPreserved": true,
+      "previousCalculationVersionsRetained": true,
+      "explanationInputsPresent": true,
+      "dashboardModelInputsVerified": true,
+      "invalidThresholdsRejectedWithoutMutation": true
+    }
+  ],
+  "focusedTests": 139,
+  "formulaValuesChanged": false,
+  "independentSevenDayLoadCheckPassed": true
+}

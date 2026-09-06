@@ -45,3 +45,9 @@ Best-distance detection previously considered only starts on recorded samples. I
 ## Parser and normalization revision 0.4.0-alpha.4
 
 XML records now stream through `sax` instead of retaining a complete parsed tree twice. Standard escaped XML text decodes correctly; namespace prefixes, extensions, per-part metadata, source offsets and recording breaks remain supported. Normalization validates the canonical object directly, avoiding a complete JSON round trip. Empty XML extension objects are omitted when the source has none. Canonical object upload streams sample batches without retaining the whole serialized file. Activity formulas are unchanged from `0.4.0-alpha.2`; stored parser/normalization and result versions identify this new processing path.
+
+## Explanation metadata revision 0.4.0-alpha.6
+
+Stored metrics now include the scalar inputs needed to reproduce their value, including the moving-window fourth-power mean, weighted power, HR reserve and duration. Paired output with no measurements is null. Threshold settings reject maximum HR at or below resting HR before saving. The numerical training formulas are unchanged. Reprocessing publishes the richer explanations under this version and keeps prior results in calculation history. Parser/normalization stamps share the core version identifier; their algorithms are unchanged in this revision.
+
+Dashboard results include `explanations` for fitness, monotony and strain. Fitness reports the 42/7-day constants and zero initialization, alongside the returned daily input curve. Monotony reports all seven calendar-day loads, mean and population standard deviation. Strain reports weekly load and monotony. Missing activity load remains null in these inputs. The independent one-activity example of 100 points followed by six rest days has monotony `1/sqrt(6)` and strain `100/sqrt(6)`. These descriptions do not establish physiological prediction accuracy.

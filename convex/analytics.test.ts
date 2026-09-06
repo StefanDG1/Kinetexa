@@ -88,6 +88,20 @@ it("serves deterministic analytics with AI off, includes privately owned provide
     expect(overview.totals.distance).toBe(36000);
     expect(overview.selectedCount).toBe(1);
     expect("selected" in overview).toBe(false);
+    expect(overview.explanations.fitness.inputs).toMatchObject({
+      chronicDays: 42,
+      acuteDays: 7,
+    });
+    const preferences = {
+      thresholds: { restHr: 120, maxHr: 110 },
+      dashboard: [],
+      hiddenWidgets: [],
+      insightConsent: false,
+    };
+    await expect(
+      a.mutation(api.workspace.settings, preferences),
+    ).rejects.toThrow("Maximum heart rate must exceed resting heart rate");
+    expect((await a.query(api.athletes.current))?.thresholds).toBeUndefined();
   } finally {
     vi.clearAllTimers();
     vi.useRealTimers();

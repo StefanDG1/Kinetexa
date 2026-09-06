@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const VERSION = "0.4.0-alpha.4";
+export const VERSION = "0.4.0-alpha.6";
 export const sportSchema = z.enum([
   "running",
   "cycling",
@@ -77,6 +77,11 @@ export const thresholdsSchema = z
     powerZones: z.array(z.number().nonnegative()).max(10).optional(),
     paceZones: z.array(z.number().nonnegative()).max(10).optional(),
   })
+  .refine(
+    (t) =>
+      t.restHr === undefined || t.maxHr === undefined || t.maxHr > t.restHr,
+    "Maximum heart rate must exceed resting heart rate.",
+  )
   .refine(
     (t) =>
       ["hrZones", "powerZones", "paceZones"].every((k) => {

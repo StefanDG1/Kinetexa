@@ -106,3 +106,9 @@ Distance and pace records default to running; power records default to cycling. 
 `activities:get({ id })` returns the owned activity's complete local `metrics.bestDistances`, `powerCurve` and `paceCurve`, including start offsets. Local efforts remain inspectable when excluded from personal rankings. `activities:update` changes `excludedRecords` with the other editable details and updates the numerical index in the same transaction. Reinstating an activity restores its eligibility. Exclusion affects personal record rankings, not original files, canonical streams, load or distance totals.
 
 The existing records frontend still owns some period filtering; use the server's explicit scopes when revising it so local calendar boundaries match this API.
+
+## Metric explanations
+
+Activity `metrics.metrics` includes each derived value's definition, unit, formula, numeric inputs, missing-data caveat and stored algorithm version. `metrics.thresholds` preserves zone and threshold settings used in that calculation. Reprocess older activities to publish revised explanation metadata; provenance keeps their previous result versions.
+
+`analytics:dashboard` returns `explanations.fitness`, `explanations.monotony` and `explanations.strain`. The fitness entry documents the model constants; the existing `curve` contains dated load inputs and states. Monotony includes seven dated-by-position loads ending at the requested end date, with missing values distinct from recorded rest days. Its mean/standard deviation and strain's weekly sum remain null when a day has missing activity load. Read contributing activities through the owned paginated history for the corresponding period.

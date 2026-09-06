@@ -39,7 +39,7 @@ export function zones(
   }
   return seconds.some((x) => x > 0) ? seconds : null;
 }
-function metric(
+export function metric(
   value: number | null,
   unit: string,
   definition: string,
@@ -291,13 +291,13 @@ export function analyze(activity: Activity, thresholds: Thresholds = {}) {
       output += value * dt;
       squared += value * value * dt;
     }
-    const mean = seconds ? output / seconds : 0;
+    const mean = seconds ? output / seconds : null;
     return {
       seconds,
       mean,
       heartMean: seconds ? heart / seconds : null,
       cv:
-        mean && seconds
+        mean !== null && mean > 0 && seconds
           ? Math.sqrt(Math.max(0, squared / seconds - mean ** 2)) / mean
           : null,
       efficiency:
@@ -348,6 +348,10 @@ export function analyze(activity: Activity, thresholds: Thresholds = {}) {
             : "No eligible load model: configure a sport-appropriate threshold and provide sufficient sensor coverage.",
       {
         duration: activity.duration,
+        weightedPower: wp,
+        intensity,
+        reserve,
+        minimumCoverage: 0.9,
         ftp: powerThreshold ?? null,
         hrSeconds,
         powerSeconds,
@@ -366,18 +370,30 @@ export function analyze(activity: Activity, thresholds: Thresholds = {}) {
       "Heart-rate training impulse",
       "minutes × HR reserve × 0.64 × exp(1.92 × HR reserve)",
       {
+        duration: activity.duration,
         hr: hr ?? null,
         restHr: thresholds.restHr ?? null,
         maxHr: thresholds.maxHr ?? null,
+        reserve,
+        hrSeconds,
+        minimumCoverage: 0.9,
+        coefficient: 0.64,
+        exponentCoefficient: 1.92,
       },
-      "Uses mean HR and a fixed coefficient. Heat, medication and sensor error affect this estimate.",
+      "HR reserve is clamped to 0–1. Requires 90% HR coverage or a source average when no HR stream exists. Uses a fixed coefficient; heat, medication and sensor error affect this estimate.",
     ),
     weightedPower: metric(
       wp,
       "W",
       "Weighted power",
       "Fourth root of the mean fourth power of complete 30-second moving averages",
-      { windows: count },
+      {
+        windows: count,
+        meanFourthPower: count ? fourth / count : null,
+        windowSeconds: 30,
+        minimumWindows: 31,
+        maximumGapSeconds: 30,
+      },
       "Requires at least 60 seconds of recorded power. Gaps longer than 30 seconds are excluded.",
     ),
     intensity: metric(
@@ -385,7 +401,7 @@ export function analyze(activity: Activity, thresholds: Thresholds = {}) {
       "ratio",
       "Power intensity",
       "weighted power / configured FTP",
-      { ftp: powerThreshold ?? null },
+      { weightedPower: wp, ftp: powerThreshold ?? null },
       "A stale FTP changes this estimate.",
     ),
     variability: metric(
@@ -393,7 +409,7 @@ export function analyze(activity: Activity, thresholds: Thresholds = {}) {
       "ratio",
       "Power variability",
       "weighted power / mean power",
-      { power: power ?? null },
+      { weightedPower: wp, power: power ?? null },
       "Includes recorded zero power, excludes missing data.",
     ),
     efficiency: metric(
@@ -405,6 +421,7 @@ export function analyze(activity: Activity, thresholds: Thresholds = {}) {
         output: output ?? null,
         hr: pairedAll.heartMean,
         pairedSeconds: pairedAll.seconds,
+        duration: activity.duration,
         minimumCoverage: 0.9,
       },
       "Requires paired output and HR for at least 90% of elapsed time. Compare the same sport, terrain, conditions and workout intensity.",
@@ -417,6 +434,8 @@ export function analyze(activity: Activity, thresholds: Thresholds = {}) {
       {
         first: eff[0],
         second: eff[1],
+        duration: activity.duration,
+        minimumDuration: 1200,
         outputCoefficientOfVariation: pairedAll.cv,
         maximumVariation: 0.3,
         minimumCoverage: 0.9,
@@ -443,21 +462,26 @@ export function analyze(activity: Activity, thresholds: Thresholds = {}) {
     version: VERSION,
   };
 }
+export const FITNESS_PARAMETERS = { chronicDays: 42, acuteDays: 7 } as const;
 export function fitness(
   daily: { date: string; load: number | null }[],
-  chronicDays = 42,
-  acuteDays = 7,
+  chronicDays: number = FITNESS_PARAMETERS.chronicDays,
+  acuteDays: number = FITNESS_PARAMETERS.acuteDays,
 ) {
   let chronic = 0,
     acute = 0,
     complete = true;
   return daily.map((d) => {
+    const previousChronic = complete ? chronic : null;
+    const previousAcute = complete ? acute : null;
     const form = complete ? chronic - acute : null;
     if (d.load === null) complete = false;
     chronic += ((d.load ?? 0) - chronic) * (1 - Math.exp(-1 / chronicDays));
     acute += ((d.load ?? 0) - acute) * (1 - Math.exp(-1 / acuteDays));
     return {
       ...d,
+      previousChronic,
+      previousAcute,
       chronic: complete ? chronic : null,
       acute: complete ? acute : null,
       form,

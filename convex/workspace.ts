@@ -139,7 +139,9 @@ export const settings = mutation({
   },
   handler: async (ctx, args) => {
     const a = await requireAthlete(ctx);
-    const thresholds = thresholdsSchema.parse(args.thresholds);
+    const parsed = thresholdsSchema.safeParse(args.thresholds);
+    if (!parsed.success) throw new ConvexError(parsed.error.issues[0].message);
+    const thresholds = parsed.data;
     if (args.dashboard.length > 30 || args.hiddenWidgets.length > 30)
       throw new ConvexError("Too many dashboard widgets.");
     await ctx.db.patch(a._id, { ...args, thresholds: clean(thresholds) });

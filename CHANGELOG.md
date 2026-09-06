@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.4.0-alpha.4 - 2026-09-06
+
+Verified sharing boundaries and large XML import milestone. Production remains closed.
+
+- Replace full-tree XML parsing with maintained SAX record parsing, preserve source extensions and recording boundaries, and stream canonical JSON uploads. A hosted 28 MB/300,000-point GPX completed with unchanged original checksum; seven retained staging activities reprocessed with history and edits preserved.
+
 - Rate-limit public share projection atomically to 120 views per link per minute, retain no visitor identifiers and update the share page for mutation transport and retry guidance.
 
 - Align share preview/create validation, deduplicate legacy activity selections, enforce exact expiry, use profile calendar dates and expose selected-field totals with missing measurement counts.

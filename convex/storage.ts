@@ -7,6 +7,10 @@ import {
   HeadObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { Upload } from "@aws-sdk/lib-storage";
+import { Readable } from "node:stream";
+import { activityJsonChunks } from "../packages/core/activity-json";
+import type { Activity } from "../packages/core/model";
 function env(key: string) {
   const v = process.env[key];
   if (!v) throw new Error(`Storage configuration missing: ${key}`);
@@ -42,6 +46,26 @@ export async function putObject(
       ContentType: contentType,
     }),
   );
+}
+export async function putActivity(key: string, activity: Activity) {
+  const body = Readable.from(
+    (function* () {
+      for (const chunk of activityJsonChunks(activity))
+        yield Buffer.from(chunk);
+    })(),
+  );
+  await new Upload({
+    client: client(),
+    params: {
+      Bucket: env("R2_BUCKET"),
+      Key: key,
+      Body: body,
+      ContentType: "application/json",
+    },
+    queueSize: 1,
+    partSize: 5 * 1024 * 1024,
+    leavePartsOnError: false,
+  }).done();
 }
 export async function removeObject(key: string) {
   await client().send(

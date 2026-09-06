@@ -10,6 +10,7 @@ vi.mock("./storage", () => ({
   getObject: async () => storage.bytes,
   objectSize: async () => storage.bytes.length,
   putObject: storage.put,
+  putActivity: storage.put,
 }));
 beforeEach(() => {
   vi.useFakeTimers();

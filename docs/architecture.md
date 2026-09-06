@@ -53,3 +53,9 @@ Development, preview, staging and production must not silently share private dat
 Private operational events correlate job attempts and feed queue/failure/cost checks. Internal operator functions support inspection and guarded recovery. Production's backend release gate is independent of the web holding page. See [operations](operations.md) for implemented coverage and remaining tracing and alert gaps.
 
 Verify parsers and metrics with synthetic golden fixtures; use two athlete identities for authorization tests. Browser journeys cover onboarding, import, activity/map synchronization, saved analysis, privacy-safe sharing, subscription lifecycle and export/deletion. Public release also requires restore testing, privacy/retention configuration and operational alerts.
+
+## Large XML activities
+
+A SAX parser reads UTF-8 XML in 64 KiB chunks. It retains the selected track/activity metadata and one point record at a time, emitting canonical samples and discarding XML point trees immediately. Counting tracks uses the same parser without retaining records. DTD/entity declarations, malformed syntax, broken UTF-8 and nesting deeper than 64 elements fail explicitly. The existing 32 MiB activity, 48-hour and 500,000-sample limits remain.
+
+Canonical uploads emit standard JSON in sample batches through the existing AWS multipart uploader with one five-MiB part in flight. Import and reprocessing use the same writer. Failed uploads abort multipart state; account deletion and operational cleanup remain responsible for process-interrupted uploads. The retained original is unchanged and canonical data still downloads as ordinary JSON.

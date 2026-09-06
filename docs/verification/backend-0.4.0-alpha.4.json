@@ -1,0 +1,116 @@
+{
+  "milestone": "0.4.0-alpha.4",
+  "verifiedAt": "2026-09-06T21:09:09.291Z",
+  "tests": 125,
+  "productionRegistrationClosed": true,
+  "productionHealthPassed": true,
+  "uiDesignDeferredByUser": true,
+  "checks": {
+    "sharing": {
+      "verifiedAt": "2026-09-06T20:37:04.083Z",
+      "allFourKindsMatchPreview": true,
+      "selectedFieldTotalsVerified": true,
+      "missingMeasurementsExplicit": true,
+      "profileDatesVerified": true,
+      "invalidSelectionsRejected": true,
+      "otherOwnerDenied": true,
+      "expiryVerified": true,
+      "allTemporarySharesRevoked": 5
+    },
+    "sharingRate": {
+      "verifiedAt": "2026-09-06T20:44:33.838Z",
+      "concurrentReadsAccepted": 120,
+      "nextReadRateLimited": true,
+      "queryTransportBypassRejected": true,
+      "persistedCountExact": true,
+      "visitorIdentifiersStored": false
+    },
+    "sharingBrowser": {
+      "selectedStatisticsRendered": true,
+      "noindexNofollow": true,
+      "rateLimitMessageRendered": true,
+      "revokedLink404": true,
+      "temporaryLinkRevoked": true
+    },
+    "importMemoryBefore": {
+      "samples": 300000,
+      "inputBytes": 28168610,
+      "canonicalBytes": 44642686,
+      "parseCalculateSerializeMs": 6009,
+      "peakRssMiB": 860,
+      "heapUsedMiB": 517,
+      "host": "fresh-local-windows-node24",
+      "convexNodeMemoryLimitMiB": 512
+    },
+    "importMemoryAfter": {
+      "samples": 300000,
+      "inputBytes": 28168610,
+      "canonicalBytes": 39242686,
+      "parseCalculateSerializeMs": 3385,
+      "peakRssMiB": 390,
+      "heapUsedMiB": 202,
+      "host": "fresh-local-windows-node24",
+      "convexNodeMemoryLimitMiB": 512
+    },
+    "largeHostedImport": {
+      "verifiedAt": "2026-09-06T21:03:04.285Z",
+      "environment": "isolated-restore",
+      "inputBytes": 28168610,
+      "samples": 300000,
+      "canonicalRoundTrip": true,
+      "originalChecksumUnchanged": true,
+      "boundedStreamRead": true,
+      "elapsedMs": 71125,
+      "version": "0.4.0-alpha.4"
+    },
+    "stagingReprocessing": [
+      {
+        "account": 1,
+        "activities": 4,
+        "version": "0.4.0-alpha.4",
+        "originalChecksumsAndEditsPreserved": true,
+        "previousCalculationVersionsRetained": true
+      },
+      {
+        "account": 2,
+        "activities": 3,
+        "version": "0.4.0-alpha.4",
+        "originalChecksumsAndEditsPreserved": true,
+        "previousCalculationVersionsRetained": true
+      }
+    ],
+    "cleanRestore": {
+      "verifiedAt": "2026-09-06T21:06:10.746Z",
+      "environment": "isolated-restore",
+      "restoredObjectsVerified": 45,
+      "deletedOwnersExcluded": 4,
+      "ownedTablesChecked": 25,
+      "analyticsConsentOff": true,
+      "pendingExternalDeliveriesDisabled": true,
+      "temporaryExportsExpired": true,
+      "archiveTestDataRemoved": true,
+      "owners": [
+        {
+          "activities": 4,
+          "health": 1,
+          "version": "0.4.0-alpha.2",
+          "allStreamsReadable": true
+        },
+        {
+          "activities": 3,
+          "health": 12,
+          "version": "0.4.0-alpha.2",
+          "allStreamsReadable": true
+        }
+      ]
+    },
+    "largeFixtureRemoved": true,
+    "isolatedObjectCount": 45
+  },
+  "limits": [
+    "Memory measurements are local Windows Node 24 RSS, not hosted RSS.",
+    "Hosted large import verifies one GPX sample, not every device/format/limit combination.",
+    "Provider access, remaining operational/security coverage, external analytics and business release gates remain open."
+  ],
+  "operationalV1Complete": false
+}

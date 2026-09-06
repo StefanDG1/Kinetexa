@@ -41,3 +41,7 @@ Goal evidence uses the same time cutoff as its calculation and records method ve
 ## Activity calculation revision 0.4.0-alpha.2
 
 Best-distance detection previously considered only starts on recorded samples. It could miss a faster interval whose start falls between samples and whose end is recorded. The corrected two-pass scan considers both endpoint cases while retaining the same gap exclusions. In the independent fixture with consecutive speeds of 3, 6, 10 and 3 m/s over 30-second segments, the fastest 400 m ends at 90 seconds and takes `100/6 + 300/10 = 46.6666666667` seconds. The old result was 52 seconds. Interpolation still estimates motion between recorded points; this does not establish timing accuracy beyond the underlying recording. Reprocess retained activities to publish the correction, keeping prior calculation versions in history.
+
+## Parser and normalization revision 0.4.0-alpha.4
+
+XML records now stream through `sax` instead of retaining a complete parsed tree twice. Standard escaped XML text decodes correctly; namespace prefixes, extensions, per-part metadata, source offsets and recording breaks remain supported. Normalization validates the canonical object directly, avoiding a complete JSON round trip. Empty XML extension objects are omitted when the source has none. Canonical object upload streams sample batches without retaining the whole serialized file. Activity formulas are unchanged from `0.4.0-alpha.2`; stored parser/normalization and result versions identify this new processing path.

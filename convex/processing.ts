@@ -6,6 +6,7 @@ import { api, internal } from "./_generated/api";
 import {
   getObject,
   putObject,
+  putActivity,
   uploadUrl,
   downloadUrl,
   objectSize,
@@ -227,11 +228,7 @@ export const process = internalAction({
         }
         const metrics = analyze(activity, thresholds),
           streamKey = `${s.athleteId}/streams/${id}-import-${attempt}.json`;
-        await putObject(
-          streamKey,
-          Buffer.from(JSON.stringify(activity)),
-          "application/json",
-        );
+        await putActivity(streamKey, activity);
         const { samples: _samples, ...summary } = activity;
         await ctx.runMutation(
           internal.imports.complete,

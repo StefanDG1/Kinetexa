@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { getObject, putObject } from "./storage";
+import { getObject, putActivity } from "./storage";
 import {
   parseActivity,
   parseFitHealth,
@@ -99,11 +99,7 @@ export const source = internalAction({
           metrics = analyze(activity, thresholds),
           { samples: _samples, ...summary } = activity,
           streamKey = `${source.athleteId}/streams/${id}-reprocess-${attempt}.json`;
-        await putObject(
-          streamKey,
-          Buffer.from(JSON.stringify(activity)),
-          "application/json",
-        );
+        await putActivity(streamKey, activity);
         parsed = {
           metrics,
           summary,

@@ -1,5 +1,5 @@
 import FitParser from "fit-file-parser";
-import { XMLParser, XMLValidator } from "fast-xml-parser";
+import { scanActivityXml } from "./xml-records";
 import { unzipSync } from "fflate";
 import { gunzipSync } from "node:zlib";
 import { parse as parseCsv } from "csv-parse/sync";
@@ -114,39 +114,35 @@ export function normalize(input: Activity): Activity {
     throw new Error(
       "An individual activity must be at most 48 hours. Split longer recordings before importing.",
     );
-  return activitySchema.parse(
-    clean({
-      ...input,
-      samples,
-      duration,
-      distance: totalDistance,
-      movingDuration: input.movingDuration ?? (moving > 0 ? moving : undefined),
-      elevationGain:
-        input.elevationGain ??
-        (samples.some((s) => s.altitude !== undefined) ? gain : undefined),
-      elevationLoss:
-        input.elevationLoss ??
-        (samples.some((s) => s.altitude !== undefined) ? loss : undefined),
-      avgHr: weighted(samples, "hr") ?? input.avgHr,
-      maxHr:
-        input.maxHr ??
-        (samples.some((s) => s.hr !== undefined)
-          ? samples.reduce((max, s) => Math.max(max, s.hr ?? 0), 0)
-          : undefined),
-      avgPower: weighted(samples, "power") ?? input.avgPower,
-      avgCadence: weighted(samples, "cadence") ?? input.avgCadence,
-      avgSpeed:
-        weighted(samples, "speed") ??
-        input.avgSpeed ??
-        (input.distance && duration ? input.distance / duration : undefined),
-      avgPaceSecondsPerKm:
-        ["running", "walking"].includes(input.sport) &&
-        totalDistance &&
-        duration
-          ? (duration / totalDistance) * 1000
-          : undefined,
-    }),
-  );
+  return activitySchema.parse({
+    ...input,
+    samples,
+    duration,
+    distance: totalDistance,
+    movingDuration: input.movingDuration ?? (moving > 0 ? moving : undefined),
+    elevationGain:
+      input.elevationGain ??
+      (samples.some((s) => s.altitude !== undefined) ? gain : undefined),
+    elevationLoss:
+      input.elevationLoss ??
+      (samples.some((s) => s.altitude !== undefined) ? loss : undefined),
+    avgHr: weighted(samples, "hr") ?? input.avgHr,
+    maxHr:
+      input.maxHr ??
+      (samples.some((s) => s.hr !== undefined)
+        ? samples.reduce((max, s) => Math.max(max, s.hr ?? 0), 0)
+        : undefined),
+    avgPower: weighted(samples, "power") ?? input.avgPower,
+    avgCadence: weighted(samples, "cadence") ?? input.avgCadence,
+    avgSpeed:
+      weighted(samples, "speed") ??
+      input.avgSpeed ??
+      (input.distance && duration ? input.distance / duration : undefined),
+    avgPaceSecondsPerKm:
+      ["running", "walking"].includes(input.sport) && totalDistance && duration
+        ? (duration / totalDistance) * 1000
+        : undefined,
+  });
 }
 // Untrusted parser objects stop at this boundary and are validated into Activity.
 type Xml = Record<string, any>;
@@ -418,121 +414,87 @@ export async function parseActivity(
   }
   if (ext !== "gpx" && ext !== "tcx")
     throw new Error("Choose a FIT, TCX or GPX activity.");
-  const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-  if (/<!DOCTYPE|<!ENTITY/i.test(text))
-    throw new Error("XML declarations with entities are not allowed.");
-  if (XMLValidator.validate(text) !== true)
-    throw new Error("XML is malformed.");
-  const xml: Xml = new XMLParser({
-    ignoreAttributes: false,
-    removeNSPrefix: true,
-    processEntities: false,
-    parseTagValue: false,
-  }).parse(text);
-  let points: Xml[] = [],
-    title = name,
-    start: number,
-    s: Sport = "other",
-    duration = 0,
-    distance: number | undefined,
-    laps: Activity["laps"] = [];
-  if (ext === "gpx") {
-    const allTracks = list<Xml>(xml.gpx?.trk);
-    if (allTracks.length > 1 && partIndex === undefined)
-      throw new Error(
-        "File contains multiple tracks. Import every track independently.",
+  const samples: Sample[] = [];
+  let firstTime: unknown;
+  const { count, part } = scanActivityXml(
+    bytes,
+    ext,
+    partIndex ?? 0,
+    (p, breakBefore) => {
+      if (samples.length >= 500000)
+        throw new Error("Activity sample limit exceeded.");
+      const time = ext === "gpx" ? p.time : p.Time;
+      if (firstTime === undefined) firstTime = time;
+      const e = p.extensions?.TrackPointExtension ?? p.extensions ?? {};
+      const sample: Sample =
+        ext === "gpx"
+          ? {
+              t: timestamp(time),
+              breakBefore: breakBefore || undefined,
+              lat: num(p["@_lat"]),
+              lon: num(p["@_lon"]),
+              altitude: num(p.ele),
+              hr: num(e.hr),
+              cadence: num(e.cad),
+              power: num(e.power ?? p.extensions?.power),
+              temperature: num(e.atemp),
+              sourceFields: p.extensions ? clean(p.extensions) : undefined,
+            }
+          : {
+              t: timestamp(time),
+              breakBefore: breakBefore || undefined,
+              lat: num(p.Position?.LatitudeDegrees),
+              lon: num(p.Position?.LongitudeDegrees),
+              altitude: num(p.AltitudeMeters),
+              distance: num(p.DistanceMeters),
+              hr: num(p.HeartRateBpm?.Value),
+              cadence: num(p.Cadence),
+              speed: num(p.Extensions?.TPX?.Speed),
+              power: num(p.Extensions?.TPX?.Watts),
+              sourceFields: p.Extensions ? clean(p.Extensions) : undefined,
+            };
+      samples.push(
+        Object.fromEntries(
+          Object.entries(sample).filter(([, value]) => value !== undefined),
+        ) as Sample,
       );
-    const tracks = allTracks.slice(partIndex ?? 0, (partIndex ?? 0) + 1);
-    if (!tracks.length) throw new Error("No valid GPX track.");
-    title = tracks[0]?.name ?? name;
-    s = sport(tracks[0]?.type);
-    points = tracks.flatMap((t) =>
-      list<Xml>(t.trkseg).flatMap((seg) =>
-        list<Xml>(seg.trkpt).map((p, i) => ({ ...p, breakBefore: i === 0 })),
-      ),
-    );
-    start = timestamp(points[0]?.time);
-    const utcOffsetMinutes = explicitOffset(points[0]?.time);
-    return normalize({
-      title,
-      sport: s,
-      start,
-      utcOffsetMinutes,
-      timezoneSource:
-        utcOffsetMinutes === undefined ? undefined : "file-offset",
-      duration: 0,
-      samples: points.map((p) => {
-        const e = p.extensions?.TrackPointExtension ?? p.extensions ?? {};
-        return {
-          t: (timestamp(p.time) - start) / 1000,
-          breakBefore: p.breakBefore || undefined,
-          lat: num(p["@_lat"]),
-          lon: num(p["@_lon"]),
-          altitude: num(p.ele),
-          hr: num(e.hr),
-          cadence: num(e.cad),
-          power: num(e.power ?? p.extensions?.power),
-          temperature: num(e.atemp),
-          sourceFields: clean(p.extensions ?? {}),
-        };
-      }),
-      laps: [],
-    });
-  }
-  const activities = list<Xml>(
-    xml.TrainingCenterDatabase?.Activities?.Activity,
+    },
   );
-  if (activities.length > 1 && partIndex === undefined)
+  if (count > 1 && partIndex === undefined)
     throw new Error(
-      "File contains multiple activities. Import every activity independently.",
+      ext === "gpx"
+        ? "File contains multiple tracks. Import every track independently."
+        : "File contains multiple activities. Import every activity independently.",
     );
-  const a = activities[partIndex ?? 0];
-  if (!a) throw new Error("TCX contains no activity.");
-  s = sport(a["@_Sport"]);
-  const ls = list<Xml>(a.Lap);
-  points = ls.flatMap((l) =>
-    list<Xml>(l.Track).flatMap((t, trackIndex) =>
-      list<Xml>(t.Trackpoint).map((p, i) => ({
-        ...p,
-        breakBefore: trackIndex > 0 && i === 0,
-      })),
-    ),
-  );
-  start = timestamp(a.Id ?? ls[0]?.["@_StartTime"] ?? points[0]?.Time);
-  const utcOffsetMinutes = explicitOffset(
-    a.Id ?? ls[0]?.["@_StartTime"] ?? points[0]?.Time,
-  );
-  duration = ls.reduce((n, l) => n + (num(l.TotalTimeSeconds) ?? 0), 0);
-  distance = ls.some((l) => l.DistanceMeters !== undefined)
-    ? ls.reduce((n, l) => n + (num(l.DistanceMeters) ?? 0), 0)
-    : undefined;
-  laps = ls.map((l) => ({
-    start: (timestamp(l["@_StartTime"]) - start) / 1000,
-    duration: num(l.TotalTimeSeconds) ?? 0,
-    distance: num(l.DistanceMeters),
-  }));
+  if (!part)
+    throw new Error(
+      ext === "gpx" ? "No valid GPX track." : "TCX contains no activity.",
+    );
+  const ls = ext === "tcx" ? list<Xml>(part.Lap) : [];
+  const startTime =
+    ext === "gpx"
+      ? firstTime
+      : (part.Id ?? ls[0]?.["@_StartTime"] ?? firstTime);
+  const start = timestamp(startTime),
+    utcOffsetMinutes = explicitOffset(startTime);
+  for (const sample of samples) sample.t = (sample.t - start) / 1000;
   return normalize({
-    title,
-    sport: s,
+    title: ext === "gpx" ? (part.name ?? name) : name,
+    sport: sport(ext === "gpx" ? part.type : part["@_Sport"]),
     start,
     utcOffsetMinutes,
     timezoneSource: utcOffsetMinutes === undefined ? undefined : "file-offset",
-    sourceMetadata: clean({ creator: a.Creator ?? null }),
-    duration,
-    distance,
-    laps,
-    samples: points.map((p) => ({
-      t: (timestamp(p.Time) - start) / 1000,
-      breakBefore: p.breakBefore || undefined,
-      lat: num(p.Position?.LatitudeDegrees),
-      lon: num(p.Position?.LongitudeDegrees),
-      altitude: num(p.AltitudeMeters),
-      distance: num(p.DistanceMeters),
-      hr: num(p.HeartRateBpm?.Value),
-      cadence: num(p.Cadence),
-      speed: num(p.Extensions?.TPX?.Speed),
-      power: num(p.Extensions?.TPX?.Watts),
-      sourceFields: clean(p.Extensions ?? {}),
+    sourceMetadata:
+      ext === "tcx" ? clean({ creator: part.Creator ?? null }) : undefined,
+    duration: ls.reduce((n, l) => n + (num(l.TotalTimeSeconds) ?? 0), 0),
+    distance: ls.some((l) => l.DistanceMeters !== undefined)
+      ? ls.reduce((n, l) => n + (num(l.DistanceMeters) ?? 0), 0)
+      : undefined,
+    samples,
+    laps: ls.map((l) => ({
+      start: (timestamp(l["@_StartTime"]) - start) / 1000,
+      duration: num(l.TotalTimeSeconds) ?? 0,
+      distance: num(l.DistanceMeters),
     })),
   });
 }
@@ -541,20 +503,11 @@ export async function activityPartCount(name: string, bytes: Uint8Array) {
     throw new Error("Activity exceeds the 32 MiB file limit.");
   if (/\.fit$/i.test(name))
     return Math.max(1, list((await decodeFit(bytes)).sessions).length);
-  const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-  if (/<!DOCTYPE|<!ENTITY/i.test(text))
-    throw new Error("XML declarations with entities are not allowed.");
-  if (XMLValidator.validate(text) !== true)
-    throw new Error("XML is malformed.");
-  const xml = new XMLParser({
-    removeNSPrefix: true,
-    processEntities: false,
-  }).parse(text);
+  if (!/\.(gpx|tcx)$/i.test(name))
+    throw new Error("Choose a FIT, TCX or GPX activity.");
   return Math.max(
     1,
-    /\.gpx$/i.test(name)
-      ? list(xml.gpx?.trk).length
-      : list(xml.TrainingCenterDatabase?.Activities?.Activity).length,
+    scanActivityXml(bytes, /\.gpx$/i.test(name) ? "gpx" : "tcx", -1).count,
   );
 }
 export function unpackArchive(

@@ -2,11 +2,9 @@ import fs from "node:fs";
 import { parseEnv } from "node:util";
 import { execFileSync } from "node:child_process";
 const secrets = [];
-for (const file of [
-  ".env.local",
-  ".env.production.local",
-  ".env.staging.local",
-])
+for (const file of fs
+  .readdirSync(".")
+  .filter((name) => /^\.env(?:\..*)?\.local$/.test(name)))
   if (fs.existsSync(file))
     for (const [k, v] of Object.entries(
       parseEnv(fs.readFileSync(file, "utf8")),

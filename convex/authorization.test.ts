@@ -1,10 +1,15 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import schema from "./schema";
 import { api } from "./_generated/api";
 const modules = import.meta.glob("./**/*.ts");
 describe("athlete ownership and consent", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
   it("paginates the complete history and aggregates every page without crossing owners", async () => {
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "paged" }),

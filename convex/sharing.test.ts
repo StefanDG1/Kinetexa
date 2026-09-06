@@ -1,9 +1,14 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
-import { it, expect } from "vitest";
+import { it, expect, vi, beforeEach, afterEach } from "vitest";
 import schema from "./schema";
 import { api } from "./_generated/api";
 const modules = import.meta.glob("./**/*.ts");
+beforeEach(() => vi.useFakeTimers());
+afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
+});
 it("projects only selected public fields, masks geometry and revokes immediately", async () => {
   const t = convexTest(schema, modules),
     a = t.withIdentity({ subject: "owner" }),

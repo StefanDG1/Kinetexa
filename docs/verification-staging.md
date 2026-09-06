@@ -23,6 +23,14 @@ Twenty-six tests pass across core parsing/calculations, AI output validation, ow
 
 The production Next.js build and TypeScript checks passed for tagged milestone `v0.2.0-alpha.1`, commit `c2317ca`; its GitHub Checks workflow passed. Chrome review verified the revised dashboard at 1600px and 390px. Axe-core found no WCAG A/AA violations across twelve private pages at desktop and 390px mobile widths; no page overflow was detected. Manual keyboard/screen-reader checks, populated-state coverage and other browsers remain open. The mobile public-share review identified raw SI labels, prompting a readable-unit correction.
 
+## Independent restore drill
+
+On 6 September, a native staging snapshot containing 75 documents in 19 tables was imported into an empty European Convex deployment named `restore-drill`. A separate bucket and bucket-scoped credentials received all 13 referenced objects: eight originals, four canonical streams and one export. Each restored object was downloaded and its SHA-256 compared with the source. The database snapshot and object manifest were also stored off-machine in the restore bucket.
+
+A fresh authenticated API session against the restored deployment read four activities, one health measurement, one goal, one plan and one saved analysis. The restored total was 27,060.470230766892 metres, and the restored cycling stream returned 1,801 samples. The deleted synthetic account was absent from the snapshot. The restore deployment has no email, payment or AI service credentials.
+
+This verifies one real restore. Scheduled production backups, retention, deletion handling across older backups and recovery-time targets remain release work.
+
 ## Remaining release work
 
-Full requirement closure remains open, including provider approval and connector operations, large-history performance, complete comparison/AI/health criteria, policy review, backup restoration, operational alerts and the full UI/accessibility matrix. Production continues to serve the holding page. This evidence does not justify `v1.0.0`.
+Full requirement closure remains open, including provider approval and connector operations, large-history performance, complete comparison/AI/health criteria, policy review, backup automation and retention, operational alerts and the full UI/accessibility matrix. Production continues to serve the holding page. This evidence does not justify `v1.0.0`.

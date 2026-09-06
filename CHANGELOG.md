@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Verify an independent database and object-storage restore with authenticated reads and byte checks; keep backup automation and retention as open release gates.
+- Isolate scheduled background work in authorization and sharing tests so CI workers finish without email jobs running during teardown.
+
 - Paginate private activity history and authorized analytics rather than relying on one large response. Load complete totals and use smaller overview geometry.
 - Add custom-date/activity map filters, aligned activity-comparison charts, editable goals and correct lower-is-better race targets.
 - Preview the exact masked public fields before publishing a share; format shared distance and time with readable units.

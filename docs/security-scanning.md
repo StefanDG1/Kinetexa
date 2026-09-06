@@ -1,0 +1,11 @@
+# Security scanning
+
+The Checks workflow runs formatting, exact PRD coverage, TypeScript, the production build, focused tests, dependency vulnerability auditing, CodeQL and a full Git-history secret scan. It produces a CycloneDX SBOM. Gitleaks output is redacted; no scanner report containing matched source text is published as an artifact. Local private-configuration comparison still runs before commits because generic scanners do not recognize every service secret.
+
+GitHub's repository settings were reviewed on 7 September 2026. Private vulnerability reporting, Secret Protection and push protection were already enabled. Dependabot alerts and automatic security-update pull requests are now enabled. These updates create reviewable pull requests; they are not automatically merged. Notification receipt has not been verified.
+
+CI action references are pinned to the commit revisions resolved from their existing upstream v4/v3 tags on 7 September. Checkout does not persist its token in the workspace. The scanner uses Gitleaks 8.30.1 from the official release, with a fixed archive SHA-256 checked before extraction. Its MIT license permits this use. The maintainer describes Gitleaks as feature-complete with security-patch maintenance; reassess its support when updating the scanner. [Project and license](https://github.com/gitleaks/gitleaks), [pinned release](https://github.com/gitleaks/gitleaks/releases/tag/v8.30.1).
+
+The checksum-verified Windows release scanned the local Git history with zero findings. Hosted CI verification of the added scanner job is pending. The previous CodeQL finding concerned a hand-built analytics event UUID, not an access token. That generator now uses the runtime Web Crypto UUID API; hosted staging verified distinct event IDs with external capture disabled. Confirm closure in the default-branch CodeQL analysis after deployment.
+
+An analysis job succeeding does not imply zero open findings. Review the repository's security findings and assess each result. Resolve real issues at their source; document a false-positive decision with its data flow and security role. Do not broadly suppress tests, fixtures or historical commits to make a scanner pass. Remaining release work includes transitive license review, verified notification routing and the broader security journey matrix.

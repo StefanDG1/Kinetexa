@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Pin CI actions to verified commit revisions, disable persisted checkout credentials and scan complete Git history with a checksum-verified, redacted Gitleaks release.
+
 - Replace manual analytics-event UUID generation with the runtime Web Crypto UUID API; hosted checks preserve consent and keep external capture disabled.
 
 ## 0.4.0-alpha.5 - 2026-09-07

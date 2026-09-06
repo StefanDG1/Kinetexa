@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Bound webhook bodies while streaming and count UTF-8 bytes before signature verification.
+
 - Expose paginated full source/calculation provenance and explicit overview truncation flags; reject impossible dates in health history.
 
 - Seal verified uploads under checksum-addressed original keys before parsing, preventing upload URL replay from changing retained data; clean temporary copies after URL expiry.

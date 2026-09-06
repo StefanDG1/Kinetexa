@@ -162,3 +162,7 @@ A fresh synthetic account reproduced an upload URL overwriting an already proces
 ## Complete provenance reads
 
 A focused integration case retrieves 126 sources and 35 calculation snapshots through bounded pages, checks overview truncation flags and rejects another owner. Staging retrieved a retained cycling activity's source and six calculation versions with one-row pages; cross-owner reads failed. Health history now rejects impossible dates such as 30 February while accepting valid leap days. All 110 tests and TypeScript pass.
+
+## Webhook request bounds
+
+Both staging and the closed production backend reject oversized UTF-8 webhook payloads with HTTP 413 and forged signatures with HTTP 400. Properly signed Unicode payloads still verify for Stripe and Resend. The checks used ignored event types and made no payments or email sends. Request reading now enforces one million bytes while streaming, including missing or dishonest length headers. The 112-test suite includes chunk-boundary and read-cancellation cases.

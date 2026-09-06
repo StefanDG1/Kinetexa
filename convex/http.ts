@@ -1,14 +1,14 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { boundedRequestText } from "../packages/core/request-body";
 const http = httpRouter();
 http.route({
   path: "/resend",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
-    const body = await request.text();
-    if (body.length > 1000000)
-      return new Response("Too large", { status: 413 });
+    const body = await boundedRequestText(request);
+    if (body === null) return new Response("Too large", { status: 413 });
     try {
       await ctx.runAction(internal.emailActions.webhook, {
         body,
@@ -29,11 +29,8 @@ http.route({
   path: "/stripe",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
-    if (Number(request.headers.get("content-length") ?? 0) > 1000000)
-      return new Response("Too large", { status: 413 });
-    const body = await request.text();
-    if (body.length > 1000000)
-      return new Response("Too large", { status: 413 });
+    const body = await boundedRequestText(request);
+    if (body === null) return new Response("Too large", { status: 413 });
     try {
       await ctx.runAction(internal.billingActions.webhook, {
         body,

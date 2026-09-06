@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Align share preview/create validation, deduplicate legacy activity selections, enforce exact expiry, use profile calendar dates and expose selected-field totals with missing measurement counts.
+
 ## 0.4.0-alpha.3 - 2026-09-06
 
 Backend recovery, workspace, goal and webhook verification milestone. Production remains closed; provider access and remaining PRD acceptance gates stay open.

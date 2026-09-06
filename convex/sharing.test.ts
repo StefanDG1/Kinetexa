@@ -80,3 +80,174 @@ it("projects only selected public fields, masks geometry and revokes immediately
   await a.mutation(api.sharing.revoke, { id: sid });
   expect(await t.query(api.sharing.publicView, { token })).toBeNull();
 });
+
+it("keeps share preview and creation validation aligned and totals privacy-limited", async () => {
+  const t = convexTest(schema, modules),
+    owner = t.withIdentity({ subject: "share-owner" }),
+    stranger = t.withIdentity({ subject: "share-stranger" });
+  const athleteId = await owner.mutation(api.athletes.ensure);
+  await stranger.mutation(api.athletes.ensure);
+  const ids = await t.run(async (ctx) => {
+    await ctx.db.patch(athleteId, { timezone: "America/New_York" });
+    const sourceId = await ctx.db.insert("sources", {
+      athleteId,
+      name: "private.gpx",
+      key: "private/source",
+      bytes: 10,
+      status: "complete",
+      attempts: 1,
+      createdAt: 0,
+    });
+    const base = {
+      athleteId,
+      sourceId,
+      title: "Secret",
+      sport: "running",
+      start: Date.parse("2026-09-02T01:00:00Z"),
+      duration: 100,
+      summary: { avgHr: 160 },
+      metrics: {},
+      route: [],
+      streamKey: "private/stream",
+      notes: "Private note",
+      tags: [],
+      gearIds: [],
+      excludedRecords: false,
+      version: "test",
+      createdAt: 0,
+    };
+    return [
+      await ctx.db.insert("activities", { ...base, distance: 0 }),
+      await ctx.db.insert("activities", base),
+    ];
+  });
+  const valid = {
+    kind: "statistics",
+    activityIds: ids,
+    fields: ["distance", "elevation", "date"],
+  };
+  for (const invalid of [
+    { ...valid, kind: "unknown" },
+    { ...valid, fields: [] },
+    { ...valid, fields: ["notes"] },
+    { ...valid, fields: ["distance", "distance"] },
+    { ...valid, activityIds: [ids[0], ids[0]] },
+  ]) {
+    await expect(owner.query(api.sharing.preview, invalid)).rejects.toThrow();
+    await expect(
+      owner.mutation(api.sharing.create, { ...invalid, token: "b".repeat(64) }),
+    ).rejects.toThrow();
+  }
+  await expect(stranger.query(api.sharing.preview, valid)).rejects.toThrow();
+  await expect(
+    stranger.mutation(api.sharing.create, { ...valid, token: "b".repeat(64) }),
+  ).rejects.toThrow();
+  for (const [i, kind] of [
+    "activity",
+    "dashboard",
+    "statistics",
+    "map",
+  ].entries()) {
+    const selection = { ...valid, kind },
+      token = String(i).repeat(64);
+    const preview = await owner.query(api.sharing.preview, selection);
+    await owner.mutation(api.sharing.create, { ...selection, token });
+    expect(await t.query(api.sharing.publicView, { token })).toEqual(preview);
+    expect(preview.activities.map((a) => a.date)).toEqual([
+      "2026-09-01",
+      "2026-09-01",
+    ]);
+    expect(JSON.stringify(preview)).not.toMatch(
+      /Secret|Private|avgHr|private\//,
+    );
+    if (["dashboard", "statistics"].includes(kind))
+      expect(preview.totals).toEqual({
+        distance: { value: 0, measuredCount: 1, missingCount: 1, unit: "m" },
+        elevation: {
+          value: null,
+          measuredCount: 0,
+          missingCount: 2,
+          unit: "m",
+        },
+      });
+    else expect(preview.totals).toEqual({});
+  }
+  // Existing links also deduplicate, including links made by earlier versions.
+  await t.run(async (ctx) => {
+    const share = await ctx.db
+      .query("shares")
+      .withIndex("by_token", (q) => q.eq("token", "2".repeat(64)))
+      .unique();
+    await ctx.db.patch(share!._id, { activityIds: [ids[0], ids[0], ids[1]] });
+  });
+  expect(
+    (await t.query(api.sharing.publicView, { token: "2".repeat(64) }))
+      ?.activities,
+  ).toHaveLength(2);
+});
+
+it("reapplies changed privacy zones and denies expired or inactive-owner links immediately", async () => {
+  const t = convexTest(schema, modules),
+    owner = t.withIdentity({ subject: "mask-owner" });
+  const athleteId = await owner.mutation(api.athletes.ensure);
+  const id = await t.run(async (ctx) => {
+    const sourceId = await ctx.db.insert("sources", {
+      athleteId,
+      name: "private.gpx",
+      key: "private/source",
+      bytes: 10,
+      status: "complete",
+      attempts: 1,
+      createdAt: 0,
+    });
+    return ctx.db.insert("activities", {
+      athleteId,
+      sourceId,
+      title: "Private",
+      sport: "running",
+      start: 0,
+      duration: 100,
+      summary: {},
+      metrics: {},
+      route: Array.from({ length: 21 }, (_, i) => [i * 0.001, 0]),
+      streamKey: "private/stream",
+      notes: "",
+      tags: [],
+      gearIds: [],
+      excludedRecords: false,
+      version: "test",
+      createdAt: 0,
+    });
+  });
+  const token = "c".repeat(64),
+    expires = Date.now() + 60000;
+  await owner.mutation(api.sharing.create, {
+    token,
+    kind: "map",
+    activityIds: [id],
+    fields: ["route"],
+    expires,
+  });
+  const before = await t.query(api.sharing.publicView, { token });
+  expect((before?.activities[0].route as number[][][]).flat()).toContainEqual([
+    0.01, 0,
+  ]);
+  await owner.mutation(api.workspace.saveZone, {
+    name: "Private location",
+    lat: 0,
+    lon: 0.01,
+    radius: 300,
+  });
+  const after = await t.query(api.sharing.publicView, { token });
+  expect(
+    (after?.activities[0].route as number[][][]).flat(),
+  ).not.toContainEqual([0.01, 0]);
+  await t.run((ctx) => ctx.db.patch(athleteId, { status: "deleting" }));
+  expect(await t.query(api.sharing.publicView, { token })).toBeNull();
+  await t.run((ctx) => ctx.db.patch(athleteId, { status: "active" }));
+  vi.setSystemTime(expires - 1);
+  expect(await t.query(api.sharing.publicView, { token })).not.toBeNull();
+  vi.setSystemTime(expires);
+  // No scheduler has run: expiry must be enforced by the read itself.
+  expect(await t.query(api.sharing.publicView, { token })).toBeNull();
+});

@@ -4,6 +4,8 @@ These explicit user decisions take precedence over the original planning documen
 
 ## Full implementation authorization, 6 September 2026
 
+- The user explicitly approved sending the COROS clarification recorded in `provider-requests.md`, from the configured Kinetexa sender with the public contact inbox as reply-to. Resend accepted it on 6 September. This approval applies to that message; other external correspondence still requires explicit authorization.
+
 - Implementation priority update: the user asked to pause design work and focus on complete, correct backend features, data handling and API verification. Keep the existing frontend usable for workflows; the user will work on UI design once functionality is ready. This changes sequencing and ownership of visual polish, not backend scope or the operational verification requirement.
 
 - Public support and privacy contact: `contact@exponentialeducation.ro`, explicitly supplied by the user during implementation.

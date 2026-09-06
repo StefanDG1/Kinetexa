@@ -84,3 +84,11 @@ Deletion locks the account immediately and starts after fifteen minutes. Each de
 ## Complete provenance histories
 
 `activities:provenance` returns a bounded overview and `hasMore.sources` / `hasMore.history`. Use `activities:provenancePage({id,kind,paginationOpts})` for every retained source or calculation snapshot. `kind` is `sources` or `history`; follow the continuation cursor until `isDone`, even if a page is empty. Source pages contain at most 100 rows, history pages at most 25, with a 2 MB database read bound per page. Both APIs require ownership of the activity and exclude foreign-owner records.
+
+## Public sharing
+
+`sharing:preview` and `sharing:create` require one to 100 distinct owned activity IDs, a supported kind (`activity`, `dashboard`, `statistics`, `map`) and distinct explicitly selected public fields. Empty fields, unknown fields and duplicate activities are rejected. Public reads project only allowed fields, use the owner's local calendar date and apply current privacy masks on every request. Existing links with repeated IDs also return each activity once.
+
+For dashboard/statistics shares, `totals` contains only selected distance, duration or elevation fields. Each entry has `value`, `unit`, `measuredCount` and `missingCount`. No usable measurements gives `null`; recorded zero stays zero. A partial sum must be presented with its missing count. Other share kinds return empty totals. The existing frontend still calculates its own display summary; use these server totals during the user's frontend work.
+
+Preview and public reads use the same projection. `sharing:revoke` makes a link unavailable immediately. Reads also reject at the expiry instant and when the owner is no longer active, independently of scheduled cleanup. Revoked audit records remain in private history until account deletion.

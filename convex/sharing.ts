@@ -5,6 +5,7 @@ import { requireAthlete } from "./athletes";
 import { recordProductEvent } from "./telemetryModel";
 import { ownedActivity } from "./activities";
 import { maskedRoute, type Point } from "../packages/core/geo";
+import { dayKey } from "../packages/core/dashboard";
 import { rateLimit } from "./limits";
 import type { QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
@@ -17,6 +18,23 @@ const allowed = [
   "elevation",
   "route",
 ];
+type Selection = {
+  activityIds: Id<"activities">[];
+  fields: string[];
+  kind: string;
+};
+function validSelection(selection: Selection) {
+  return (
+    ["activity", "dashboard", "statistics", "map"].includes(selection.kind) &&
+    selection.activityIds.length > 0 &&
+    selection.activityIds.length <= 100 &&
+    new Set(selection.activityIds).size === selection.activityIds.length &&
+    selection.fields.length > 0 &&
+    selection.fields.length <= allowed.length &&
+    new Set(selection.fields).size === selection.fields.length &&
+    selection.fields.every((field) => allowed.includes(field))
+  );
+}
 export const create = mutation({
   args: {
     token: v.string(),
@@ -30,13 +48,11 @@ export const create = mutation({
     await rateLimit(ctx, a._id, "share", 30);
     if (
       !/^[a-f0-9]{64}$/.test(args.token) ||
-      !["activity", "dashboard", "statistics", "map"].includes(args.kind) ||
-      !args.activityIds.length ||
-      args.activityIds.length > 100 ||
-      args.fields.length > allowed.length ||
-      args.fields.some((f) => !allowed.includes(f)) ||
+      !validSelection(args) ||
       (args.expires !== undefined &&
-        (!Number.isFinite(args.expires) || args.expires <= Date.now()))
+        (!Number.isFinite(args.expires) ||
+          args.expires > 8640000000000000 ||
+          args.expires <= Date.now()))
     )
       throw new ConvexError("Check the shared fields and expiry.");
     if (
@@ -97,29 +113,27 @@ export const publicView = query({
       .query("shares")
       .withIndex("by_token", (q) => q.eq("token", token))
       .unique();
-    if (!s || s.revoked || (s.expires !== undefined && s.expires < Date.now()))
+    if (!s || s.revoked || (s.expires !== undefined && s.expires <= Date.now()))
       return null;
     const owner = await ctx.db.get(s.athleteId);
     if (!owner || owner.status !== "active") return null;
-    return projectShare(ctx, s.athleteId, s);
+    return projectShare(ctx, s.athleteId, s, owner.timezone);
   },
 });
 
 async function projectShare(
   ctx: QueryCtx,
   athleteId: Id<"athletes">,
-  selection: {
-    activityIds: Id<"activities">[];
-    fields: string[];
-    kind: string;
-  },
+  selection: Selection,
+  timezone: string,
 ) {
   const zones = await ctx.db
     .query("privacyZones")
     .withIndex("by_athlete", (q) => q.eq("athleteId", athleteId))
     .collect();
   const activities = [];
-  for (const id of selection.activityIds) {
+  // Old links may contain repeated IDs. Count each owned activity only once.
+  for (const id of new Set(selection.activityIds)) {
     const a = await ctx.db.get(id);
     if (!a || a.athleteId !== athleteId) continue;
     const fields: Record<string, unknown> = {};
@@ -128,15 +142,48 @@ async function projectShare(
         fields.route = (a.routeSegments ?? [a.route]).flatMap((segment) =>
           maskedRoute(segment as Point[], zones),
         );
-      else if (f === "date")
-        fields.date = new Date(a.start).toISOString().slice(0, 10);
+      else if (f === "date") fields.date = dayKey(a.start, timezone);
       else if (f === "elevation")
         fields.elevation = a.summary.elevationGain ?? null;
-      else fields[f] = (a as any)[f] ?? null;
+      else if (
+        f === "title" ||
+        f === "sport" ||
+        f === "distance" ||
+        f === "duration"
+      )
+        fields[f] = a[f] ?? null;
     }
     activities.push(fields);
   }
-  return { kind: selection.kind, activities };
+  const totals: Record<
+    string,
+    {
+      value: number | null;
+      measuredCount: number;
+      missingCount: number;
+      unit: string;
+    }
+  > = {};
+  if (["dashboard", "statistics"].includes(selection.kind)) {
+    for (const field of ["distance", "duration", "elevation"]) {
+      if (!selection.fields.includes(field)) continue;
+      const values = activities
+        .map((a) => a[field])
+        .filter(
+          (value): value is number =>
+            typeof value === "number" && Number.isFinite(value),
+        );
+      totals[field] = {
+        value: values.length
+          ? values.reduce((sum, value) => sum + value, 0)
+          : null,
+        measuredCount: values.length,
+        missingCount: activities.length - values.length,
+        unit: field === "duration" ? "s" : "m",
+      };
+    }
+  }
+  return { kind: selection.kind, activities, totals };
 }
 
 export const preview = query({
@@ -147,14 +194,9 @@ export const preview = query({
   },
   handler: async (ctx, args) => {
     const a = await requireAthlete(ctx);
-    if (
-      !args.activityIds.length ||
-      args.activityIds.length > 100 ||
-      !args.fields.length ||
-      args.fields.some((f) => !allowed.includes(f))
-    )
+    if (!validSelection(args))
       throw new ConvexError("Select activities and fields to preview.");
     for (const id of args.activityIds) await ownedActivity(ctx, id);
-    return projectShare(ctx, a._id, args);
+    return projectShare(ctx, a._id, args, a.timezone);
   },
 });

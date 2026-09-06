@@ -46,6 +46,8 @@ This file records implemented and verified outcomes separately. Unchecked items 
 
 ## Verification record
 
+Latest backend batch: operational job inspection, guarded retries, scheduled checks and OTLP job export are deployed; both scheduled environment checks passed. Production athlete APIs stay closed. Shared Resend send budgets total 90/day. Provider capability/approval gates reject six unapproved direct connections. Consented product telemetry and its deletion fence pass 101 focused tests and staged API checks; external PostHog capture remains off pending authenticated erasure-key setup. Full KPI queries, connector implementation/approval, production billing readiness and remaining PRD acceptance still prevent a V1 claim. UI polish remains with the user.
+
 ### Staging milestone, 6 September 2026
 
 See [staging verification](verification-staging.md) for hosted authentication, imports, reprocessing, canonical sensor data, deterministic analytics, workspace changes, export, sandbox Checkout, AI consent and signed email delivery evidence. Eighty-four focused tests pass. Permanent deletion and an independent restore have been verified with synthetic accounts. Remaining feature acceptance, model reliability and operational release gates remain open.

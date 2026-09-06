@@ -22,6 +22,10 @@ it("filters deleted athletes and every owned table from an actual snapshot while
         { _id: "retained", athleteId: "keep" },
       ],
       health: [{ athleteId: "gone", value: 123 }],
+      productEvents: [
+        { athleteId: "gone", event: "activity_viewed" },
+        { athleteId: "keep", event: "activity_viewed", status: "sending" },
+      ],
       messages: [{ athleteId: "gone", content: "Private" }],
       outbox: [
         {
@@ -54,7 +58,7 @@ it("filters deleted athletes and every owned table from an actual snapshot while
     );
     const before = [];
     await scanSnapshot(input, (table, row) => before.push({ table, row }));
-    expect(before).toHaveLength(10);
+    expect(before).toHaveLength(12);
     await scrubSnapshot(input, output, new Set(["gone"]));
     const after = [];
     await scanSnapshot(output, (table, row) => after.push({ table, row }));
@@ -63,6 +67,8 @@ it("filters deleted athletes and every owned table from an actual snapshot while
     expect(after.find((r) => r.table === "athletes").row).toEqual({
       _id: "keep",
       factsReady: false,
+      analyticsConsent: false,
+      analyticsConsentRevision: 1,
     });
     expect(
       strFromU8(
@@ -82,6 +88,9 @@ it("filters deleted athletes and every owned table from an actual snapshot while
       "delivery-unknown",
     );
     expect(after.find((r) => r.table === "sources").row.status).toBe("failed");
+    expect(after.find((r) => r.table === "productEvents").row.status).toBe(
+      "local-only",
+    );
     expect(
       strFromU8(
         unzipSync(fs.readFileSync(output))["exportParts/documents.jsonl"],

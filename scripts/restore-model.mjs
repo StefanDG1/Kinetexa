@@ -7,7 +7,12 @@ export function restoreRecord(table, row, deleted) {
   if (table === "exportParts" || table === "activityFacts") return null;
   if (table === "athletes") {
     const { factsCursor, ...rest } = row;
-    return { ...rest, factsReady: false };
+    return {
+      ...rest,
+      factsReady: false,
+      analyticsConsent: false,
+      analyticsConsentRevision: (row.analyticsConsentRevision ?? 0) + 1,
+    };
   }
   if (table === "lifecycleJobs" && row.kind === "export") {
     const { key, position, lease, partCount, ...rest } = row;
@@ -24,6 +29,11 @@ export function restoreRecord(table, row, deleted) {
     const { payload, ...rest } = row;
     return { ...rest, status: "delivery-unknown" };
   }
+  if (
+    table === "productEvents" &&
+    ["queued", "retrying", "sending"].includes(row.status)
+  )
+    return { ...row, status: "local-only" };
   if (table === "aiRuns" && row.status === "pending")
     return { ...row, status: "failed", finishedAt: Date.now() };
   if (table === "sources") {

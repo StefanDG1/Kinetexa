@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add consent-fenced product events, private history and bounded delivery retries; require verified external event erasure before final account deletion and prevent telemetry replay after recovery.
+
 - Expose explicit provider approval/terms gates and capability status, with a checked adapter contract and current Strava/Polar compliance notes.
 
 - Divide email send reservations across production, staging and development to keep their combined allowance within Resend Free.

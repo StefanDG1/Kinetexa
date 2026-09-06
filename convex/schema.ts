@@ -2,8 +2,22 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { exportPosition } from "./exportModel";
 import { operationKind, operationMeasures } from "./operationModel";
+import { productEvent } from "./telemetryModel";
 
 export default defineSchema({
+  productEvents: defineTable({
+    athleteId: v.id("athletes"),
+    event: productEvent,
+    at: v.number(),
+    uuid: v.string(),
+    consentRevision: v.number(),
+    status: v.string(),
+    attempts: v.number(),
+  })
+    .index("by_athlete", ["athleteId", "at"])
+    .index("by_athlete_event", ["athleteId", "event"])
+    .index("by_status", ["status", "at"])
+    .index("by_at", ["at"]),
   operationalStatus: defineTable({
     key: v.string(),
     at: v.number(),
@@ -39,6 +53,12 @@ export default defineSchema({
     healthProcessingRevision: v.optional(v.number()),
     emailSuppressed: v.optional(v.string()),
     analyticsConsent: v.boolean(),
+    analyticsConsentRevision: v.optional(v.number()),
+    productMilestones: v.optional(v.array(productEvent)),
+    telemetryTransmitted: v.optional(v.boolean()),
+    telemetryDistinctId: v.optional(v.string()),
+    telemetryDeletionRequested: v.optional(v.boolean()),
+    telemetryDeletionVerified: v.optional(v.boolean()),
     consentUpdatedAt: v.number(),
     onboarded: v.boolean(),
     status: v.union(v.literal("active"), v.literal("deleting")),

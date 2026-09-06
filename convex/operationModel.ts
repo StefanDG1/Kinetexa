@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { recordProductEvent } from "./telemetryModel";
 
 export const operationKind = v.union(
   v.literal("import"),
@@ -71,6 +72,23 @@ export async function recordOperation(
     at: Date.now(),
   };
   await ctx.db.insert("operationalEvents", event);
+  if (data.kind === "import" && data.outcome === "complete" && data.athleteId) {
+    const athlete = await ctx.db.get(data.athleteId);
+    if (athlete) {
+      await recordProductEvent(ctx, athlete, "import_completed");
+      const sourceId = ctx.db.normalizeId("sources", data.jobId);
+      const firstActivities = await ctx.db
+        .query("activities")
+        .withIndex("by_athlete", (q) => q.eq("athleteId", athlete._id))
+        .take(2);
+      if (
+        sourceId &&
+        (await ctx.db.get(sourceId))?.activityId &&
+        firstActivities.length === 1
+      )
+        await recordProductEvent(ctx, athlete, "first_activity_processed");
+    }
+  }
   console.info(
     JSON.stringify({
       event: "operation",

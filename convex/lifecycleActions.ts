@@ -44,6 +44,17 @@ export const deleteData = internalAction({
     try {
       await recordDeletion(athlete._id);
       if (
+        !(await ctx.runAction(internal.telemetryActions.erase, {
+          athleteId: athlete._id,
+        }))
+      ) {
+        await ctx.runMutation(internal.lifecycle.waitForAnalytics, {
+          id,
+          lease: job.lease,
+        });
+        return;
+      }
+      if (
         !job.notificationId &&
         !athlete.emailSuppressed &&
         process.env.RESEND_FROM_EMAIL

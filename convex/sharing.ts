@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireAthlete } from "./athletes";
+import { recordProductEvent } from "./telemetryModel";
 import { ownedActivity } from "./activities";
 import { maskedRoute, type Point } from "../packages/core/geo";
 import { rateLimit } from "./limits";
@@ -59,6 +60,7 @@ export const create = mutation({
       revoked: false,
       createdAt: Date.now(),
     });
+    await recordProductEvent(ctx, a, "share_created");
     if (args.expires !== undefined)
       await ctx.scheduler.runAt(args.expires, internal.sharing.expire, { id });
     return id;
@@ -78,6 +80,7 @@ export const revoke = mutation({
     const a = await requireAthlete(ctx),
       s = await ctx.db.get(id);
     if (s?.athleteId !== a._id) throw new ConvexError("Share unavailable.");
+    if (!s.revoked) await recordProductEvent(ctx, a, "share_revoked");
     await ctx.db.patch(id, { revoked: true });
     await ctx.db.insert("auditEvents", {
       athleteId: a._id,

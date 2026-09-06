@@ -5,6 +5,7 @@ import { querySchema, runQuery } from "../packages/core/query";
 import { thresholdsSchema, sportSchema, clean } from "../packages/core/model";
 import { rateLimit } from "./limits";
 import { internal } from "./_generated/api";
+import { recordProductEvent } from "./telemetryModel";
 
 export const overview = query({
   args: {},
@@ -177,6 +178,7 @@ export const saveGoal = mutation({
       await ctx.db.patch(id, args);
       return id;
     }
+    await recordProductEvent(ctx, a, "goal_created");
     return ctx.db.insert("goals", { ...args, athleteId: a._id });
   },
 });
@@ -212,6 +214,7 @@ export const savePlan = mutation({
       await ctx.db.patch(id, args);
       return id;
     }
+    await recordProductEvent(ctx, a, "calendar_workout_planned");
     return ctx.db.insert("plans", { ...args, athleteId: a._id });
   },
 });
@@ -233,8 +236,10 @@ export const saveAnalysis = mutation({
       if (old?.athleteId !== a._id)
         throw new ConvexError("Analysis unavailable.");
       await ctx.db.patch(id, data);
+      await recordProductEvent(ctx, a, "analysis_saved");
       return id;
     }
+    await recordProductEvent(ctx, a, "analysis_saved");
     return ctx.db.insert("analyses", { ...data, athleteId: a._id });
   },
 });
@@ -260,6 +265,7 @@ export const authorizeQuery = mutation({
   handler: async (ctx) => {
     const a = await requireAthlete(ctx);
     await rateLimit(ctx, a._id, "query", 100);
+    await recordProductEvent(ctx, a, "analysis_query_run");
   },
 });
 export const saveZone = mutation({

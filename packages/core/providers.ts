@@ -70,10 +70,7 @@ export interface ProviderAdapter {
     context: ProviderContext,
     cursor: string | null,
   ): Promise<ProviderPage<unknown>>;
-  handleWebhook?(args: {
-    body: Uint8Array;
-    headers: Headers;
-  }): Promise<{
+  handleWebhook?(args: { body: Uint8Array; headers: Headers }): Promise<{
     eventId: string;
     providerUserId: string;
     activityIds: string[];

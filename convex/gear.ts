@@ -3,6 +3,7 @@ import { paginationOptsValidator } from "convex/server";
 import { action, mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
 import { requireAthlete } from "./athletes";
+import { recordProductEvent } from "./telemetryModel";
 import { rateLimit } from "./limits";
 import type { Doc } from "./_generated/dataModel";
 
@@ -82,6 +83,7 @@ export const saveReminder = mutation({
       ).length >= 500
     )
       throw new ConvexError("The account limit is 500 maintenance reminders.");
+    await recordProductEvent(ctx, a, "gear_maintenance_created");
     return ctx.db.insert("gearReminders", {
       ...args,
       title: args.title.trim(),

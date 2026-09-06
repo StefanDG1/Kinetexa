@@ -38,6 +38,8 @@ Numerical analytics and gear usage traverse this index in byte-bounded pages. Da
 
 ## Environment separation
 
+Consented product events use a separate private outbox and strict event taxonomy. Consent revisions invalidate pending external sends. A possible transmission creates an erasure obligation before the network request. Final account purge requires a verified zero event count at the external analytics service; asynchronous erasure is a visible, retryable deletion phase. Restore disables consent and pending deliveries. See [product analytics](product-analytics.md).
+
 Development, preview, staging and production must not silently share private datasets or payment modes. Production requires verified WorkOS callbacks, a production Convex deployment, scoped private storage, live Stripe prices and signed webhook delivery. Configuration errors fail closed instead of opening a demonstration account.
 
 ## Release evidence

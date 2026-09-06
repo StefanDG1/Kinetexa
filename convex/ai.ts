@@ -15,6 +15,7 @@ import { evidenceSchema } from "../packages/core/ai";
 import { dayKey } from "../packages/core/dashboard";
 import { hasPremium } from "../packages/core/entitlements";
 import { recordOperation } from "./operationModel";
+import { recordProductEvent } from "./telemetryModel";
 
 export async function requireRun(ctx: QueryCtx, id: Id<"aiRuns">) {
   const run = await ctx.db.get(id),
@@ -118,6 +119,8 @@ export const begin = internalMutation({
         runId,
       });
     await ctx.scheduler.runAfter(35000, internal.ai.expire, { runId });
+    if (purpose === "ask")
+      await recordProductEvent(ctx, a, "ai_question_asked");
     return { runId, timezone: a.timezone, athleteId: a._id };
   },
 });

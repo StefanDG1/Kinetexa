@@ -10,6 +10,7 @@ import { rateLimit } from "./limits";
 import { internal } from "./_generated/api";
 import { hasPremium, needsBillingPortal } from "../packages/core/entitlements";
 import { recordOperation } from "./operationModel";
+import { recordProductEvent } from "./telemetryModel";
 export const current = query({
   args: {},
   handler: async (ctx) => {
@@ -106,6 +107,11 @@ export const apply = internalMutation({
         periodEnd: args.periodEnd,
         updatedAt: args.observedAt,
       });
+      if (!hasPremium(row) && hasPremium({ ...row, ...args })) {
+        const athlete = await ctx.db.get(row.athleteId);
+        if (athlete)
+          await recordProductEvent(ctx, athlete, "premium_activated");
+      }
       await recordOperation(ctx, {
         kind: "billing",
         jobId: args.eventId,
@@ -183,6 +189,7 @@ export const reserveCheckout = internalMutation({
       expiresAt: Math.floor(Date.now() / 1000) * 1000 + 3600000,
     };
     await ctx.db.patch(row._id, { checkout });
+    await recordProductEvent(ctx, a, "premium_checkout_started");
     return {
       customerId: row.customerId,
       ...checkout,

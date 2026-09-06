@@ -14,6 +14,7 @@ import { dayKey } from "../packages/core/dashboard";
 import { paginationOptsValidator } from "convex/server";
 import { publishFacts } from "./activityFacts";
 import { recordOperation } from "./operationModel";
+import { recordProductEvent } from "./telemetryModel";
 
 export const page = query({
   args: { paginationOpts: paginationOptsValidator },
@@ -94,6 +95,7 @@ export const enqueue = mutation({
       queuedAt: Date.now(),
     });
     await ctx.scheduler.runAfter(0, internal.processing.process, { id });
+    await recordProductEvent(ctx, a, "import_started");
   },
 });
 export const get = internalQuery({

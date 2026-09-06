@@ -2,6 +2,12 @@ import { cronJobs } from "convex/server";
 import { internal } from "./_generated/api";
 const crons = cronJobs();
 crons.daily(
+  "expire local product events",
+  { hourUTC: 4, minuteUTC: 15 },
+  internal.telemetry.prune,
+  {},
+);
+crons.daily(
   "expire operational records",
   { hourUTC: 4, minuteUTC: 0 },
   internal.operations.prune,

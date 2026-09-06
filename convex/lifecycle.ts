@@ -10,6 +10,7 @@ import { requireAthlete } from "./athletes";
 import { rateLimit } from "./limits";
 import { recordOperation } from "./operationModel";
 export const tables = [
+  "productEvents",
   "activities",
   "operationalEvents",
   "activityFacts",
@@ -153,6 +154,10 @@ export const purgeBatch = internalMutation({
       job.lease !== lease
     )
       throw new ConvexError("Deletion attempt unavailable.");
+    if (athlete.telemetryTransmitted && !athlete.telemetryDeletionVerified)
+      throw new ConvexError(
+        "Analytics erasure must be verified before final deletion.",
+      );
     for (const table of tables) {
       const rows = await ctx.db
         .query(table)
@@ -220,6 +225,29 @@ export const claimDeletion = internalMutation({
       { id, lease },
     );
     return { job: { ...job, lease, attempts, notificationId }, athlete };
+  },
+});
+export const waitForAnalytics = internalMutation({
+  args: { id: v.id("lifecycleJobs"), lease: v.number() },
+  handler: async (ctx, { id, lease }) => {
+    const job = await ctx.db.get(id);
+    if (
+      !job ||
+      job.kind !== "deletion" ||
+      job.status !== "running" ||
+      job.lease !== lease
+    )
+      return;
+    await ctx.db.patch(id, {
+      status: "retrying",
+      attempts: Math.max(0, (job.attempts ?? 1) - 1),
+      error: "Waiting for analytics event erasure to complete.",
+    });
+    await ctx.scheduler.runAfter(
+      30 * 60000,
+      internal.lifecycleActions.deleteData,
+      { id },
+    );
   },
 });
 export const prepareNotification = internalMutation({

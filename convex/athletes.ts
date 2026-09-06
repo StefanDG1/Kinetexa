@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { QueryCtx } from "./_generated/server";
+import { recordProductEvent } from "./telemetryModel";
 export function appOpen() {
   return (
     process.env.KINETEXA_ENVIRONMENT !== "production" ||
@@ -41,6 +42,10 @@ export const current = query({
       workosUserId: _user,
       factsReady: _factsReady,
       factsCursor: _factsCursor,
+      telemetryDistinctId: _telemetryDistinctId,
+      telemetryTransmitted: _telemetryTransmitted,
+      telemetryDeletionRequested: _telemetryDeletionRequested,
+      telemetryDeletionVerified: _telemetryDeletionVerified,
       ...profile
     } = athlete;
     return profile;
@@ -116,7 +121,16 @@ export const updateProfile = mutation({
       aiConsentRevision:
         (athlete.aiConsentRevision ?? 0) +
         Number(athlete.aiConsent !== args.aiConsent),
+      analyticsConsentRevision:
+        (athlete.analyticsConsentRevision ?? 0) +
+        Number(athlete.analyticsConsent !== args.analyticsConsent),
     });
+    if (!athlete.onboarded)
+      await recordProductEvent(
+        ctx,
+        (await ctx.db.get(athlete._id))!,
+        "onboarding_completed",
+      );
     await ctx.db.insert("auditEvents", {
       athleteId: athlete._id,
       action: "profile_and_consent_updated",

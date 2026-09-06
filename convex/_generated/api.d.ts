@@ -43,6 +43,9 @@ import type * as reprocessing from "../reprocessing.js";
 import type * as reprocessingActions from "../reprocessingActions.js";
 import type * as sharing from "../sharing.js";
 import type * as storage from "../storage.js";
+import type * as telemetry from "../telemetry.js";
+import type * as telemetryActions from "../telemetryActions.js";
+import type * as telemetryModel from "../telemetryModel.js";
 import type * as workspace from "../workspace.js";
 
 import type {
@@ -87,6 +90,9 @@ declare const fullApi: ApiFromModules<{
   reprocessingActions: typeof reprocessingActions;
   sharing: typeof sharing;
   storage: typeof storage;
+  telemetry: typeof telemetry;
+  telemetryActions: typeof telemetryActions;
+  telemetryModel: typeof telemetryModel;
   workspace: typeof workspace;
 }>;
 

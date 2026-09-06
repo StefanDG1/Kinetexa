@@ -59,6 +59,8 @@ Deletion locks the account immediately and starts after fifteen minutes. Each de
 
 ## Verification evidence
 
+`telemetry:track({ event })` accepts the documented frontend event names only after optional analytics consent. `telemetry:page` returns the owner's paginated event/status history. Server-generated events cannot be spoofed through the client endpoint. External capture remains gated on verified erasure configuration. See `product-analytics.md`.
+
 `providers:catalog` returns file-import formats and each direct provider's approval/terms status and unverified capabilities. `providers:connect` rejects all currently gated direct connections. See `provider-compliance.md`; persistent sync is still an external and implementation dependency.
 
 `docs/verification-staging.md` records hosted outcomes. Automated tests use synthetic fixtures and independent owners. Live verification accounts, tokens, temporary source files and detailed operational artifacts remain in ignored local storage.

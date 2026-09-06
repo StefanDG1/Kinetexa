@@ -67,13 +67,7 @@ export async function recordProductEvent(
     status: "queued",
     attempts: 0,
     consentRevision: athlete.analyticsConsentRevision ?? 0,
-    uuid: "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
-      /[xy]/g,
-      (character) => {
-        const value = Math.floor(Math.random() * 16);
-        return (character === "x" ? value : (value & 3) | 8).toString(16);
-      },
-    ),
+    uuid: crypto.randomUUID(),
   });
   await ctx.scheduler.runAfter(0, internal.telemetryActions.send, { id });
   const first = firstEvents[event];

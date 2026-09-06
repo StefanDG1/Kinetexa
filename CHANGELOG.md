@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Replace manual analytics-event UUID generation with the runtime Web Crypto UUID API; hosted checks preserve consent and keep external capture disabled.
+
 ## 0.4.0-alpha.5 - 2026-09-07
 
 Verified authentication, archive-integrity and security-policy milestone. Production registration remains closed; this is not operational V1.

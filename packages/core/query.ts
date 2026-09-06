@@ -1,50 +1,71 @@
 import { z } from "zod";
 import { dayKey } from "./dashboard";
-export const querySchema = z.object({
-  sport: z.string().optional(),
-  timezone: z.string().optional(),
-  aiEligibleOnly: z.boolean().optional(),
-  hasRoute: z.boolean().optional(),
-  from: z.number().optional(),
-  to: z.number().optional(),
-  gear: z.string().optional(),
-  tag: z.string().max(80).optional(),
-  filters: z
-    .array(
-      z.object({
-        field: z.enum([
-          "duration",
-          "distance",
-          "elevationGain",
-          "avgHr",
-          "maxHr",
-          "avgPower",
-          "weightedPower",
-          "avgSpeed",
-        ]),
-        op: z.enum(["gt", "lt", "eq"]),
-        value: z.number().finite(),
-      }),
-    )
-    .max(20),
-  metric: z.enum([
-    "count",
-    "duration",
-    "distance",
-    "elevationGain",
-    "avgHr",
-    "maxHr",
-    "avgPower",
-    "weightedPower",
-    "avgSpeed",
-    "load",
-    "efficiency",
-    "decoupling",
-  ]),
-  aggregate: z.enum(["count", "sum", "average", "min", "max", "median"]),
-  group: z.enum(["day", "week", "month", "year", "sport", "gear", "none"]),
-  visual: z.enum(["number", "line", "bar", "table"]),
-});
+const timestamp = z
+  .number()
+  .finite()
+  .min(-8640000000000000)
+  .max(8640000000000000);
+export const querySchema = z
+  .object({
+    sport: z.string().max(80).optional(),
+    timezone: z
+      .string()
+      .max(100)
+      .refine((timeZone) => {
+        try {
+          new Intl.DateTimeFormat("en", { timeZone });
+          return true;
+        } catch {
+          return false;
+        }
+      }, "Choose a valid time zone.")
+      .optional(),
+    aiEligibleOnly: z.boolean().optional(),
+    hasRoute: z.boolean().optional(),
+    from: timestamp.optional(),
+    to: timestamp.optional(),
+    gear: z.string().max(256).optional(),
+    tag: z.string().max(80).optional(),
+    filters: z
+      .array(
+        z.object({
+          field: z.enum([
+            "duration",
+            "distance",
+            "elevationGain",
+            "avgHr",
+            "maxHr",
+            "avgPower",
+            "weightedPower",
+            "avgSpeed",
+          ]),
+          op: z.enum(["gt", "lt", "eq"]),
+          value: z.number().finite(),
+        }),
+      )
+      .max(20),
+    metric: z.enum([
+      "count",
+      "duration",
+      "distance",
+      "elevationGain",
+      "avgHr",
+      "maxHr",
+      "avgPower",
+      "weightedPower",
+      "avgSpeed",
+      "load",
+      "efficiency",
+      "decoupling",
+    ]),
+    aggregate: z.enum(["count", "sum", "average", "min", "max", "median"]),
+    group: z.enum(["day", "week", "month", "year", "sport", "gear", "none"]),
+    visual: z.enum(["number", "line", "bar", "table"]),
+  })
+  .refine(
+    (q) => q.from === undefined || q.to === undefined || q.from <= q.to,
+    "The end date must follow the start date.",
+  );
 export type AnalysisQuery = z.infer<typeof querySchema>;
 export type QueryActivity = {
   aiEligible?: boolean;

@@ -18,6 +18,7 @@ import {
 } from "../packages/core/import";
 import { analyze } from "../packages/core/analytics";
 import { clean } from "../packages/core/model";
+import { streamView } from "../packages/core/stream-view";
 import { route, routeSegments } from "../packages/core/geo";
 import { aggregateHealthFile } from "../packages/core/health";
 import { withTimeContext } from "../packages/core/time-context";
@@ -44,15 +45,13 @@ export const stream = action({
     const activity: import("../packages/core/model").Activity = JSON.parse(
       new TextDecoder().decode(await getObject(a.streamKey)),
     );
-    const selected = activity.samples.filter(
-      (s) => s.t >= (args.from ?? 0) && s.t <= (args.to ?? activity.duration),
-    );
-    const step = Math.max(1, Math.ceil(selected.length / 2000));
     return {
       ...activity,
-      samples: selected
-        .filter((_, i) => i % step === 0 || i === selected.length - 1)
-        .map(({ sourceFields: _sourceFields, ...sample }) => sample),
+      samples: streamView(
+        activity.samples,
+        args.from ?? 0,
+        args.to ?? activity.duration,
+      ),
     };
   },
 });

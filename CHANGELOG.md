@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Preserve recording gaps in bounded chart streams and reject invalid saved-query calendar inputs.
+
 - Add private daily database/object backups, incremental retention and checksum-verified restore preparation with an independent deletion ledger.
 - Recover interrupted deletion attempts and send a confirmation only after removal; erase its cached recipient after provider acceptance.
 

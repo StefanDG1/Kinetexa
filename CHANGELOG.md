@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.4.0-alpha.6 - 2026-09-07
+
+Verified records, metric explanations and security scanning milestone. Production registration remains closed; operational V1 gates remain open.
+
 - Publish reproducible metric inputs and dashboard model explanations, preserve missing paired output and reject inverted HR thresholds before saving.
 
 - Separate running and cycling record defaults, add all-time/year/period API scopes, exclude future efforts and verify private exclusion/reinstatement without changing local effort data.

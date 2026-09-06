@@ -1,0 +1,86 @@
+{
+  "version": "0.4.0-alpha.6",
+  "verifiedAt": "2026-09-06T23:13:02.435Z",
+  "sourceCommit": "2abade5963bee73fbcf69d49b524629e5c87046a",
+  "focusedTests": 139,
+  "ci": {
+    "secretScan": "passed",
+    "verification": "passed",
+    "codeql": "passed"
+  },
+  "backendDeployments": {
+    "staging": "insightful-duck-620",
+    "production": "dusty-bandicoot-567"
+  },
+  "records": {
+    "verifiedAt": "2026-09-06T22:58:49.314Z",
+    "environment": "isolated-restore",
+    "importedTcxActivities": 6,
+    "allTimeScope": true,
+    "currentYearUsesAthleteTimezone": true,
+    "explicitPeriodAndComparison": true,
+    "futureEffortsExcluded": true,
+    "defaultSportsSeparated": true,
+    "explicitSportSupported": true,
+    "exclusionUpdatesRecordIndex": true,
+    "localEffortsPreserved": true,
+    "reinstatementVerified": true,
+    "recordedZeroAndMissingDistinct": true,
+    "fixturesRemoved": true,
+    "cleanup": {
+      "restoredObjects": 45,
+      "restoredDocuments": 369,
+      "remainingCanonicalActivities": 7,
+      "streamsReadable": 7,
+      "ownedTablesChecked": 26
+    },
+    "focusedTests": {
+      "suiteTotal": 137,
+      "recordAuthorizationAndCalendarCasesPassed": true
+    },
+    "stagingScopeReadbackVerified": true
+  },
+  "explanations": {
+    "verifiedAt": "2026-09-06T23:09:56.267Z",
+    "environment": "staging",
+    "owners": [
+      {
+        "account": 1,
+        "activities": 4,
+        "version": "0.4.0-alpha.6",
+        "numericResultsUnchanged": true,
+        "originalChecksumsAndEditsPreserved": true,
+        "previousCalculationVersionsRetained": true,
+        "explanationInputsPresent": true,
+        "dashboardModelInputsVerified": true,
+        "invalidThresholdsRejectedWithoutMutation": true
+      },
+      {
+        "account": 2,
+        "activities": 3,
+        "version": "0.4.0-alpha.6",
+        "numericResultsUnchanged": true,
+        "originalChecksumsAndEditsPreserved": true,
+        "previousCalculationVersionsRetained": true,
+        "explanationInputsPresent": true,
+        "dashboardModelInputsVerified": true,
+        "invalidThresholdsRejectedWithoutMutation": true
+      }
+    ],
+    "focusedTests": 139,
+    "formulaValuesChanged": false,
+    "independentSevenDayLoadCheckPassed": true
+  },
+  "security": {
+    "allHistorySecretScanPassed": true,
+    "defaultBranchCodeqlOpenFindings": 0,
+    "dependabotAlertsAndSecurityUpdatesEnabled": true
+  },
+  "limits": [
+    "Frontend deployment and release commit checks are recorded separately.",
+    "Record calendar scopes require frontend adoption; visual polish remains deferred to the user.",
+    "Six persistent provider connectors remain disabled pending access/terms and implementation.",
+    "Device golden fixtures, broader performance/security journeys, alert receipt, external analytics erasure and business gates remain open."
+  ],
+  "operationalV1Complete": false
+}

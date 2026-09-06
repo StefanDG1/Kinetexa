@@ -46,6 +46,8 @@ This file records implemented and verified outcomes separately. Unchecked items 
 
 ## Verification record
 
+`0.4.0-alpha.6` has 139 passing focused tests. Hosted TCX imports verified record scopes, sport isolation and exclusion/reinstatement. Seven staging activities gained reproducible metric inputs with unchanged numeric results and retained originals/history. CI now scans complete Git history; the default-branch CodeQL finding is resolved. Production remains closed. [Evidence and limitations](verification/backend-0.4.0-alpha.6.json).
+
 Latest backend milestone, `0.4.0-alpha.5`: 136 focused tests; hosted logout/refresh, post-deletion token rejection and pre-registration security-record lifecycle; strict ZIP integrity checks and hosted migration verification; nonce CSP, a working shared route map, browser injection blocking and verified public security contact. Both latest synthetic accounts and the never-registered identity were removed. Production registration remains closed. [Evidence and limits](verification/backend-0.4.0-alpha.5.json).
 
 Previous backend milestone, `0.4.0-alpha.4`: 125 tests; server-calculated, privacy-limited share totals; exact expiry and per-link read limits; real-browser share/limit/revocation checks; bounded XML record parsing and canonical uploads; a hosted 28 MB GPX round trip; seven retained staging activities reprocessed without losing edits or history; and a clean restore after fixture removal. Production registration remains closed. [Evidence and limits](verification/backend-0.4.0-alpha.4.json).

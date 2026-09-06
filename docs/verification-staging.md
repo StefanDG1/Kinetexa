@@ -4,6 +4,8 @@ This records prerelease evidence, not completion of all V1 acceptance criteria. 
 
 ## Latest backend checkpoint
 
+`0.4.0-alpha.6` has 139 passing focused tests. Hosted TCX imports verified record scopes, sport isolation and exclusion/reinstatement. Seven staging activities gained reproducible metric inputs with unchanged numeric results and retained originals/history. CI now scans complete Git history; the default-branch CodeQL finding is resolved. Production remains closed. [Evidence and limitations](verification/backend-0.4.0-alpha.6.json).
+
 `0.4.0-alpha.5` has 136 passing focused tests. It closes the verified logout, deleted-account recreation, pre-registration revocation and ZIP-integrity failures. A nonce-based CSP and public disclosure contact are deployed; hosted map, browser inline-handler blocking and production header/gate checks passed. The threat model and incident procedure explicitly retain their remaining security and paging gaps. [Milestone evidence](verification/backend-0.4.0-alpha.5.json).
 
 Hosted staging reproduced an existing JWT remaining readable after direct WorkOS session revocation. Kinetexa logout now records server-side denial before contacting WorkOS: the same JWT cannot read private data or recreate the athlete, its refresh token fails, and a second session can still refresh and read. Both temporary sessions were logged out. The real browser Sign out link returned to the landing page, added one server revocation and redirected a subsequent protected-page visit to WorkOS sign-in. [Evidence](verification/logout-2026-09-06.json) and [authentication behavior/limits](authentication.md).

@@ -14,11 +14,13 @@ import {
   parseActivity,
   unpackArchive,
   parseFitHealth,
+  activityPartCount,
 } from "../packages/core/import";
 import { analyze } from "../packages/core/analytics";
 import { clean } from "../packages/core/model";
 import { route } from "../packages/core/geo";
 import { aggregateHealthFile } from "../packages/core/health";
+import { withTimeContext } from "../packages/core/time-context";
 
 export const stream = action({
   args: {
@@ -40,10 +42,18 @@ export const stream = action({
     const step = Math.max(1, Math.ceil(selected.length / 2000));
     return {
       ...activity,
-      samples: selected.filter(
-        (_, i) => i % step === 0 || i === selected.length - 1,
-      ),
+      samples: selected
+        .filter((_, i) => i % step === 0 || i === selected.length - 1)
+        .map(({ sourceFields: _sourceFields, ...sample }) => sample),
     };
+  },
+});
+
+export const canonical = action({
+  args: { id: v.id("activities") },
+  handler: async (ctx, { id }): Promise<string> => {
+    const activity = await ctx.runQuery(api.activities.get, { id });
+    return downloadUrl(activity.streamKey);
   },
 });
 
@@ -107,18 +117,53 @@ export const process = internalAction({
           childIds,
         });
       } else {
-        const health = /\.fit$/i.test(s.name)
-          ? aggregateHealthFile(await parseFitHealth(bytes), timezone)
-          : [];
+        const health =
+          /\.fit$/i.test(s.name) && s.partIndex === undefined
+            ? aggregateHealthFile(await parseFitHealth(bytes), timezone)
+            : [];
         for (let offset = 0; offset < health.length; offset += 200)
           await ctx.runMutation(internal.imports.health, {
             id,
             hash,
             samples: health.slice(offset, offset + 200),
           });
+        if (s.partIndex === undefined) {
+          const count = await activityPartCount(s.name, bytes);
+          if (count > 1) {
+            const childIds: import("./_generated/dataModel").Id<"sources">[] =
+              [];
+            for (let partIndex = 0; partIndex < count; partIndex++) {
+              const dot = s.name.lastIndexOf("."),
+                name = `${s.name.slice(0, dot)} (part ${partIndex + 1})${s.name.slice(dot)}`;
+              childIds.push(
+                await ctx.runMutation(
+                  internal.imports.child,
+                  clean({
+                    parentId: id,
+                    name,
+                    key: s.key,
+                    bytes: s.bytes,
+                    hash,
+                    partIndex,
+                    importMetadata: s.importMetadata,
+                  }),
+                ),
+              );
+            }
+            await ctx.runMutation(internal.imports.archiveComplete, {
+              id,
+              hash,
+              childIds,
+            });
+            return;
+          }
+        }
         let activity;
         try {
-          activity = await parseActivity(s.name, bytes);
+          activity = withTimeContext(
+            await parseActivity(s.name, bytes, s.partIndex),
+            timezone,
+          );
         } catch (e) {
           if (
             health.length &&

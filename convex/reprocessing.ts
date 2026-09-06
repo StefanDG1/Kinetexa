@@ -94,6 +94,36 @@ export const page = internalMutation({
   },
 });
 const attemptArgs = { id: v.id("sources"), attempt: v.number() };
+export const prepareSplit = internalMutation({
+  args: { ...attemptArgs, count: v.number() },
+  handler: async (ctx, { id, attempt, count }) => {
+    const run = await current(ctx, id, attempt);
+    if (
+      !run ||
+      !run.source.activityId ||
+      !Number.isSafeInteger(count) ||
+      count < 2
+    )
+      throw new ConvexError("Reprocessing attempt expired.");
+    await ctx.db.patch(id, {
+      partIndex: 0,
+      ownsHealth: true,
+      splitCount: count,
+    });
+  },
+});
+export const children = internalMutation({
+  args: { id: v.id("sources") },
+  handler: async (ctx, { id }) => {
+    const source = await ctx.db.get(id);
+    if (!source || (await ctx.db.get(source.athleteId))?.status !== "active")
+      return;
+    for (const childId of source.childIds ?? []) {
+      const child = await ctx.db.get(childId);
+      if (child) await queue(ctx, child);
+    }
+  },
+});
 async function current(
   ctx: MutationCtx,
   id: Doc<"sources">["_id"],
@@ -242,6 +272,7 @@ export const finish = internalMutation({
       reprocessStatus: "complete",
       reprocessError: undefined,
       reprocessedAt: Date.now(),
+      splitCount: undefined,
       parserVersion: VERSION,
       ...(healthRebuilt &&
       run.athlete.healthProcessing !== false &&

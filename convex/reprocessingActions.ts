@@ -4,11 +4,16 @@ import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { getObject, putObject } from "./storage";
-import { parseActivity, parseFitHealth } from "../packages/core/import";
+import {
+  parseActivity,
+  parseFitHealth,
+  activityPartCount,
+} from "../packages/core/import";
 import { aggregateHealthFile } from "../packages/core/health";
 import { analyze } from "../packages/core/analytics";
 import { clean } from "../packages/core/model";
 import { route } from "../packages/core/geo";
+import { withTimeContext } from "../packages/core/time-context";
 export const source = internalAction({
   args: { id: v.id("sources") },
   handler: async (ctx, { id }) => {
@@ -31,7 +36,48 @@ export const source = internalAction({
         throw new Error(
           "The retained original failed its integrity check. Previous results are preserved.",
         );
-      const healthRebuilt = /\.fit$/i.test(source.name) && healthEnabled;
+      let partIndex = source.partIndex;
+      const splitCount =
+        source.splitCount ??
+        (source.activityId && partIndex === undefined
+          ? await activityPartCount(source.name, bytes)
+          : 1);
+      if (splitCount > 1) {
+        await ctx.runMutation(internal.reprocessing.prepareSplit, {
+          id,
+          attempt,
+          count: splitCount,
+        });
+        partIndex = 0;
+        const childIds: import("./_generated/dataModel").Id<"sources">[] = [];
+        for (let index = 1; index < splitCount; index++) {
+          const dot = source.name.lastIndexOf("."),
+            name = `${source.name.slice(0, dot)} (part ${index + 1})${source.name.slice(dot)}`;
+          childIds.push(
+            await ctx.runMutation(
+              internal.imports.child,
+              clean({
+                parentId: id,
+                name,
+                key: source.key,
+                bytes: source.bytes,
+                hash: source.hash!,
+                partIndex: index,
+                importMetadata: source.importMetadata,
+              }),
+            ),
+          );
+        }
+        await ctx.runMutation(internal.imports.archiveComplete, {
+          id,
+          hash: source.hash!,
+          childIds,
+        });
+      }
+      const healthRebuilt =
+        /\.fit$/i.test(source.name) &&
+        (source.partIndex === undefined || source.ownsHealth === true) &&
+        healthEnabled;
       if (healthRebuilt) {
         const samples = aggregateHealthFile(
           await parseFitHealth(bytes),
@@ -46,7 +92,10 @@ export const source = internalAction({
       }
       let parsed;
       if (source.activityId) {
-        const activity = await parseActivity(source.name, bytes),
+        const activity = withTimeContext(
+            await parseActivity(source.name, bytes, partIndex),
+            timezone,
+          ),
           metrics = analyze(activity, thresholds),
           { samples: _samples, ...summary } = activity,
           streamKey = `${source.athleteId}/streams/${id}-reprocess-${attempt}.json`;
@@ -74,6 +123,8 @@ export const source = internalAction({
           timezone,
         }),
       );
+      if (source.childIds?.length)
+        await ctx.runMutation(internal.reprocessing.children, { id });
     } catch (e) {
       await ctx.runMutation(internal.reprocessing.fail, {
         id,

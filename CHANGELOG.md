@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Preserve local start/offset provenance, device metadata, sensor dynamics and decoded source fields in downloadable canonical data.
+- Import all FIT sessions, TCX activities and GPX tracks independently; retain shared originals and deduplicate by file and part.
+- Repair legacy multi-activity imports through the retained-file reprocessing workflow.
+
 - Rebuild retained originals with checksum verification, durable retries, atomic health publication and preserved activity edits and metric history.
 - Paginate import history and reject legacy requests that would silently truncate it.
 - Prioritize backend completeness and API verification; user will handle subsequent visual design.

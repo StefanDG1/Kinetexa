@@ -43,8 +43,8 @@ Every numbered requirement from the unchanged PRD is listed below. Open means im
 | IMP-004       | — Safe archive handling [P0]                               | Open            | Pending                                                                                        |
 | IMP-005       | — Original preservation [P0]                               | Partial         | Implemented paths; full acceptance remains open. [Record](verification-staging.md)             |
 | IMP-006       | — Failed parsing [P0]                                      | Partial         | Implemented paths; full acceptance remains open. [Record](verification-staging.md)             |
-| DATA-001      | — Canonical activity [P0]                                  | Open            | Pending                                                                                        |
-| DATA-002      | — Stream model [P0]                                        | Open            | Pending                                                                                        |
+| DATA-001      | — Canonical activity [P0]                                  | Partial         | Expanded canonical fields and multisport APIs. [Record](verification-staging.md)               |
+| DATA-002      | — Stream model [P0]                                        | Partial         | Expanded canonical fields and multisport APIs. [Record](verification-staging.md)               |
 | DATA-003      | — Health/recovery model [P1]                               | Open            | Pending                                                                                        |
 | DATA-004      | — Provenance graph [P0]                                    | Partial         | Implemented paths; full acceptance remains open. [Record](verification-staging.md)             |
 | DATA-005      | — User-visible provenance [P1]                             | Partial         | Implemented paths; full acceptance remains open. [Record](verification-staging.md)             |

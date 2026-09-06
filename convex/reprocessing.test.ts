@@ -8,6 +8,7 @@ const modules = import.meta.glob("./**/*.ts");
 const storage = vi.hoisted(() => ({ bytes: new Uint8Array(), put: vi.fn() }));
 vi.mock("./storage", () => ({
   getObject: async () => storage.bytes,
+  objectSize: async () => storage.bytes.length,
   putObject: storage.put,
 }));
 beforeEach(() => {
@@ -259,4 +260,71 @@ it("reparses retained bytes into a new stream and rejects checksum corruption wi
     (await a.query(api.activities.get, { id: activityId })).streamKey,
   ).toBe(rebuilt.streamKey);
   expect(storage.put).toHaveBeenCalledTimes(1);
+});
+it("imports every part of a multi-track original and deduplicates each part independently", async () => {
+  const { t, a, b } = await setup();
+  const track = (day: number) =>
+    `<trk><name>Track ${day}</name><type>running</type><trkseg><trkpt lat="45" lon="25"><time>2026-09-0${day}T10:00:00Z</time></trkpt><trkpt lat="45.001" lon="25"><time>2026-09-0${day}T10:01:00Z</time></trkpt></trkseg></trk>`;
+  storage.bytes = new TextEncoder().encode(`<gpx>${track(2)}${track(3)}</gpx>`);
+  for (let repeat = 0; repeat < 2; repeat++) {
+    const root = await a.mutation(api.imports.reserve, {
+      name: "multi.gpx",
+      bytes: storage.bytes.length,
+      nonce: `12345678-1234-1234-1234-123456789ab${repeat}`,
+    });
+    await a.mutation(api.imports.enqueue, { id: root });
+    await t.action(internal.processing.process, { id: root });
+    const parent = await a.query(api.imports.owned, { id: root });
+    expect(parent.status).toBe("processing-archive");
+    expect(parent.childIds).toHaveLength(2);
+    for (const id of parent.childIds!)
+      await t.action(internal.processing.process, { id });
+    await t.mutation(internal.imports.archiveProgress, { id: root });
+    expect((await a.query(api.imports.owned, { id: root })).status).toBe(
+      "complete",
+    );
+    const children = await Promise.all(
+      parent.childIds!.map((id) => a.query(api.imports.owned, { id })),
+    );
+    expect(children.map((s) => s.partIndex)).toEqual([0, 1]);
+    expect(children.map((s) => s.status)).toEqual(
+      repeat ? ["duplicate", "duplicate"] : ["complete", "complete"],
+    );
+    for (const child of children) expect(child.key).toBe(parent.key);
+  }
+  expect(
+    (await a.query(api.activities.list, {})).map((r) => r.title).sort(),
+  ).toEqual(["My edited title", "Track 2", "Track 3"]);
+  expect(await b.query(api.activities.list, {})).toEqual([]);
+});
+it("upgrades a legacy multi-activity import without replacing the edited first activity or losing later parts", async () => {
+  const { t, a, sourceId, activityId } = await setup();
+  const track = (day: number) =>
+    `<trk><name>Track ${day}</name><type>running</type><trkseg><trkpt lat="45" lon="25"><time>2026-09-0${day}T10:00:00Z</time></trkpt><trkpt lat="45.001" lon="25"><time>2026-09-0${day}T10:01:00Z</time></trkpt></trkseg></trk>`;
+  storage.bytes = new TextEncoder().encode(`<gpx>${track(2)}${track(3)}</gpx>`);
+  await t.run((ctx) =>
+    ctx.db.patch(sourceId, {
+      bytes: storage.bytes.length,
+      hash: createHash("sha256").update(storage.bytes).digest("hex"),
+    }),
+  );
+  await a.mutation(api.reprocessing.request, { id: sourceId });
+  await t.action(internal.reprocessingActions.source, { id: sourceId });
+  const source = await a.query(api.imports.owned, { id: sourceId });
+  expect(source).toMatchObject({ partIndex: 0, ownsHealth: true, activityId });
+  expect(source.childIds).toHaveLength(1);
+  await t.action(internal.processing.process, { id: source.childIds![0] });
+  await t.mutation(internal.imports.archiveProgress, { id: sourceId });
+  expect((await a.query(api.activities.get, { id: activityId })).title).toBe(
+    "My edited title",
+  );
+  expect(
+    (await a.query(api.activities.list, {})).map((a) => a.title).sort(),
+  ).toEqual(["My edited title", "Track 3"]);
+  await a.mutation(api.reprocessing.request, { id: sourceId });
+  await t.action(internal.reprocessingActions.source, { id: sourceId });
+  await t.action(internal.reprocessingActions.source, {
+    id: source.childIds![0],
+  });
+  expect(await a.query(api.activities.list, {})).toHaveLength(2);
 });

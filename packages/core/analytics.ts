@@ -6,7 +6,10 @@ import {
   type Metric,
 } from "./model";
 
-export function weighted(samples: Sample[], key: keyof Sample) {
+type NumericSampleKey = {
+  [K in keyof Sample]-?: NonNullable<Sample[K]> extends number ? K : never;
+}[keyof Sample];
+export function weighted(samples: Sample[], key: NumericSampleKey) {
   let sum = 0,
     seconds = 0;
   for (let i = 1; i < samples.length; i++) {

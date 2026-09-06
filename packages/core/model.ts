@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const VERSION = "0.2.0-alpha.2";
+export const VERSION = "0.3.0-alpha.1";
 export const sportSchema = z.enum([
   "running",
   "cycling",
@@ -21,6 +21,12 @@ export const sampleSchema = z.object({
   speed: z.number().min(0).max(60).optional(),
   temperature: z.number().optional(),
   grade: z.number().optional(),
+  verticalSpeed: z.number().finite().optional(),
+  paceSecondsPerKm: z.number().positive().optional(),
+  runningPower: z.number().min(0).max(3500).optional(),
+  runningDynamics: z.record(z.string(), z.number().finite()).optional(),
+  cyclingDynamics: z.record(z.string(), z.json()).optional(),
+  sourceFields: z.record(z.string(), z.json()).optional(),
 });
 export type Sample = z.infer<typeof sampleSchema>;
 export const activitySchema = z.object({
@@ -29,6 +35,13 @@ export const activitySchema = z.object({
   subSport: z.string().optional(),
   start: z.number().finite(),
   timezone: z.string().optional(),
+  localStart: z.string().optional(),
+  utcOffsetMinutes: z.number().min(-840).max(840).optional(),
+  timezoneSource: z.enum(["file-offset", "athlete-preference"]).optional(),
+  parserVersion: z.string().optional(),
+  normalizationVersion: z.string().optional(),
+  processedAt: z.number().optional(),
+  sourceMetadata: z.record(z.string(), z.json()).optional(),
   duration: z.number().nonnegative(),
   movingDuration: z.number().nonnegative().optional(),
   distance: z.number().nonnegative().optional(),
@@ -39,6 +52,7 @@ export const activitySchema = z.object({
   avgPower: z.number().optional(),
   avgCadence: z.number().optional(),
   avgSpeed: z.number().optional(),
+  avgPaceSecondsPerKm: z.number().positive().optional(),
   calories: z.number().optional(),
   device: z.string().optional(),
   samples: z.array(sampleSchema).max(500000),
@@ -80,5 +94,9 @@ export type Metric = {
   inputs: Record<string, number | null>;
 };
 export function clean<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T;
+  return JSON.parse(
+    JSON.stringify(value, (_key, item) =>
+      typeof item === "bigint" ? item.toString() : item,
+    ),
+  ) as T;
 }

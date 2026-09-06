@@ -55,6 +55,12 @@ Authenticated staging API checks rebuilt an older health-only FIT from three rea
 
 Fifty-seven focused tests pass. New cases verify atomic publication of staged health results, hidden incomplete generations, idempotent completion, bounded interruption retries, checksum failure, preservation of edits and version history, health preference off/on changes, concurrent threshold changes and account deletion fencing. Reprocessing operates from retained originals; per-file status survives browser closure. Visual redesign is now user-owned and paused while backend work continues.
 
+## Canonical fidelity and multisport verification
+
+A staging FIT containing a run and a ride produced two independent 20-second, 100-metre activities, each with three samples and its own distance origin. A repeated upload deduplicated both parts independently. Authorized full canonical downloads preserved vertical speed, stance time, vertical oscillation, torque effectiveness and the original decoded GPS-accuracy field. Local starts used the account's Europe/Berlin preference and retained that provenance. A second account could not obtain either canonical download.
+
+Sixty-three tests pass. Added coverage includes DST transitions, explicit non-hour XML offsets, multi-session FIT boundaries, all GPX tracks and TCX activities, source extensions, unit conversions, duplicate handling and conversion of legacy multi-activity imports while retaining the first activity's edits and ID. Wider real-device fixture coverage remains open.
+
 ## Remaining release work
 
 Full requirement closure remains open, including provider approval and connector operations, large-history performance, complete comparison/AI/health criteria, policy review, backup automation and retention, operational alerts and the full UI/accessibility matrix. Production continues to serve the holding page. This evidence does not justify `v1.0.0`.

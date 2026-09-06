@@ -167,6 +167,7 @@ export const complete = internalMutation({
         q.eq("athleteId", s.athleteId).eq("hash", args.hash),
       )
       .filter((q) => q.eq(q.field("status"), "complete"))
+      .filter((q) => q.eq(q.field("partIndex"), s.partIndex))
       .first();
     const meta = s.importMetadata as
       import("../packages/core/import").MigrationMetadata | undefined;
@@ -270,6 +271,7 @@ export const child = internalMutation({
     bytes: v.number(),
     hash: v.string(),
     importMetadata: v.optional(v.any()),
+    partIndex: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const p = await ctx.db.get(args.parentId);

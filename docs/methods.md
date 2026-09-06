@@ -12,6 +12,16 @@ Core algorithms are versioned in `packages/core/model.ts`. Each activity stores 
 
 The test suite checks analytic constant-signal cases, missing data, recording gaps and decay. This does not yet constitute the complete scientific validation required by ANALYTICS-011.
 
+## Canonical source fidelity
+
+FIT sessions, TCX activities and GPX tracks are imported as independent canonical activities. Each part retains the same original object/checksum and its part index. FIT samples and laps are restricted to that session's time range; a shared boundary timestamp belongs to the later session. Multi-session stream distances start at the first recorded point, while session totals retain the source's summary distance. Reprocessing a legacy multi-activity import preserves the edited first activity's ID and creates the missing later parts.
+
+Canonical timestamps retain UTC start, local start, numeric UTC offset and the source of that timezone interpretation. An explicit numeric XML offset is preserved. Otherwise, the athlete's timezone at processing time supplies a DST-aware local interpretation; this is labeled as a preference, not inferred recording geography. Reprocessing updates that interpretation using the current preference.
+
+Vertical speed is metres/second, taken from FIT where present or derived from consecutive altitude points no more than 30 seconds apart. Running/walking pace is seconds/kilometre. FIT running dynamics retain profile names and units: vertical oscillation and step length in millimetres, stance time in milliseconds, and ratios/balance in percent. Cycling dynamics and decoded source fields retain the parser's profile-scaled values. Device and developer-field definitions accompany the canonical data. Unsupported decoder fields remain recoverable from the unchanged original.
+
+`processing:canonical` issues an owner-authorized, short-lived download of the complete canonical stream, including decoded source fields. The bounded `processing:stream` view omits those extra raw fields to keep chart responses small. Neither is a public-share endpoint.
+
 ## Imported health signals
 
 FIT field names, scale factors and units follow the installed `fit-file-parser` 5.0.2 SDK profile. Resting HR, HRV, weight and maximum metabolic/VO₂ estimates retain their reported units. Walking/running monitoring cycles convert to steps according to the profile's half-step scale; other activity types do not become steps.

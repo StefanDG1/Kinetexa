@@ -103,7 +103,7 @@ WorkOS staging's homepage, initiate-login URL and default sign-out URI now use t
 
 ## Backup, deletion and recovery verification
 
-A private EU R2 backup bucket now holds native Convex snapshots and retained source/current/previous canonical objects. The first staging snapshot captured 204 records and 32 objects in 17.7 seconds. A later incremental snapshot captured 213 records and 34 objects, copying only two new objects in 10.5 seconds. The production snapshot completed against the currently empty production dataset. Daily scheduling is configured in `.github/workflows/backups.yml`; activation and hosted workflow execution are the next operational check.
+A private EU R2 backup bucket now holds native Convex snapshots and retained source/current/previous canonical objects. The first staging snapshot captured 204 records and 32 objects in 17.7 seconds. A later incremental snapshot captured 213 records and 34 objects, copying only two new objects in 10.5 seconds. The production snapshot completed against the currently empty production dataset. Daily scheduling is active on `main`. [GitHub backup run 34046493381](https://github.com/StefanDG1/Kinetexa/actions/runs/34046493381) succeeded for both staging and production, including retention cleanup. The staged snapshot contained 206 records and 32 objects; production remains empty.
 
 An isolated restore verified all 32 object checksums and restored seven activities, thirteen health records and both synthetic owners' saved data. A separate synthetic account then completed real hosted deletion after its fifteen-minute grace period. WorkOS returned 404, R2 contained no owned objects, and all twenty owned application tables were empty. A signed Resend webhook confirmed the deletion receipt was delivered; the application retained neither its recipient nor an athlete association.
 
@@ -113,4 +113,4 @@ Eighty-four focused tests and TypeScript checks pass. Deletion workers now fence
 
 ## Remaining release work
 
-Full requirement closure remains open, including provider approval and connector operations, large-history performance, complete comparison/AI/health criteria, policy review, scheduled backup execution, operational alerts and the full UI/accessibility matrix. Production continues to serve the holding page. This evidence does not justify `v1.0.0`.
+Full requirement closure remains open, including provider approval and connector operations, large-history performance, complete comparison/AI/health criteria, policy review, operational alerts and the full UI/accessibility matrix. Production continues to serve the holding page. This evidence does not justify `v1.0.0`.

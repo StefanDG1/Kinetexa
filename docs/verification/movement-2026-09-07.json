@@ -1,0 +1,93 @@
+{
+  "verifiedAt": "2026-09-06T23:19:55.852Z",
+  "environment": "isolated-restore",
+  "version": "0.4.0-alpha.7",
+  "cases": [
+    {
+      "case": "source-moving.fit",
+      "duration": 10,
+      "timerDuration": 8,
+      "movingDuration": 2,
+      "originalChecksumPreserved": true
+    },
+    {
+      "case": "timer-paused.fit",
+      "duration": 10,
+      "timerDuration": 8,
+      "movingDuration": null,
+      "originalChecksumPreserved": true
+    },
+    {
+      "case": "source-zero.fit",
+      "duration": 10,
+      "timerDuration": 8,
+      "movingDuration": 0,
+      "originalChecksumPreserved": true
+    },
+    {
+      "case": "source-invalid.fit",
+      "duration": 10,
+      "timerDuration": 8,
+      "movingDuration": null,
+      "originalChecksumPreserved": true
+    },
+    {
+      "case": "stationary.tcx",
+      "duration": 10,
+      "timerDuration": null,
+      "movingDuration": 0,
+      "originalChecksumPreserved": true
+    },
+    {
+      "case": "rejected-speed.tcx",
+      "duration": 10,
+      "timerDuration": null,
+      "movingDuration": null,
+      "originalChecksumPreserved": true
+    }
+  ],
+  "invalidSourceValueRetainedInProvenance": true,
+  "fixturesRemoved": true,
+  "timerEvents": {
+    "verifiedAt": "2026-09-06T23:29:45.196Z",
+    "environment": "isolated-restore",
+    "timerEventsImported": true,
+    "canonicalWindowsPreserved": true,
+    "historyAndStreamWindowsBounded": true,
+    "selectedIntervalTimerAndMovingTimeVerified": true,
+    "pausedIntervalZeroVerified": true,
+    "originalChecksumPreserved": true,
+    "fixtureRemoved": true
+  },
+  "stagingReprocessing": {
+    "verifiedAt": "2026-09-06T23:31:56.394Z",
+    "environment": "staging",
+    "owners": [
+      {
+        "account": 1,
+        "activities": 4,
+        "version": "0.4.0-alpha.7",
+        "originalChecksumsAndEditsPreserved": true,
+        "previousCalculationVersionsRetained": true,
+        "explanationInputsPresent": true,
+        "dashboardModelInputsVerified": true,
+        "invalidThresholdsRejectedWithoutMutation": true,
+        "loadCurvesAndZonesUnchanged": true
+      },
+      {
+        "account": 2,
+        "activities": 3,
+        "version": "0.4.0-alpha.7",
+        "originalChecksumsAndEditsPreserved": true,
+        "previousCalculationVersionsRetained": true,
+        "explanationInputsPresent": true,
+        "dashboardModelInputsVerified": true,
+        "invalidThresholdsRejectedWithoutMutation": true,
+        "loadCurvesAndZonesUnchanged": true
+      }
+    ]
+  },
+  "focusedTests": 142,
+  "restoredObjects": 45,
+  "restoredDocuments": 369
+}

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const VERSION = "0.4.0-alpha.6";
+export const VERSION = "0.4.0-alpha.7";
 export const sportSchema = z.enum([
   "running",
   "cycling",
@@ -44,7 +44,20 @@ export const activitySchema = z.object({
   processedAt: z.number().optional(),
   sourceMetadata: z.record(z.string(), z.json()).optional(),
   duration: z.number().nonnegative(),
+  timerDuration: z.number().nonnegative().optional(),
+  timerWindows: z
+    .array(
+      z.object({
+        from: z.number().nonnegative(),
+        to: z.number().nonnegative(),
+      }),
+    )
+    .max(500000)
+    .optional(),
   movingDuration: z.number().nonnegative().optional(),
+  movingDurationSource: z.enum(["source", "speed-estimate"]).optional(),
+  movingDurationCoverageSeconds: z.number().nonnegative().optional(),
+  movingSpeedThreshold: z.number().nonnegative().optional(),
   distance: z.number().nonnegative().optional(),
   elevationGain: z.number().nonnegative().optional(),
   elevationLoss: z.number().nonnegative().optional(),
@@ -66,6 +79,10 @@ export const activitySchema = z.object({
   ),
 });
 export type Activity = z.infer<typeof activitySchema>;
+export function activitySummary(activity: Activity) {
+  const { samples: _samples, timerWindows, ...summary } = activity;
+  return { ...summary, timerWindowCount: timerWindows?.length };
+}
 export const thresholdsSchema = z
   .object({
     restHr: z.number().min(25).max(120).optional(),

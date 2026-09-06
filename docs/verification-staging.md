@@ -212,3 +212,9 @@ The isolated environment was returned to its verified 45-object, 369-document sn
 ## Reproducible metric explanations
 
 All seven retained staging activities reprocessed to `0.4.0-alpha.6` with unchanged numeric metric values, curves, zone times, totals and edits. Original checksums and prior calculation versions remain available. The revised payload adds enough inputs to independently reproduce each scalar metric; dashboard explanations include daily monotony/strain inputs and previous fitness states at the selected range boundary. Invalid HR thresholds return a public validation reason in `ConvexError.data` and do not mutate the profile. All 139 focused tests pass. [Evidence](verification/explanations-2026-09-07.json).
+
+## Elapsed, timer and moving duration
+
+Four FIT and two TCX imports verified supplied moving time, recorded zero, invalid source time, paused timers without events, stationary speed and rejected speed. A further FIT with start/stop events verified active timer windows, selected-interval clipping and zero active/moving time in a fully paused interval. Full schedules round-trip in canonical files; history/chart reads keep only their count. Original bytes and rejected raw source fields remain available. All 142 tests pass.
+
+Seven retained staging activities reprocessed to `0.4.0-alpha.7` with unchanged load values, curves, zones, totals, edits and original checksums. Prior versions remain in history. All seven temporary fixtures were removed by returning the isolated environment to its verified 45-object, 369-document snapshot. [Evidence](verification/movement-2026-09-07.json), [methods and limits](methods.md).

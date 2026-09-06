@@ -11,7 +11,7 @@ import {
 } from "../packages/core/import";
 import { aggregateHealthFile } from "../packages/core/health";
 import { analyze } from "../packages/core/analytics";
-import { clean } from "../packages/core/model";
+import { clean, activitySummary } from "../packages/core/model";
 import { route, routeSegments } from "../packages/core/geo";
 import { withTimeContext } from "../packages/core/time-context";
 export const source = internalAction({
@@ -97,7 +97,7 @@ export const source = internalAction({
             timezone,
           ),
           metrics = analyze(activity, thresholds),
-          { samples: _samples, ...summary } = activity,
+          summary = activitySummary(activity),
           streamKey = `${source.athleteId}/streams/${id}-reprocess-${attempt}.json`;
         await putActivity(streamKey, activity);
         parsed = {

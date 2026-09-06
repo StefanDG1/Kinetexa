@@ -13,6 +13,7 @@ import {
 import { meters } from "./geo";
 import { weighted } from "./analytics";
 import { explicitOffset } from "./time-context";
+import { timerWindows } from "./timer";
 
 export const LIMITS = {
   fileBytes: 32 * 1024 * 1024,
@@ -42,7 +43,10 @@ function sport(v: unknown): Sport {
           ? "walking"
           : "other";
 }
-export function normalize(input: Activity): Activity {
+export function normalize(
+  input: Activity,
+  options: { estimateMoving?: boolean } = {},
+): Activity {
   if (!Number.isFinite(input.start))
     throw new Error("No valid activity start time.");
   const samples = input.samples
@@ -52,7 +56,23 @@ export function normalize(input: Activity): Activity {
   let distance = 0,
     gain = 0,
     loss = 0,
-    moving = 0;
+    moving = 0,
+    movingCoverage = 0;
+  const duration = input.duration || samples.at(-1)?.t || 0;
+  let timerIndex = 0;
+  const activeSeconds = (from: number, to: number) => {
+    if (!input.timerWindows) return Math.max(0, to - from);
+    const windows = input.timerWindows;
+    while (timerIndex < windows.length && windows[timerIndex].to <= from)
+      timerIndex++;
+    let seconds = 0;
+    for (let j = timerIndex; j < windows.length && windows[j].from < to; j++)
+      seconds += Math.max(
+        0,
+        Math.min(to, windows[j].to) - Math.max(from, windows[j].from),
+      );
+    return seconds;
+  };
   for (let i = 0; i < samples.length; i++) {
     const s = samples[i],
       p = samples[i - 1];
@@ -85,7 +105,6 @@ export function normalize(input: Activity): Activity {
         dt <= 30
       )
         s.speed = Math.max(0, (s.distance - p.distance) / dt);
-      if (s.speed !== undefined && s.speed > 0.5 && dt <= 30) moving += dt;
       if (s.altitude !== undefined && p.altitude !== undefined && dt <= 30) {
         const delta = s.altitude - p.altitude;
         if (s.verticalSpeed === undefined) s.verticalSpeed = delta / dt;
@@ -101,12 +120,46 @@ export function normalize(input: Activity): Activity {
     if (s.power !== undefined && (s.power < 0 || s.power > 3500))
       delete s.power;
     if (s.speed !== undefined && (s.speed < 0 || s.speed > 60)) delete s.speed;
+    if (p && !s.breakBefore && s.speed !== undefined && s.t - p.t <= 30) {
+      const dt = activeSeconds(p.t, Math.min(s.t, duration));
+      movingCoverage += dt;
+      if (s.speed > 0.5) moving += dt;
+    }
     if (s.speed && ["running", "walking"].includes(input.sport))
       s.paceSecondsPerKm = 1000 / s.speed;
     if (input.sport === "running" && s.power !== undefined)
       s.runningPower = s.power;
   }
-  const duration = input.duration || samples.at(-1)?.t || 0;
+  const boundedDuration = (value: number | undefined, maximum: number) =>
+    value !== undefined &&
+    Number.isFinite(value) &&
+    value >= 0 &&
+    value <= maximum
+      ? value
+      : undefined;
+  const timerDuration =
+    boundedDuration(input.timerDuration, duration) ??
+    input.timerWindows?.reduce((sum, w) => sum + w.to - w.from, 0);
+  const sourceMoving =
+    input.movingDurationSource === "speed-estimate"
+      ? undefined
+      : boundedDuration(input.movingDuration, timerDuration ?? duration);
+  const canEstimateMoving =
+    options.estimateMoving !== false &&
+    duration > 0 &&
+    ((input.timerWindows !== undefined && timerDuration === 0) ||
+      (movingCoverage /
+        (input.timerWindows ? timerDuration || duration : duration) >=
+        0.9 &&
+        (input.timerWindows !== undefined ||
+          timerDuration === undefined ||
+          timerDuration === duration ||
+          moving === 0)));
+  const movingDuration =
+    sourceMoving ??
+    (canEstimateMoving
+      ? Math.min(moving, timerDuration ?? duration)
+      : undefined);
   const totalDistance =
     input.distance ??
     (samples.some((s) => s.distance !== undefined) ? distance : undefined);
@@ -119,7 +172,16 @@ export function normalize(input: Activity): Activity {
     samples,
     duration,
     distance: totalDistance,
-    movingDuration: input.movingDuration ?? (moving > 0 ? moving : undefined),
+    timerDuration,
+    movingDuration,
+    movingDurationSource:
+      movingDuration === undefined
+        ? undefined
+        : sourceMoving !== undefined
+          ? "source"
+          : "speed-estimate",
+    movingDurationCoverageSeconds: movingCoverage,
+    movingSpeedThreshold: 0.5,
     elevationGain:
       input.elevationGain ??
       (samples.some((s) => s.altitude !== undefined) ? gain : undefined),
@@ -342,7 +404,14 @@ export async function parseActivity(
       subSport: session.sub_sport,
       start,
       duration: num(session.total_elapsed_time) ?? 0,
-      movingDuration: num(session.total_timer_time),
+      timerDuration: num(session.total_timer_time),
+      timerWindows: timerWindows(
+        list(fit.events),
+        start,
+        num(session.total_elapsed_time) ?? 0,
+        num(session.total_timer_time),
+      ),
+      movingDuration: num(session.total_moving_time),
       distance: num(session.total_distance),
       elevationGain: num(session.total_ascent),
       elevationLoss: num(session.total_descent),

@@ -112,3 +112,9 @@ The existing records frontend still owns some period filtering; use the server's
 Activity `metrics.metrics` includes each derived value's definition, unit, formula, numeric inputs, missing-data caveat and stored algorithm version. `metrics.thresholds` preserves zone and threshold settings used in that calculation. Reprocess older activities to publish revised explanation metadata; provenance keeps their previous result versions.
 
 `analytics:dashboard` returns `explanations.fitness`, `explanations.monotony` and `explanations.strain`. The fitness entry documents the model constants; the existing `curve` contains dated load inputs and states. Monotony includes seven dated-by-position loads ending at the requested end date, with missing values distinct from recorded rest days. Its mean/standard deviation and strain's weekly sum remain null when a day has missing activity load. Read contributing activities through the owned paginated history for the corresponding period.
+
+## Activity durations
+
+Canonical and summary `duration` is elapsed time. FIT `timerDuration` preserves stopwatch time; `movingDuration` preserves a valid supplied moving time or an eligible speed estimate. Inspect `movingDurationSource`, `movingDurationCoverageSeconds` and `movingSpeedThreshold` for its basis. Missing values remain absent, including moving time from a paused timer without enough event context.
+
+The complete canonical download includes validated `timerWindows`. Activity summaries keep `timerWindowCount` rather than copying the full schedule into every history response. Interval analysis intersects known timer windows with the selected samples, preserving elapsed, active timer and moving-time distinctions. See [method definitions](methods.md).

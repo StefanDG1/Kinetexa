@@ -57,6 +57,10 @@ it("serializes canonical recordings across chunk boundaries without changing dat
     sport: "running",
     start: 1,
     duration: 2000,
+    timerWindows: Array.from({ length: 2001 }, (_, i) => ({
+      from: i * 0.5,
+      to: i * 0.5 + 0.25,
+    })),
     laps: [],
     samples: Array.from({ length: 2001 }, (_, t) => ({
       t,

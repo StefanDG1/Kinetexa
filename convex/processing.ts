@@ -19,7 +19,7 @@ import {
   activityPartCount,
 } from "../packages/core/import";
 import { analyze } from "../packages/core/analytics";
-import { clean } from "../packages/core/model";
+import { clean, activitySummary } from "../packages/core/model";
 import { streamView } from "../packages/core/stream-view";
 import { route, routeSegments } from "../packages/core/geo";
 import { aggregateHealthFile } from "../packages/core/health";
@@ -48,7 +48,7 @@ export const stream = action({
       new TextDecoder().decode(await getObject(a.streamKey)),
     );
     return {
-      ...activity,
+      ...activitySummary(activity),
       samples: streamView(
         activity.samples,
         args.from ?? 0,
@@ -229,7 +229,7 @@ export const process = internalAction({
         const metrics = analyze(activity, thresholds),
           streamKey = `${s.athleteId}/streams/${id}-import-${attempt}.json`;
         await putActivity(streamKey, activity);
-        const { samples: _samples, ...summary } = activity;
+        const summary = activitySummary(activity);
         await ctx.runMutation(
           internal.imports.complete,
           clean({

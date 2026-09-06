@@ -1,4 +1,4 @@
-import { type Activity, type Thresholds } from "./model";
+import { activitySummary, type Activity, type Thresholds } from "./model";
 import { normalize } from "./import";
 import { analyze } from "./analytics";
 
@@ -30,24 +30,39 @@ export function analyzeInterval(
   const first = selected[0],
     last = selected.at(-1)!,
     baseline = first.distance;
-  const part = normalize({
-    title: activity.title,
-    sport: activity.sport,
-    start: activity.start + first.t * 1000,
-    duration: last.t - first.t,
-    laps: [],
-    samples: selected.map((s) => ({
-      ...s,
-      t: s.t - first.t,
-      distance:
-        baseline !== undefined &&
-        s.distance !== undefined &&
-        s.distance >= baseline
-          ? s.distance - baseline
-          : undefined,
-    })),
+  const windows = activity.timerWindows?.flatMap((w) => {
+    const from = Math.max(w.from, first.t),
+      to = Math.min(w.to, last.t);
+    return to > from ? [{ from: from - first.t, to: to - first.t }] : [];
   });
-  const { samples: _samples, ...summary } = part;
+  const part = normalize(
+    {
+      title: activity.title,
+      sport: activity.sport,
+      start: activity.start + first.t * 1000,
+      duration: last.t - first.t,
+      timerWindows: windows,
+      timerDuration: windows?.reduce((sum, w) => sum + w.to - w.from, 0),
+      laps: [],
+      samples: selected.map((s) => ({
+        ...s,
+        t: s.t - first.t,
+        distance:
+          baseline !== undefined &&
+          s.distance !== undefined &&
+          s.distance >= baseline
+            ? s.distance - baseline
+            : undefined,
+      })),
+    },
+    {
+      estimateMoving:
+        windows !== undefined ||
+        activity.timerDuration === undefined ||
+        activity.timerDuration === activity.duration,
+    },
+  );
+  const summary = activitySummary(part);
   return {
     requested: { from, to },
     actual: { from: first.t, to: last.t },

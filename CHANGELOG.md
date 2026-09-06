@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Preserve separate FIT elapsed/timer/moving durations and correct moving-time estimates for stationary, missing, rejected and paused data.
+
 ## 0.4.0-alpha.6 - 2026-09-07
 
 Verified records, metric explanations and security scanning milestone. Production registration remains closed; operational V1 gates remain open.

@@ -2,6 +2,7 @@ import { it, expect } from "vitest";
 import { FitEncoder, FitBaseType } from "fit-file-parser";
 import { parseActivity, activityPartCount, normalize } from "./import";
 import { explicitOffset, withTimeContext } from "./time-context";
+import { analyzeInterval } from "./interval";
 import type { Activity } from "./model";
 it("records local starts with DST-aware athlete fallback and preserves explicit source offsets", () => {
   const activity: Activity = {
@@ -153,4 +154,128 @@ it("derives vertical speed only over recorded intervals and distinguishes pace f
   });
   expect(a.samples[2].verticalSpeed).toBeUndefined();
   expect(a.avgPaceSecondsPerKm).toBe(400);
+});
+it("distinguishes stationary movement from missing or rejected speed and refuses sparse extrapolation", () => {
+  const base = {
+    title: "Movement",
+    sport: "running" as const,
+    start: 1,
+    duration: 10,
+    laps: [],
+  };
+  const stationary = normalize({
+    ...base,
+    samples: [
+      { t: 0, speed: 0 },
+      { t: 10, speed: 0 },
+    ],
+  });
+  expect(stationary).toMatchObject({
+    movingDuration: 0,
+    movingDurationSource: "speed-estimate",
+    movingDurationCoverageSeconds: 10,
+  });
+  expect(normalize(stationary)).toEqual(stationary);
+  for (const samples of [
+    [{ t: 0 }, { t: 10 }],
+    [
+      { t: 0, speed: 70 },
+      { t: 10, speed: 70 },
+    ],
+    [{ t: 0, speed: 2 }, { t: 1, speed: 2 }, { t: 10 }],
+    [
+      { t: 0, speed: 2 },
+      { t: 10, speed: 2, breakBefore: true },
+    ],
+  ])
+    expect(normalize({ ...base, samples }).movingDuration).toBeUndefined();
+  const moving = normalize({
+    ...base,
+    samples: [
+      { t: 0, speed: 2 },
+      { t: 10, speed: 2 },
+    ],
+  });
+  expect(moving.movingDuration).toBe(10);
+  expect(
+    normalize({
+      ...base,
+      duration: 5,
+      samples: [
+        { t: 0, speed: 2 },
+        { t: 10, speed: 2 },
+      ],
+    }).movingDuration,
+  ).toBe(5);
+});
+it("preserves distinct FIT elapsed, timer and supplied moving durations without treating paused time as movement", async () => {
+  const at = FitEncoder.toFitTimestamp(new Date("2026-09-01T00:00:00Z"));
+  const uint = (number: number, value: number) => ({
+    number,
+    value,
+    size: 4,
+    baseType: FitBaseType.Uint32,
+  });
+  async function read(moving?: number, events = false) {
+    const e = new FitEncoder();
+    e.writeMessage(18, [
+      uint(253, at + 10),
+      uint(2, at),
+      uint(7, 10000),
+      uint(8, 8000),
+      { number: 5, value: 1, size: 1, baseType: FitBaseType.Enum },
+      ...(moving === undefined ? [] : [uint(59, moving * 1000)]),
+    ]);
+    for (const t of [0, 2, 4, 6, 8, 10])
+      e.writeMessage(20, [
+        uint(253, at + t),
+        { number: 6, value: 2000, size: 2, baseType: FitBaseType.Uint16 },
+      ]);
+    if (events)
+      for (const [t, type] of [
+        [0, 0],
+        [4, 1],
+        [6, 0],
+        [10, 4],
+      ])
+        e.writeMessage(21, [
+          uint(253, at + t),
+          { number: 0, value: 0, size: 1, baseType: FitBaseType.Enum },
+          { number: 1, value: type, size: 1, baseType: FitBaseType.Enum },
+        ]);
+    return parseActivity("timers.fit", e.close());
+  }
+  expect(await read(2)).toMatchObject({
+    duration: 10,
+    timerDuration: 8,
+    movingDuration: 2,
+    movingDurationSource: "source",
+  });
+  expect((await read()).movingDuration).toBeUndefined();
+  expect((await read(0)).movingDuration).toBe(0);
+  expect((await read(9)).movingDuration).toBeUndefined();
+  const paused = await read(undefined, true);
+  expect(paused).toMatchObject({
+    timerDuration: 8,
+    movingDuration: 8,
+    movingDurationSource: "speed-estimate",
+    movingDurationCoverageSeconds: 8,
+    timerWindows: [
+      { from: 0, to: 4 },
+      { from: 6, to: 10 },
+    ],
+  });
+  expect(analyzeInterval(paused, 2, 8, {}).summary).toMatchObject({
+    duration: 6,
+    timerDuration: 4,
+    movingDuration: 4,
+  });
+  expect(analyzeInterval(paused, 4, 6, {}).summary).toMatchObject({
+    duration: 2,
+    timerDuration: 0,
+    movingDuration: 0,
+  });
+  expect(
+    analyzeInterval(await read(), 2, 8, {}).summary?.movingDuration,
+  ).toBeUndefined();
 });

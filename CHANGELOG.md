@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Review Wahoo, Suunto and COROS access paths against current primary documentation; update disabled connector reasons and draft a COROS scope clarification for approval.
+
 - Distinguish missing goal measurements from recorded zero, limit supporting history to the actual calculation cutoff and remove unrelated activity attribution from manual results. Publish goal method revision 1.1.0.
 
 - Add paginated owned workspace and calendar APIs, read only required workspace collections for deterministic analytics, and default custom-query date groups to the athlete's timezone while preserving explicit overrides.

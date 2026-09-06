@@ -148,26 +148,29 @@ export const providerCatalog: ProviderAvailability[] = [
   {
     id: "wahoo",
     name: "Wahoo",
-    state: "assessment-pending",
-    reason: "API access, terms and supported data have not been verified.",
+    state: "terms-blocked",
+    reason:
+      "Wahoo requires application approval and permission for Kinetexa's competing analytics, durable storage and paid service under its current API agreement.",
   },
   {
     id: "coros",
     name: "COROS",
     state: "assessment-pending",
-    reason: "API access, terms and supported data have not been verified.",
+    reason:
+      "COROS offers self-service MCP for analytics apps, but durable activity synchronization and commercial retention permissions need clarification. Partner API access requires approval.",
   },
   {
     id: "suunto",
     name: "Suunto",
     state: "assessment-pending",
-    reason: "API access, terms and supported data have not been verified.",
+    reason:
+      "Suunto requires a partner application, API agreement and production approval. Kinetexa has not obtained these; retention and AI permissions remain unverified.",
   },
 ].map((row) => ({
   ...row,
   capabilities: unavailable(),
   externalAi: "blocked",
-  policyVersion: "provider-review-2026-09-06",
+  policyVersion: "provider-review-2026-09-06-r2",
 })) as ProviderAvailability[];
 
 /** Current approval decisions deliberately cannot be overridden with an environment flag. */

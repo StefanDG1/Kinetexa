@@ -18,13 +18,13 @@ This file records implemented and verified outcomes separately. Unchecked items 
 - [x] Local Git repository initialized on `main`.
 - [x] Public GitHub repository created.
 - [x] Vercel project created, linked locally and connected to GitHub.
-- [ ] Initial source commit pushed and verified.
+- [x] Initial source commit pushed and verified.
 - [ ] Commercial Vercel plan established before paid launch.
 - [ ] Convex development and production deployments.
 - [ ] WorkOS development and production configuration.
-- [ ] Private object storage and scoped credentials.
+- [x] Private development and production EU R2 buckets and separately scoped credentials created. Application access still needs verification.
 - [ ] Stripe account selected, test/live products and prices, portal and signed webhooks.
-- [ ] Resend sender domain and scoped key.
+- [ ] Optional Resend sender domain and scoped key, free tier only. Domain and DNS records created; verification was pending; no key created.
 - [ ] PostHog project, privacy-safe events and consent.
 - [ ] AI project, credentials and budget controls.
 - [ ] Website domain, auth callbacks and email DNS verified.
@@ -46,3 +46,9 @@ This file records implemented and verified outcomes separately. Unchecked items 
 ## Verification record
 
 No application journey has been verified yet. Verification will record the environment, tested commit, fixture and outcome. Unit tests alone do not establish hosted integration success. Test payments do not establish successful live payments.
+
+## Setup handoff, 6 September 2026
+
+The user asked to stop computer use and finish account preparation themselves before more application coding. See [the setup checklist](PRE_CODING_SETUP.md). Application coding and browser automation are paused.
+
+Development Convex auth/schema deployment succeeded. WorkOS staging credentials and localhost settings exist. A separate Romanian Stripe account named Kinetexa was created, but business activation, keys and catalog remain unfinished. The domain's public nameservers now resolve to Vercel. Production website deployment and end-to-end verification have not happened.

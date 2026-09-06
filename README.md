@@ -8,7 +8,7 @@ Kinetexa brings activity history, training analysis and maps together. Original 
 
 Project setup is in progress. The application is not available for public use or payments yet. A deployed page alone does not establish release readiness.
 
-The implementation follows the V1 PRD through tested end-to-end milestones. See [delivery status](docs/delivery-status.md), [architecture](docs/architecture.md) and [design direction](docs/design-direction.md).
+The implementation follows the [original product documents](docs/sources/README.md) and [later user decisions](docs/decisions.md). See [delivery status](docs/delivery-status.md), [architecture](docs/architecture.md) and [design direction](docs/design-direction.md). [AGENTS.md](AGENTS.md) records the repository's concise coding and testing guidance. Milestones use SemVer prereleases and focused Conventional Commits; `v1.0.0` is reserved for operational V1.
 
 ## Product boundaries
 

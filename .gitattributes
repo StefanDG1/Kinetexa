@@ -1,0 +1,8 @@
+* text=auto eol=lf
+*.fit binary
+*.png binary
+*.jpg binary
+*.woff2 binary
+*.zip binary
+*.docx binary
+docs/sources/KINETEXA_PRD_v1.0.md -text

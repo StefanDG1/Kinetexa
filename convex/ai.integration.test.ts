@@ -25,8 +25,8 @@ async function fixture() {
   const t = convexTest(schema, modules),
     a = t.withIdentity({ subject: "ai-owner" }),
     b = t.withIdentity({ subject: "ai-other" });
-  const aid = await a.mutation(api.athletes.ensure),
-    bid = await b.mutation(api.athletes.ensure);
+  const aid = await a.mutation(internal.athletes.ensureRecord),
+    bid = await b.mutation(internal.athletes.ensureRecord);
   const profile = {
     displayName: "Synthetic",
     timezone: "UTC",

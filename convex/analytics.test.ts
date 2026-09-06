@@ -2,7 +2,7 @@
 import { convexTest } from "convex-test";
 import { it, expect, vi } from "vitest";
 import schema from "./schema";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { analyze } from "../packages/core/analytics";
 const modules = import.meta.glob("./**/*.ts");
 it("serves deterministic analytics with AI off, includes privately owned provider data and isolates other accounts", async () => {
@@ -11,8 +11,8 @@ it("serves deterministic analytics with AI off, includes privately owned provide
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "analytics-owner" }),
       b = t.withIdentity({ subject: "analytics-other" });
-    const athleteId = await a.mutation(api.athletes.ensure);
-    await b.mutation(api.athletes.ensure);
+    const athleteId = await a.mutation(internal.athletes.ensureRecord);
+    await b.mutation(internal.athletes.ensureRecord);
     const activityId = await t.run(async (ctx) => {
       const sourceId = await ctx.db.insert("sources", {
         athleteId,

@@ -10,8 +10,8 @@ it("keeps answer feedback private, editable and removable, and aggregates only c
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "feedback-owner" }),
       b = t.withIdentity({ subject: "feedback-other" });
-    const athleteId = await a.mutation(api.athletes.ensure, {});
-    await b.mutation(api.athletes.ensure, {});
+    const athleteId = await a.mutation(internal.athletes.ensureRecord, {});
+    await b.mutation(internal.athletes.ensureRecord, {});
     const id = await t.run(async (ctx) => {
       const runId = await ctx.db.insert("aiRuns", {
         athleteId,

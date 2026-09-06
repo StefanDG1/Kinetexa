@@ -10,7 +10,7 @@ it("counts operations once, finds backlogs, reports alert changes and keeps priv
   try {
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "operator-fixture" }),
-      athleteId = await a.mutation(api.athletes.ensure),
+      athleteId = await a.mutation(internal.athletes.ensureRecord),
       now = Date.now();
     const ids = await t.run(async (ctx) => {
       for (let i = 0; i < 10; i++) {
@@ -94,7 +94,7 @@ it("retries only eligible failed work and preserves expired exports and locked-a
   try {
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "retry-fixture" }),
-      athleteId = await a.mutation(api.athletes.ensure);
+      athleteId = await a.mutation(internal.athletes.ensureRecord);
     const ids = await t.run(async (ctx) => ({
       source: await ctx.db.insert("sources", {
         athleteId,
@@ -156,12 +156,14 @@ it("keeps production athlete APIs closed until release while private monitoring 
   try {
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "release-gate" });
-    const athleteId = await a.mutation(api.athletes.ensure);
+    const athleteId = await a.mutation(internal.athletes.ensureRecord);
     vi.stubEnv("KINETEXA_ENVIRONMENT", "production");
     vi.stubEnv("KINETEXA_APP_ENABLED", "false");
     expect(await a.query(api.athletes.current)).toBeNull();
     await expect(a.query(api.workspace.overview)).rejects.toThrow("not open");
-    await expect(a.mutation(api.athletes.ensure)).rejects.toThrow("not open");
+    await expect(a.mutation(internal.athletes.ensureRecord)).rejects.toThrow(
+      "not open",
+    );
     expect((await t.action(internal.operations.check, {})).alerts).toEqual([]);
     expect(await t.run((ctx) => ctx.db.get(athleteId))).not.toBeNull();
     vi.stubEnv("KINETEXA_APP_ENABLED", "true");

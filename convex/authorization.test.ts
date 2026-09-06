@@ -2,7 +2,7 @@
 import { convexTest } from "convex-test";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import schema from "./schema";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 const modules = import.meta.glob("./**/*.ts");
 describe("athlete ownership and consent", () => {
   beforeEach(() => vi.useFakeTimers());
@@ -14,8 +14,8 @@ describe("athlete ownership and consent", () => {
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "paged" }),
       b = t.withIdentity({ subject: "separate" });
-    const athleteId = await a.mutation(api.athletes.ensure);
-    await b.mutation(api.athletes.ensure);
+    const athleteId = await a.mutation(internal.athletes.ensureRecord);
+    await b.mutation(internal.athletes.ensureRecord);
     await t.run(async (ctx) => {
       const sourceId = await ctx.db.insert("sources", {
         athleteId,
@@ -78,8 +78,8 @@ describe("athlete ownership and consent", () => {
         issuer: "https://example.test",
       }),
       bob = t.withIdentity({ subject: "bob", issuer: "https://example.test" });
-    await alice.mutation(api.athletes.ensure);
-    await bob.mutation(api.athletes.ensure);
+    await alice.mutation(internal.athletes.ensureRecord);
+    await bob.mutation(internal.athletes.ensureRecord);
     const profile = await alice.query(api.athletes.current);
     expect(profile?.aiConsent).toBe(false);
     expect(profile?.analyticsConsent).toBe(false);
@@ -101,8 +101,8 @@ describe("athlete ownership and consent", () => {
     const t = convexTest(schema, modules),
       alice = t.withIdentity({ subject: "alice" }),
       bob = t.withIdentity({ subject: "bob" });
-    await alice.mutation(api.athletes.ensure);
-    await bob.mutation(api.athletes.ensure);
+    await alice.mutation(internal.athletes.ensureRecord);
+    await bob.mutation(internal.athletes.ensureRecord);
     const id = await alice.mutation(api.workspace.saveGear, {
       name: "Road bike",
       kind: "bicycle",
@@ -125,7 +125,7 @@ describe("athlete ownership and consent", () => {
   it("enforces upload quotas atomically at the backend", async () => {
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "limited" });
-    await a.mutation(api.athletes.ensure);
+    await a.mutation(internal.athletes.ensureRecord);
     const args = {
       name: "x.gpx",
       bytes: 100,

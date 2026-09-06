@@ -1,5 +1,11 @@
 import { ConvexError, v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import {
+  mutation,
+  query,
+  action,
+  internalMutation,
+  internalQuery,
+} from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { QueryCtx } from "./_generated/server";
 import { recordProductEvent } from "./telemetryModel";
@@ -54,24 +60,58 @@ export const current = query({
   },
 });
 
-export const ensure = mutation({
+async function registrationStateFor(ctx: QueryCtx) {
+  if (!appOpen()) throw new ConvexError("Kinetexa is not open yet.");
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity || (await sessionRevoked(ctx, identity)))
+    throw new ConvexError("Sign in to continue.");
+  const existing = await ctx.db
+    .query("athletes")
+    .withIndex("by_workos_user", (q) => q.eq("workosUserId", identity.subject))
+    .unique();
+  if (existing && existing.status !== "active")
+    throw new ConvexError("Your account is being deleted.");
+  return { identity, existing };
+}
+export const registrationState = internalQuery({
   args: {},
   handler: async (ctx) => {
-    if (!appOpen()) throw new ConvexError("Kinetexa is not open yet.");
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity || (await sessionRevoked(ctx, identity)))
-      throw new ConvexError("Sign in to continue.");
-    const existing = await ctx.db
-      .query("athletes")
-      .withIndex("by_workos_user", (q) =>
-        q.eq("workosUserId", identity.subject),
-      )
-      .unique();
-    if (existing) {
-      if (existing.status !== "active")
-        throw new ConvexError("Your account is being deleted.");
-      return existing._id;
-    }
+    const { identity, existing } = await registrationStateFor(ctx);
+    return { subject: identity.subject, athleteId: existing?._id ?? null };
+  },
+});
+export const ensure = action({
+  args: {},
+  handler: async (
+    ctx,
+  ): Promise<import("./_generated/dataModel").Id<"athletes">> => {
+    const state = await ctx.runQuery(internal.athletes.registrationState, {});
+    if (state.athleteId) return state.athleteId;
+    if (!process.env.WORKOS_API_KEY)
+      throw new ConvexError("Account verification is unavailable. Try again.");
+    const response = await fetch(
+      `https://api.workos.com/user_management/users/${encodeURIComponent(state.subject)}`,
+      {
+        headers: { Authorization: `Bearer ${process.env.WORKOS_API_KEY}` },
+        signal: AbortSignal.timeout(15000),
+      },
+    );
+    if (response.status === 404)
+      throw new ConvexError("Your account is unavailable. Sign in again.");
+    if (!response.ok)
+      throw new ConvexError("Account verification is unavailable. Try again.");
+    const user = await response.json();
+    if (user.id !== state.subject)
+      throw new ConvexError("Your account is unavailable. Sign in again.");
+    return ctx.runMutation(internal.athletes.ensureRecord, {});
+  },
+});
+// Internal allocation boundary. Public creation verifies the provider first.
+export const ensureRecord = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const { identity, existing } = await registrationStateFor(ctx);
+    if (existing) return existing._id;
     const now = Date.now();
     const id = await ctx.db.insert("athletes", {
       tokenIdentifier: identity.tokenIdentifier,

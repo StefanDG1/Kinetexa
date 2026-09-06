@@ -2,7 +2,7 @@
 import { convexTest } from "convex-test";
 import { it, expect, vi } from "vitest";
 import schema from "./schema";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 const modules = import.meta.glob("./**/*.ts");
 it("supports owned workspace updates and deletion, validates plan and goal data, and preserves other items", async () => {
   vi.useFakeTimers();
@@ -10,8 +10,8 @@ it("supports owned workspace updates and deletion, validates plan and goal data,
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "workspace-owner" }),
       b = t.withIdentity({ subject: "workspace-other" });
-    await a.mutation(api.athletes.ensure);
-    await b.mutation(api.athletes.ensure);
+    await a.mutation(internal.athletes.ensureRecord);
+    await b.mutation(internal.athletes.ensureRecord);
     const zone = { name: "Home", lat: 45, lon: 25, radius: 300 };
     const zoneId = await a.mutation(api.workspace.saveZone, zone);
     await expect(

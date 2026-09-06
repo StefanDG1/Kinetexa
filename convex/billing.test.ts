@@ -92,8 +92,8 @@ async function setup() {
   const t = convexTest(schema, modules),
     a = t.withIdentity({ subject: "billing-owner" }),
     b = t.withIdentity({ subject: "billing-other" });
-  const athleteId = await a.mutation(api.athletes.ensure);
-  await b.mutation(api.athletes.ensure);
+  const athleteId = await a.mutation(internal.athletes.ensureRecord);
+  await b.mutation(internal.athletes.ensureRecord);
   await t.mutation(internal.billing.attachCustomer, {
     athleteId,
     customerId: "cus_test",

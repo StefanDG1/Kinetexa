@@ -2,6 +2,8 @@
 
 The Convex API uses WorkOS access tokens. Construct a `ConvexHttpClient` with the configured deployment URL and call `setAuth(workosAccessToken)`. Keep tokens out of logs and source control. Every private operation resolves the active athlete on the server.
 
+Call `client.action("athletes:ensure", {})` after authentication to register or resolve the athlete. This is an action, changed from the former mutation so first registration can verify the identity still exists in WorkOS. The allocation mutation is internal. Existing active accounts retain their ID; deleting accounts and revoked sessions are rejected. See [authentication](authentication.md) for logout behavior and provider-revocation limits.
+
 ## Deterministic analytics
 
 `analytics:calculate` accepts `{ request }`, validated by `packages/core/ai.ts`'s closed tool schema. It performs calculations without an AI provider, AI consent or AI quota. It supports activity search/detail/comparison, load, fitness/form and rolling comparisons, records, zones, health trends, saved/ad-hoc queries, map summaries, goals and gear usage. Entity IDs must belong to the authenticated athlete. The separate AI workflow applies source-policy and consent restrictions before model use.

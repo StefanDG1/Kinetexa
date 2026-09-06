@@ -2,6 +2,7 @@
 import { convexTest } from "convex-test";
 import { it, expect, vi } from "vitest";
 import { anyApi } from "convex/server";
+import { internal } from "./_generated/api";
 import schema from "./schema";
 const modules = import.meta.glob("./**/*.ts");
 it("enforces provider gates server-side, reports capability uncertainty and rejects anonymous access", async () => {
@@ -9,7 +10,7 @@ it("enforces provider gates server-side, reports capability uncertainty and reje
   try {
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "provider-owner" });
-    await a.mutation(anyApi.athletes.ensure, {});
+    await a.mutation(internal.athletes.ensureRecord, {});
     const catalog = await a.query(anyApi.providers.catalog, {});
     expect(catalog.fileImport.formats).toEqual(["fit", "tcx", "gpx", "zip"]);
     expect(catalog.persistentConnectionAvailable).toBe(false);

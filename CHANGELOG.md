@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Verify first registration against the live WorkOS identity, preventing an unexpired token from recreating an empty athlete after account deletion. Keep record allocation internal and update the frontend to action transport.
+
 - Close the existing-JWT logout window with server-side AuthKit session revocations, preserve other sessions, revoke provider refresh access and include hashed revocation records in account export/deletion.
 
 ## 0.4.0-alpha.4 - 2026-09-06

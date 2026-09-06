@@ -11,8 +11,8 @@ it("recovers a partial archive when its failed child is retried without losing s
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "archive-owner" }),
       b = t.withIdentity({ subject: "archive-other" });
-    const athleteId = await a.mutation(api.athletes.ensure, {});
-    await b.mutation(api.athletes.ensure, {});
+    const athleteId = await a.mutation(internal.athletes.ensureRecord, {});
+    await b.mutation(internal.athletes.ensureRecord, {});
     const { parent, child } = await t.run(async (ctx) => {
       const parent = await ctx.db.insert("sources", {
         athleteId,

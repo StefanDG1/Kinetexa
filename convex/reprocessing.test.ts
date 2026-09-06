@@ -24,8 +24,8 @@ async function setup() {
   const t = convexTest(schema, modules),
     a = t.withIdentity({ subject: "reprocess-owner" }),
     b = t.withIdentity({ subject: "reprocess-other" });
-  const athleteId = await a.mutation(api.athletes.ensure);
-  await b.mutation(api.athletes.ensure);
+  const athleteId = await a.mutation(internal.athletes.ensureRecord);
+  await b.mutation(internal.athletes.ensureRecord);
   storage.bytes = new TextEncoder().encode(
     '<gpx><trk><name>Source name</name><type>running</type><trkseg><trkpt lat="45" lon="25"><time>2026-09-01T00:00:00Z</time></trkpt><trkpt lat="45.0001" lon="25"><time>2026-09-01T00:00:10Z</time></trkpt></trkseg></trk></gpx>',
   );

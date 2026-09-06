@@ -16,8 +16,8 @@ describe("destructive lifecycle boundaries", () => {
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "delete-with-notice" }),
       b = t.withIdentity({ subject: "keep-with-notice" });
-    const athleteId = await a.mutation(api.athletes.ensure),
-      otherId = await b.mutation(api.athletes.ensure);
+    const athleteId = await a.mutation(internal.athletes.ensureRecord),
+      otherId = await b.mutation(internal.athletes.ensureRecord);
     const id = await a.mutation(api.lifecycle.requestDeletion, {
       confirmation: "DELETE MY ACCOUNT",
     });
@@ -104,8 +104,20 @@ describe("destructive lifecycle boundaries", () => {
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "erase" }),
       b = t.withIdentity({ subject: "keep" });
-    const aid = await a.mutation(api.athletes.ensure),
-      bid = await b.mutation(api.athletes.ensure);
+    const aid = await a.mutation(internal.athletes.ensureRecord),
+      bid = await b.mutation(internal.athletes.ensureRecord);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("revokedSessions", {
+        athleteId: aid,
+        sessionHash: "a".repeat(64),
+        createdAt: Date.now(),
+      });
+      await ctx.db.insert("revokedSessions", {
+        athleteId: bid,
+        sessionHash: "b".repeat(64),
+        createdAt: Date.now(),
+      });
+    });
     const gear = await b.mutation(api.workspace.saveGear, {
       name: "Keep",
       kind: "running shoe",
@@ -121,9 +133,9 @@ describe("destructive lifecycle boundaries", () => {
     await expect(a.query(api.activities.list, {})).rejects.toThrow(
       "unavailable",
     );
-    await expect(a.mutation(api.athletes.ensure, {})).rejects.toThrow(
-      "being deleted",
-    );
+    await expect(
+      a.mutation(internal.athletes.ensureRecord, {}),
+    ).rejects.toThrow("being deleted");
     vi.setSystemTime(Date.now() + 15 * 60000);
     const claimed = (await t.mutation(internal.lifecycle.claimDeletion, {
       id,
@@ -136,6 +148,26 @@ describe("destructive lifecycle boundaries", () => {
       }))
     ) {}
     expect(await t.run((ctx) => ctx.db.get(aid))).toBeNull();
+    vi.stubEnv("WORKOS_API_KEY", "unit-fixture");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(null, { status: 404 })),
+    );
+    try {
+      await expect(a.action(api.athletes.ensure, {})).rejects.toThrow(
+        "unavailable",
+      );
+    } finally {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    }
+    expect(
+      await t.run(async (ctx) =>
+        (await ctx.db.query("revokedSessions").collect()).map(
+          (row) => row.athleteId,
+        ),
+      ),
+    ).toEqual([bid]);
     expect(await t.run((ctx) => ctx.db.get(bid))).not.toBeNull();
     expect(
       (await b.query(api.workspace.overview)).gear.map((g) => g._id),
@@ -145,7 +177,7 @@ describe("destructive lifecycle boundaries", () => {
     vi.useFakeTimers();
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "import" });
-    await a.mutation(api.athletes.ensure);
+    await a.mutation(internal.athletes.ensureRecord);
     const id = await a.mutation(api.imports.reserve, {
       name: "run.fit",
       bytes: 100,

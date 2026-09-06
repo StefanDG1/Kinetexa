@@ -2,7 +2,7 @@
 import { convexTest } from "convex-test";
 import { it, expect, vi } from "vitest";
 import schema from "./schema";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 const modules = import.meta.glob("./**/*.ts");
 it("keeps duplicate groups flat, reversible and owner-authorized", async () => {
   vi.useFakeTimers();
@@ -10,8 +10,8 @@ it("keeps duplicate groups flat, reversible and owner-authorized", async () => {
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "merge-owner" }),
       b = t.withIdentity({ subject: "merge-other" });
-    const athleteId = await a.mutation(api.athletes.ensure);
-    await b.mutation(api.athletes.ensure);
+    const athleteId = await a.mutation(internal.athletes.ensureRecord);
+    await b.mutation(internal.athletes.ensureRecord);
     const ids = await t.run(async (ctx) => {
       const sourceId = await ctx.db.insert("sources", {
         athleteId,

@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useAction, useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import {
   Home,
@@ -34,7 +34,7 @@ const links = [
 export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname(),
     { isAuthenticated } = useConvexAuth(),
-    ensure = useMutation(api.athletes.ensure),
+    ensure = useAction(api.athletes.ensure),
     profile = useQuery(api.athletes.current, isAuthenticated ? {} : "skip");
   const [error, setError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);

@@ -21,9 +21,9 @@ it("revokes only the signed session, blocks private reads and writes immediately
       email: "same@example.test",
       sid: "session_other",
     });
-  const id = await first.mutation(api.athletes.ensure);
-  expect(await second.mutation(api.athletes.ensure)).toBe(id);
-  expect(await different.mutation(api.athletes.ensure)).not.toBe(id);
+  const id = await first.mutation(internal.athletes.ensureRecord);
+  expect(await second.mutation(internal.athletes.ensureRecord)).toBe(id);
+  expect(await different.mutation(internal.athletes.ensureRecord)).not.toBe(id);
   const fetchMock = vi
     .fn()
     .mockResolvedValue(new Response(null, { status: 204 }));
@@ -37,9 +37,9 @@ it("revokes only the signed session, blocks private reads and writes immediately
     await expect(first.query(api.activities.list, {})).rejects.toThrow(
       "Sign in",
     );
-    await expect(first.mutation(api.athletes.ensure, {})).rejects.toThrow(
-      "Sign in",
-    );
+    await expect(
+      first.mutation(internal.athletes.ensureRecord, {}),
+    ).rejects.toThrow("Sign in");
     expect(await second.query(api.athletes.current, {})).not.toBeNull();
     expect(await different.query(api.athletes.current, {})).not.toBeNull();
     await first.action(api.sessionActions.logout, {});
@@ -72,7 +72,7 @@ it("keeps API denial when the session provider fails and rejects anonymous logou
       subject: "owner",
       sid: "session_failed_provider",
     });
-  await owner.mutation(api.athletes.ensure);
+  await owner.mutation(internal.athletes.ensureRecord);
   vi.stubGlobal(
     "fetch",
     vi.fn().mockResolvedValue(new Response(null, { status: 503 })),

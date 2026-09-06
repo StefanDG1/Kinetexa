@@ -11,8 +11,8 @@ it("tracks maintenance across paginated history, services, merges and retirement
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "gear-owner" }),
       b = t.withIdentity({ subject: "gear-other" });
-    const athleteId = await a.mutation(api.athletes.ensure);
-    await b.mutation(api.athletes.ensure);
+    const athleteId = await a.mutation(internal.athletes.ensureRecord);
+    await b.mutation(internal.athletes.ensureRecord);
     const input = {
       name: "Road bicycle",
       kind: "bicycle",

@@ -6,6 +6,8 @@ Kinetexa uses WorkOS AuthKit. Convex validates signed tokens against the configu
 
 The WorkOS user ID is the account key. Repeated sign-ins and different sessions for that ID resolve to the same athlete, including when the email changes. Matching email addresses on different WorkOS user IDs do not merge accounts or training history. WorkOS manages authentication-provider linking; Kinetexa has no email-based linking or public history-transfer API. Focused tests cover both identity cases and ownership isolation.
 
+First registration calls the public `athletes:ensure` action. If no athlete exists, the action checks that the signed user ID still exists in WorkOS before allocating a record through an internal mutation. Deleted, mismatched or unavailable provider identities cannot create an athlete. Existing active athletes return their existing ID without another provider request. Deleting accounts and revoked sessions are rejected before allocation. This closes a reproduced failure where an unexpired token could recreate an empty athlete after account deletion.
+
 ## Logout
 
 The sign-out route calls `sessionActions:logout` with the current server-side access token before AuthKit clears browser cookies and redirects to WorkOS logout. The action derives the session ID from the signed token; callers cannot supply another session ID. It records a SHA-256 hash in `revokedSessions`, then asks WorkOS to revoke the session and its refresh token. No access token, refresh token or raw session ID is stored in that table.
@@ -17,3 +19,5 @@ The frontend still clears its cookies and completes WorkOS logout if its backend
 ## Verification
 
 The initial API check reproduced a five-minute window in which an existing JWT remained readable after WorkOS session revocation. After the change, hosted staging rejected that session's profile/activity reads and athlete creation immediately, rejected its refresh token, and allowed a second session to refresh and read. Both temporary verification sessions were then logged out. Tests also cover provider failure without reopening access, anonymous rejection and private record projection. Browser route verification is recorded separately in the staging record.
+
+The real staging Sign out link returned to the public landing page, added exactly one server revocation for the browser session, and redirected a subsequent protected-page visit to WorkOS sign-in. The registration regression is covered by provider-response and actual database-purge tests. Hosted verification of an unexpired token after the normal deletion grace is in progress.

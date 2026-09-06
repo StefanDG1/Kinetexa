@@ -22,8 +22,8 @@ async function setup() {
   const t = convexTest(schema, modules),
     a = t.withIdentity({ subject: "telemetry-owner" }),
     b = t.withIdentity({ subject: "telemetry-other" });
-  const id = await a.mutation(api.athletes.ensure, {});
-  await b.mutation(api.athletes.ensure, {});
+  const id = await a.mutation(internal.athletes.ensureRecord, {});
+  await b.mutation(internal.athletes.ensureRecord, {});
   const consent = (value: boolean) =>
     a.mutation(api.athletes.updateProfile, {
       displayName: "Private athlete name",

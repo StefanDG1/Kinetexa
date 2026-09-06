@@ -78,8 +78,8 @@ async function setup() {
   const t = convexTest(schema, modules),
     a = t.withIdentity({ subject: "export-owner" }),
     b = t.withIdentity({ subject: "export-other" });
-  const athleteId = await a.mutation(api.athletes.ensure);
-  await b.mutation(api.athletes.ensure);
+  const athleteId = await a.mutation(internal.athletes.ensureRecord);
+  await b.mutation(internal.athletes.ensureRecord);
   const id = await a.mutation(api.lifecycle.requestExport, {});
   return { t, a, b, athleteId, id };
 }

@@ -2,7 +2,7 @@
 import { convexTest } from "convex-test";
 import { expect, it, vi } from "vitest";
 import schema from "./schema";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { FunctionReturnType } from "convex/server";
 const modules = import.meta.glob("./**/*.ts");
 
@@ -12,8 +12,8 @@ it("pages complete owned workspace collections and bounds calendar reads to the 
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "paged-owner" }),
       b = t.withIdentity({ subject: "paged-other" });
-    const athleteId = await a.mutation(api.athletes.ensure, {});
-    await b.mutation(api.athletes.ensure, {});
+    const athleteId = await a.mutation(internal.athletes.ensureRecord, {});
+    await b.mutation(internal.athletes.ensureRecord, {});
     await t.run(async (ctx) => {
       for (let i = 0; i < 126; i++)
         await ctx.db.insert("plans", {
@@ -122,7 +122,7 @@ it("groups custom analytics by the athlete timezone unless the query explicitly 
   try {
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "query-timezone" });
-    const athleteId = await a.mutation(api.athletes.ensure, {});
+    const athleteId = await a.mutation(internal.athletes.ensureRecord, {});
     await t.run(async (ctx) => {
       await ctx.db.patch(athleteId, { timezone: "America/New_York" });
       const sourceId = await ctx.db.insert("sources", {

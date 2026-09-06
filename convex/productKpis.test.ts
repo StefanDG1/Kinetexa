@@ -9,10 +9,10 @@ it("excludes non-consenting, withdrawn, and deleting accounts from internal repo
   try {
     const t = convexTest(schema, modules);
     const owner = t.withIdentity({ subject: "kpi-owner" });
-    const id = await owner.mutation(api.athletes.ensure, {});
+    const id = await owner.mutation(internal.athletes.ensureRecord, {});
     await t
       .withIdentity({ subject: "kpi-other" })
-      .mutation(api.athletes.ensure, {});
+      .mutation(internal.athletes.ensureRecord, {});
     await t.run((ctx) =>
       ctx.db.patch(id, { analyticsConsent: true, analyticsConsentRevision: 2 }),
     );

@@ -10,8 +10,8 @@ it("keeps health private, honors processing preferences and pages beyond the for
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "health-owner" }),
       b = t.withIdentity({ subject: "health-other" }),
-      aid = await a.mutation(api.athletes.ensure);
-    await b.mutation(api.athletes.ensure);
+      aid = await a.mutation(internal.athletes.ensureRecord);
+    await b.mutation(internal.athletes.ensureRecord);
     const source = await a.mutation(api.imports.reserve, {
         name: "health.fit",
         bytes: 100,

@@ -48,8 +48,8 @@ async function setup(key: string) {
   const t = convexTest(schema, modules),
     a = t.withIdentity({ subject: "email-owner" }),
     b = t.withIdentity({ subject: "email-other" });
-  const athleteId = await a.mutation(api.athletes.ensure);
-  await b.mutation(api.athletes.ensure);
+  const athleteId = await a.mutation(internal.athletes.ensureRecord);
+  await b.mutation(internal.athletes.ensureRecord);
   const id = (await t.mutation(internal.email.enqueue, {
     athleteId,
     template: "export",

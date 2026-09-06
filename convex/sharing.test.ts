@@ -2,7 +2,7 @@
 import { convexTest } from "convex-test";
 import { it, expect, vi, beforeEach, afterEach } from "vitest";
 import schema from "./schema";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 const modules = import.meta.glob("./**/*.ts");
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => {
@@ -13,8 +13,8 @@ it("projects only selected public fields, masks geometry and revokes immediately
   const t = convexTest(schema, modules),
     a = t.withIdentity({ subject: "owner" }),
     b = t.withIdentity({ subject: "intruder" });
-  const aid = await a.mutation(api.athletes.ensure);
-  await b.mutation(api.athletes.ensure);
+  const aid = await a.mutation(internal.athletes.ensureRecord);
+  await b.mutation(internal.athletes.ensureRecord);
   const id = await t.run(async (ctx) => {
     const sourceId = await ctx.db.insert("sources", {
       athleteId: aid,
@@ -85,8 +85,8 @@ it("keeps share preview and creation validation aligned and totals privacy-limit
   const t = convexTest(schema, modules),
     owner = t.withIdentity({ subject: "share-owner" }),
     stranger = t.withIdentity({ subject: "share-stranger" });
-  const athleteId = await owner.mutation(api.athletes.ensure);
-  await stranger.mutation(api.athletes.ensure);
+  const athleteId = await owner.mutation(internal.athletes.ensureRecord);
+  await stranger.mutation(internal.athletes.ensureRecord);
   const ids = await t.run(async (ctx) => {
     await ctx.db.patch(athleteId, { timezone: "America/New_York" });
     const sourceId = await ctx.db.insert("sources", {
@@ -191,7 +191,7 @@ it("keeps share preview and creation validation aligned and totals privacy-limit
 it("reapplies changed privacy zones and denies expired or inactive-owner links immediately", async () => {
   const t = convexTest(schema, modules),
     owner = t.withIdentity({ subject: "mask-owner" });
-  const athleteId = await owner.mutation(api.athletes.ensure);
+  const athleteId = await owner.mutation(internal.athletes.ensureRecord);
   const id = await t.run(async (ctx) => {
     const sourceId = await ctx.db.insert("sources", {
       athleteId,
@@ -257,7 +257,7 @@ it("reapplies changed privacy zones and denies expired or inactive-owner links i
 it("limits public reads per link before projection, resets the counter without visitor history", async () => {
   const t = convexTest(schema, modules),
     owner = t.withIdentity({ subject: "rate-owner" });
-  const athleteId = await owner.mutation(api.athletes.ensure);
+  const athleteId = await owner.mutation(internal.athletes.ensureRecord);
   vi.setSystemTime(1800000000000);
   const token = "e".repeat(64);
   const id = await t.run((ctx) =>

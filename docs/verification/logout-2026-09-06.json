@@ -4,5 +4,9 @@
   "athleteRecreationDenied": true,
   "revokedRefreshTokenRejected": true,
   "otherSessionCanRefreshAndRead": true,
-  "environment": "staging"
+  "environment": "staging",
+  "browserVerifiedAt": "2026-09-06T21:29:25.266Z",
+  "browserSignoutCompleted": true,
+  "serverRevocationRecorded": true,
+  "protectedPageRedirectedToSignIn": true
 }

@@ -10,8 +10,8 @@ it("resumes index preparation, keeps edits and merges transactional, and reads c
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "facts-owner" }),
       b = t.withIdentity({ subject: "facts-other" });
-    const athleteId = await a.mutation(api.athletes.ensure);
-    await b.mutation(api.athletes.ensure);
+    const athleteId = await a.mutation(internal.athletes.ensureRecord);
+    await b.mutation(internal.athletes.ensureRecord);
     const { sourceId, ids } = await t.run(async (ctx) => {
       const sourceId = await ctx.db.insert("sources", {
         athleteId,

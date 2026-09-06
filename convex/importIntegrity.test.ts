@@ -10,7 +10,7 @@ it("seals the original under an immutable checksum identity and fences stale att
   try {
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "integrity-owner" });
-    const athleteId = await a.mutation(api.athletes.ensure, {});
+    const athleteId = await a.mutation(internal.athletes.ensureRecord, {});
     const id = await a.mutation(api.imports.reserve, {
       name: "synthetic.gpx",
       bytes: 100,

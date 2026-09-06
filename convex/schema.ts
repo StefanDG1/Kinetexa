@@ -256,6 +256,7 @@ export default defineSchema({
     status: v.string(),
     periodEnd: v.optional(v.number()),
     refreshRevision: v.optional(v.number()),
+    appliedRefreshRevision: v.optional(v.number()),
     checkout: v.optional(
       v.object({
         key: v.string(),

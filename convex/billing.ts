@@ -99,13 +99,15 @@ export const apply = internalMutation({
       throw new ConvexError("Billing account unavailable. Retry delivery.");
     if (
       args.observedAt >= row.updatedAt &&
-      (args.revision === undefined || args.revision === row.refreshRevision)
+      (args.revision === undefined ||
+        args.revision >= (row.appliedRefreshRevision ?? 0))
     ) {
       await ctx.db.patch(row._id, {
         subscriptionId: args.subscriptionId,
         status: args.status,
         periodEnd: args.periodEnd,
         updatedAt: args.observedAt,
+        appliedRefreshRevision: args.revision ?? row.appliedRefreshRevision,
       });
       if (!hasPremium(row) && hasPremium({ ...row, ...args })) {
         const athlete = await ctx.db.get(row.athleteId);

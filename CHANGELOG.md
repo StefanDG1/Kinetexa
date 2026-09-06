@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Publish completed subscription refreshes while newer requests are pending, while preserving the order of already-applied entitlement updates.
+
+- Clear removed goal results, workout intensity and legacy gear intervals on edit; reject invalid calendar dates and future service dates.
+
 - Add consent-fenced product events, private history and bounded delivery retries; require verified external event erasure before final account deletion and prevent telemetry replay after recovery.
 
 - Expose explicit provider approval/terms gates and capability status, with a checked adapter contract and current Strava/Polar compliance notes.

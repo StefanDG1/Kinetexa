@@ -45,6 +45,8 @@ Share tokens must be unique. Expiring links are revoked by a durable scheduled m
 
 ## Billing and delivery
 
+Subscription refreshes are ordered by the last applied revision. A completed read may publish while a newer request is pending, but cannot overwrite a newer applied result. A refund does not itself cancel a Stripe subscription; cancellation is a separate operation. Sandbox renewal, failed payment, recovery and cancellation have been verified with unchanged canonical data.
+
 `billingActions:checkout({ interval })` reuses the account's pending Stripe session. `billingActions:cancelCheckout({})` expires that session before a plan change. `billingActions:refreshCurrent({})` reconciles current Stripe subscriptions; `billing:current` returns server-calculated `premium` and `checkoutPending` flags. Paid-period expiry is enforced even when a webhook is missing. Reconciliation also runs hourly and at the paid-period boundary.
 
 `email:page` provides private paginated delivery history without cached recipient bodies or idempotency keys. Bounces and complaints suppress subsequent application email. Uncertain delivery after the safe retry window is exposed as `delivery-unknown` for operator review.

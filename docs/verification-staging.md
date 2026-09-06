@@ -4,6 +4,8 @@ This records prerelease evidence, not completion of all V1 acceptance criteria. 
 
 ## Hosted journeys
 
+Stripe sandbox clock: an isolated synthetic customer completed initial monthly payment, renewal, a failed renewal that removed Premium, payment recovery that restored Premium, and cancellation. A test refund succeeded and left the subscription active until separately canceled, matching Stripe's subscription state. The customer portal URL was created and the same canonical activity survived every transition. Concurrent refresh verification exposed and fixed a race: a completed result now publishes unless a newer result has already applied. Immediate cancellation after refresh passed after that change. The synthetic account entered the normal deletion grace period at 18:12:35 UTC; final cleanup is still pending. No live payment was made. The focused suite has 102 passing tests.
+
 Product telemetry backend: a synthetic account with consent off recorded nothing; consent on recorded an allowed dashboard event as `local-only`; attempted payment-event spoofing and an extra arbitrary payload were rejected. Withdrawal stopped further recording. The original consent preference was restored. External PostHog ingestion and erasure are still gated on key setup. The focused suite now has 101 passing tests, including withdrawal/re-consent races, payload privacy, event isolation, erasure fencing and backup replay prevention.
 
 The first hosted operational workflow passed for staging and production: [run 34049786270](https://github.com/StefanDG1/Kinetexa/actions/runs/34049786270). The workflow is active on the default branch. This proves scheduled-check execution; delivery of an incident notification has not been tested.

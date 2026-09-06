@@ -183,6 +183,41 @@ it("ignores stale subscription refreshes and expires premium independently of we
     }),
   ).rejects.toThrow("Account unavailable");
 });
+it("publishes a completed refresh while a newer request is still pending, and never overwrites a newer applied result", async () => {
+  const { t, a } = await setup();
+  const first = await t.mutation(internal.billing.beginRefresh, {
+    customerId: "cus_test",
+  });
+  const pending = await t.mutation(internal.billing.beginRefresh, {
+    customerId: "cus_test",
+  });
+  const state = {
+    customerId: "cus_test",
+    subscriptionId: "sub_test",
+    periodEnd: Date.now() + 10000,
+    observedAt: Date.now(),
+  };
+  await t.mutation(internal.billing.apply, {
+    ...state,
+    eventId: "finished-first",
+    status: "canceled",
+    revision: first,
+  });
+  expect((await a.query(api.billing.current))?.status).toBe("canceled");
+  await t.mutation(internal.billing.apply, {
+    ...state,
+    eventId: "finished-second",
+    status: "active",
+    revision: pending,
+  });
+  await t.mutation(internal.billing.apply, {
+    ...state,
+    eventId: "late-first",
+    status: "canceled",
+    revision: first,
+  });
+  expect((await a.query(api.billing.current))?.premium).toBe(true);
+});
 it("reconciles all subscription pages and closes open checkouts plus every live premium subscription during deletion", async () => {
   const { a } = await setup();
   provider.subscriptions = Array.from({ length: 101 }, (_, i) => ({

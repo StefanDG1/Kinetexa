@@ -157,7 +157,7 @@ A retained staged answer was rated helpful, changed to unhelpful and cleared. In
 
 ## Original integrity under upload replay
 
-A fresh synthetic account reproduced an upload URL overwriting an already processed original; the original bytes were immediately restored. After the fix, replaying a new upload URL still succeeds against its temporary key, but the downloaded retained original and SHA-256 remain unchanged. Reprocessing succeeds from that original. A ZIP containing two activities and a two-session GPX each completed, and malformed XML failed while preserving its exact original and checksum. Six canonical fixture activities were verified. The fixture is in its normal deletion grace period; final cleanup is pending. The focused suite has 109 passing tests.
+A fresh synthetic account reproduced an upload URL overwriting an already processed original; the original bytes were immediately restored. After the fix, replaying a new upload URL still succeeds against its temporary key, but the downloaded retained original and SHA-256 remain unchanged. Reprocessing succeeds from that original. A ZIP containing two activities and a two-session GPX each completed, and malformed XML failed while preserving its exact original and checksum. Six canonical fixture activities were verified. Automatic temporary-upload cleanup removed the replayable copy while preserving the sealed original. Final fixture deletion also passed: WorkOS identity removed, zero private objects, all 25 owned tables checked and an independent deletion tombstone present. One temporary simulator notice remains queued under the bounded Free email policy, making three such notices across this batch and the earlier two fixtures. The focused suite has 109 passing tests.
 
 ## Complete provenance reads
 
@@ -166,3 +166,7 @@ A focused integration case retrieves 126 sources and 35 calculation snapshots th
 ## Webhook request bounds
 
 Both staging and the closed production backend reject oversized UTF-8 webhook payloads with HTTP 413 and forged signatures with HTTP 400. Properly signed Unicode payloads still verify for Stripe and Resend. The checks used ignored event types and made no payments or email sends. Request reading now enforces one million bytes while streaming, including missing or dishonest length headers. The 112-test suite includes chunk-boundary and read-cancellation cases.
+
+## Best-distance calculation correction
+
+An independent 400 m fixture reproduced the missed-between-samples start: 52 seconds before the fix versus 46.6666666667 seconds from the stated piecewise speeds. The corrected scan passes that case and the recording-gap exclusions. All seven retained staging activities were reprocessed to calculation version `0.4.0-alpha.2`; original checksums, canonical totals, edited titles/notes/tags and previous calculation snapshots were preserved. The full suite has 113 passing tests.

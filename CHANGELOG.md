@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Correct best-distance efforts when the fastest interval starts between recorded samples; version the calculation change and retain previous results during reprocessing.
+
 - Bound webhook bodies while streaming and count UTF-8 bytes before signature verification.
 
 - Expose paginated full source/calculation provenance and explicit overview truncation flags; reject impossible dates in health history.

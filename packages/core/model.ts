@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const VERSION = "0.3.0-alpha.2";
+export const VERSION = "0.4.0-alpha.2";
 export const sportSchema = z.enum([
   "running",
   "cycling",

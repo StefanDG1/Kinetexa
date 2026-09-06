@@ -160,6 +160,34 @@ export function bestDistances(
         start = a.t;
       }
     }
+    // With linear distance interpolation, an optimum touches a recorded point at either end.
+    // The first pass anchors starts; this pass anchors ends and interpolates the start.
+    let left = 0;
+    for (let i = 1; i < samples.length; i++) {
+      const end = samples[i];
+      if (end.distance === undefined) continue;
+      while (left < i && segment[left] !== segment[i]) left++;
+      if (left === i) continue;
+      const target = end.distance - distance;
+      while (left + 1 < i && samples[left + 1].distance! <= target) left++;
+      const a = samples[left],
+        b = samples[left + 1];
+      if (
+        a.distance === undefined ||
+        b.distance === undefined ||
+        target < a.distance ||
+        target > b.distance ||
+        b.distance <= a.distance
+      )
+        continue;
+      const startTime =
+        a.t + ((target - a.distance) / (b.distance - a.distance)) * (b.t - a.t);
+      const duration = end.t - startTime;
+      if (duration > 0 && (best === null || duration < best)) {
+        best = duration;
+        start = startTime;
+      }
+    }
     return { distance, duration: best, start };
   });
 }

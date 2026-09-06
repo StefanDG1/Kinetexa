@@ -1,5 +1,5 @@
 import { it, expect } from "vitest";
-import { analyze, fitness } from "./analytics";
+import { analyze, fitness, bestDistances } from "./analytics";
 import { analyzeInterval } from "./interval";
 import { goalProgress } from "./goals";
 import { dashboardData } from "./dashboard";
@@ -19,6 +19,26 @@ const activity: Activity = {
     distance: t * 10,
   })),
 };
+it("finds a best distance whose start lies between samples without crossing recording gaps", () => {
+  const samples = [
+    { t: 0, distance: 0 },
+    { t: 30, distance: 90 },
+    { t: 60, distance: 270 },
+    { t: 90, distance: 570 },
+    { t: 120, distance: 660 },
+  ];
+  // Between samples the speeds are 3, 6, 10 and 3 m/s. The fastest 400 m ends at 90 s.
+  // Its first 100 m take 100/6 s, followed by 300/10 s, so its duration is 46 2/3 s.
+  const best = bestDistances(samples, [400])[0];
+  expect(best.duration).toBeCloseTo(100 / 6 + 300 / 10, 10);
+  expect(best.start).toBeCloseTo(90 - (100 / 6 + 300 / 10), 10);
+  expect(
+    bestDistances(
+      samples.map((s, i) => ({ ...s, breakBefore: i === 3 })),
+      [400],
+    )[0].duration,
+  ).toBeNull();
+});
 it("matches independent closed-form load examples and never uses cycling FTP for running", () => {
   expect(
     analyze(activity, { restHr: 40, maxHr: 200 }).metrics.trimp.value,

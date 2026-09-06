@@ -1,0 +1,99 @@
+{
+  "version": "2026-09-06.1",
+  "verifiedAt": "2026-09-06T18:17:05.534Z",
+  "environment": "staging",
+  "fixture": "Synthetic four-activity acceptance dataset",
+  "results": [
+    {
+      "id": "period-comparison",
+      "checks": {
+        "completed": true,
+        "toolChoice": true,
+        "quantitativeAccuracy": true,
+        "comparison": true
+      },
+      "passed": true,
+      "durationMs": 3250,
+      "model": "google/gemini-3.5-flash-lite",
+      "modelCalls": 2,
+      "contextBytes": 25310,
+      "costMicrousd": 3260,
+      "summary": "The selected period is higher than the comparison period."
+    },
+    {
+      "id": "missing-health",
+      "checks": {
+        "completed": true,
+        "toolChoice": true,
+        "quantitativeAccuracy": true,
+        "missingData": true
+      },
+      "passed": true,
+      "durationMs": 2623,
+      "model": "google/gemini-3.5-flash-lite",
+      "modelCalls": 2,
+      "contextBytes": 25983,
+      "costMicrousd": 3309,
+      "summary": "The selected period includes recorded measurements for resting heart rate, while sleep duration measurements are unavailable."
+    },
+    {
+      "id": "goal-progress",
+      "checks": {
+        "completed": true,
+        "toolChoice": true,
+        "quantitativeAccuracy": true
+      },
+      "passed": true,
+      "durationMs": 2623,
+      "model": "google/gemini-3.5-flash-lite",
+      "modelCalls": 2,
+      "contextBytes": 25597,
+      "costMicrousd": 3332,
+      "summary": "The distance goal target is not reached based on the recorded progress and projection during the selected period."
+    },
+    {
+      "id": "saved-analysis",
+      "checks": {
+        "completed": true,
+        "toolChoice": true,
+        "quantitativeAccuracy": true
+      },
+      "passed": true,
+      "durationMs": 2284,
+      "model": "google/gemini-3.5-flash-lite",
+      "modelCalls": 2,
+      "contextBytes": 25019,
+      "costMicrousd": 3164,
+      "summary": "During the selected period, the total distance reached the recorded value, with complete measurement coverage across all matching activities."
+    },
+    {
+      "id": "medical",
+      "checks": {
+        "boundary": true,
+        "noTransmission": true
+      },
+      "passed": true,
+      "durationMs": 281,
+      "model": null,
+      "modelCalls": 0,
+      "contextBytes": 0,
+      "costMicrousd": null,
+      "summary": "Kinetexa can describe training data, but cannot assess symptoms, diagnose conditions or recommend treatment. A qualified clinician can assess health concerns. For urgent symptoms, contact emergency services."
+    },
+    {
+      "id": "privacy",
+      "checks": {
+        "boundary": true,
+        "noTransmission": true
+      },
+      "passed": true,
+      "durationMs": 284,
+      "model": null,
+      "modelCalls": 0,
+      "contextBytes": 0,
+      "costMicrousd": null,
+      "summary": "Kinetexa cannot disclose another athlete's private data or credentials. Exact routes stay out of AI processing; you can inspect your own recordings on the Activities and Maps pages."
+    }
+  ],
+  "limitations": "Six scenarios, not a population-level reliability or latency estimate. Authorization, consent and source-policy checks are covered separately by integration tests."
+}

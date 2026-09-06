@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.4.0-alpha.1 - 2026-09-06
+
+Backend milestone. Production remains closed and external provider, analytics and release gates remain open.
+
 - Publish completed subscription refreshes while newer requests are pending, while preserving the order of already-applied entitlement updates.
 
 - Clear removed goal results, workout intensity and legacy gear intervals on edit; reject invalid calendar dates and future service dates.

@@ -29,6 +29,7 @@ export default function Records() {
     ) ?? [];
   const power = [5, 15, 30, 60, 300, 1200, 3600].map((d) => {
     const best = rows
+      .filter((a) => a.sport === "cycling")
       .map((a) => ({
         a,
         value: a.metrics.powerCurve.find((r: any) => r.duration === d)?.value,
@@ -132,7 +133,7 @@ export default function Records() {
         </div>
       </section>
       <section className="section">
-        <h2>Power-duration curve</h2>
+        <h2>Cycling power-duration curve</h2>
         <Chart data={power} />
         <table>
           <thead>

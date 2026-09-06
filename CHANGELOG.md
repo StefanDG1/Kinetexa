@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Separate running and cycling record defaults, add all-time/year/period API scopes, exclude future efforts and verify private exclusion/reinstatement without changing local effort data.
+
 - Pin CI actions to verified commit revisions, disable persisted checkout credentials and scan complete Git history with a checksum-verified, redacted Gitleaks release.
 
 - Replace manual analytics-event UUID generation with the runtime Web Crypto UUID API; hosted checks preserve consent and keep external capture disabled.

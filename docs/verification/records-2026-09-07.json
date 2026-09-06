@@ -1,0 +1,28 @@
+{
+  "verifiedAt": "2026-09-06T22:58:49.314Z",
+  "environment": "isolated-restore",
+  "importedTcxActivities": 6,
+  "allTimeScope": true,
+  "currentYearUsesAthleteTimezone": true,
+  "explicitPeriodAndComparison": true,
+  "futureEffortsExcluded": true,
+  "defaultSportsSeparated": true,
+  "explicitSportSupported": true,
+  "exclusionUpdatesRecordIndex": true,
+  "localEffortsPreserved": true,
+  "reinstatementVerified": true,
+  "recordedZeroAndMissingDistinct": true,
+  "fixturesRemoved": true,
+  "cleanup": {
+    "restoredObjects": 45,
+    "restoredDocuments": 369,
+    "remainingCanonicalActivities": 7,
+    "streamsReadable": 7,
+    "ownedTablesChecked": 26
+  },
+  "focusedTests": {
+    "suiteTotal": 137,
+    "recordAuthorizationAndCalendarCasesPassed": true
+  },
+  "stagingScopeReadbackVerified": true
+}

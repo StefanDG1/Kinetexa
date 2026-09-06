@@ -47,6 +47,7 @@ export const toolSchema = z.discriminatedUnion("tool", [
     tool: z.literal("getRecords"),
     ...scope,
     record: z.enum(["power", "pace", "distance"]).default("power"),
+    recordScope: z.enum(["all-time", "current-year", "period"]).optional(),
   }),
   z.object({
     ...base,

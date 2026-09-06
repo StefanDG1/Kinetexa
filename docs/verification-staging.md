@@ -200,3 +200,9 @@ Both staging and the closed production backend reject oversized UTF-8 webhook pa
 ## Best-distance calculation correction
 
 An independent 400 m fixture reproduced the missed-between-samples start: 52 seconds before the fix versus 46.6666666667 seconds from the stated piecewise speeds. The corrected scan passes that case and the recording-gap exclusions. All seven retained staging activities were reprocessed to calculation version `0.4.0-alpha.2`; original checksums, canonical totals, edited titles/notes/tags and previous calculation snapshots were preserved. The full suite has 113 passing tests.
+
+## Record scopes and exclusion
+
+Six synthetic activities imported through TCX in the isolated hosted environment verified all-time, athlete-local current-year, explicit period and comparison rankings. Default distance/pace queries use running; default power uses cycling. Explicit sport remains supported. Future activities do not compete. Exclusion removes a winner immediately, retains its local efforts and restores eligibility when cleared. Recorded zero power remains zero and missing long efforts stay unavailable. Focused integration checks reject another owner's reads and edits. All 137 tests pass. [Record evidence](verification/records-2026-09-07.json).
+
+The isolated environment was returned to its verified 45-object, 369-document snapshot with seven readable canonical streams. The existing records frontend still needs to adopt the backend's timezone-aware scopes; this backend verification does not close the full records UI requirement.

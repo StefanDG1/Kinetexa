@@ -96,3 +96,13 @@ For dashboard/statistics shares, `totals` contains only selected distance, durat
 Preview and public reads use the same projection. `sharing:revoke` makes a link unavailable immediately. Reads also reject at the expiry instant and when the owner is no longer active, independently of scheduled cleanup. Revoked audit records remain in private history until account deletion.
 
 `sharing:publicView({ token })` is a mutation because each valid view atomically reserves one of 120 reads per link per UTC minute before privacy projection. It returns the public projection or null for unavailable links. A limit error carries `{ code: "SHARE_RATE_LIMITED", retryAfterSeconds }`. Use `client.mutation` or Next.js `fetchMutation`; the query transport is disabled. One counter on the share is replaced each minute, with no visitor IP, fingerprint or visit history. Unknown, revoked and expired links do not allocate counters. The limit protects valid-link projection cost; infrastructure-level protection is still needed for arbitrary invalid-token traffic.
+
+## Personal records
+
+Call `analytics:calculate` with `request: { tool: "getRecords", callId: "records", record: "distance", recordScope: "all-time" }`. `recordScope` accepts `all-time`, `current-year` or `period`. The first two derive their bounds from owned history and the athlete's local calendar. `period` requires an explicit `period: { from, to, comparison?, compareFrom?, compareTo? }`. Do not combine an all-time/year scope with a period. Omitting scope preserves the existing recent-period default.
+
+Distance and pace records default to running; power records default to cycling. An explicit `sport` selects that sport alone. Records exclude future starts and activities marked `excludedRecords`. Values retain their units, winning activity IDs and comparison evidence; absent efforts are null and measured zero remains zero. All seven PRD distance and duration windows are supported.
+
+`activities:get({ id })` returns the owned activity's complete local `metrics.bestDistances`, `powerCurve` and `paceCurve`, including start offsets. Local efforts remain inspectable when excluded from personal rankings. `activities:update` changes `excludedRecords` with the other editable details and updates the numerical index in the same transaction. Reinstating an activity restores its eligibility. Exclusion affects personal record rankings, not original files, canonical streams, load or distance totals.
+
+The existing records frontend still owns some period filtering; use the server's explicit scopes when revising it so local calendar boundaries match this API.

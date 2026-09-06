@@ -48,6 +48,36 @@ export function evaluateTool(
   data: ToolData,
   externalAi = true,
 ): Evidence[] {
+  if (call.tool === "getRecords") {
+    const sport =
+      call.sport ?? (call.record === "power" ? "cycling" : "running");
+    call = { ...call, sport };
+    if (call.recordScope && call.recordScope !== "period") {
+      if (call.period)
+        throw new Error(
+          "Choose a record scope or an explicit period, not both.",
+        );
+      const today = dayKey(data.now, data.timezone);
+      const first = data.activities.reduce(
+        (earliest, a) =>
+          a.sport === sport ? Math.min(earliest, a.start) : earliest,
+        data.now,
+      );
+      call = {
+        ...call,
+        period: {
+          from:
+            call.recordScope === "current-year"
+              ? `${today.slice(0, 4)}-01-01`
+              : dayKey(first, data.timezone),
+          to: today,
+          comparison: "none",
+        },
+      };
+    }
+    if (call.recordScope === "period" && !call.period)
+      throw new Error("Choose an explicit record period.");
+  }
   const period = resolvePeriod(
     "period" in call ? call.period : undefined,
     data.now,
@@ -410,8 +440,10 @@ export function evaluateTool(
       break;
     }
     case "getRecords": {
-      const valid = rows.filter((a) => !a.excludedRecords),
-        old = before.filter((a) => !a.excludedRecords);
+      const valid = rows.filter(
+          (a) => !a.excludedRecords && a.start <= data.now,
+        ),
+        old = before.filter((a) => !a.excludedRecords && a.start <= data.now);
       const windows =
         call.record === "distance"
           ? [400, 1000, 1609.344, 5000, 10000, 21097.5, 42195]
@@ -454,6 +486,7 @@ export function evaluateTool(
           b?.value ?? null,
           [
             "Derived from complete recorded efforts; excluded activities do not compete.",
+            `Only ${call.sport} activities compete in this record table.`,
           ],
           { link: "/records", comparisonActivityIds: b ? [b.a._id] : [] },
         );

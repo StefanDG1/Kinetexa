@@ -45,6 +45,10 @@ Share tokens must be unique. Expiring links are revoked by a durable scheduled m
 
 `lifecycle:requestExport` starts a resumable export. `exports:retry({ id })` resumes a failed job from completed parts. `exports:list({ id, cursor })` lists owned part metadata and SHA-256 checksums; `exportActions:downloadPart({ id, index })` signs a short-lived URL after checking ownership, completion and expiry. `lifecycleActions:download({ id })` returns the single ZIP for small accounts or the part manifest for larger exports. Download every part, verify its checksum and extract all parts together. Temporary files expire seven days after the request. Metadata pages record their read times; the export is not a frozen database snapshot.
 
+## Deletion and recovery
+
+Deletion locks the account immediately and starts after fifteen minutes. Each destructive batch checks the owner and current attempt. Failures retry up to four times; operators can invoke internal `lifecycle:retryDeletion` for a failed job. A backup tombstone is written before removing records or objects. The queued confirmation cannot send while the athlete record exists; its recipient is removed after provider acceptance. Failed/abandoned notice recipients are pruned. See `backup-and-recovery.md` for restore filtering.
+
 ## Verification evidence
 
 `docs/verification-staging.md` records hosted outcomes. Automated tests use synthetic fixtures and independent owners. Live verification accounts, tokens, temporary source files and detailed operational artifacts remain in ignored local storage.

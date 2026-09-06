@@ -5,7 +5,98 @@ import schema from "./schema";
 import { api, internal } from "./_generated/api";
 const modules = import.meta.glob("./**/*.ts");
 describe("destructive lifecycle boundaries", () => {
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+  it("waits for the deletion grace period, recovers stale work and removes the recipient after confirmation acceptance", async () => {
+    vi.useFakeTimers();
+    const t = convexTest(schema, modules),
+      a = t.withIdentity({ subject: "delete-with-notice" }),
+      b = t.withIdentity({ subject: "keep-with-notice" });
+    const athleteId = await a.mutation(api.athletes.ensure),
+      otherId = await b.mutation(api.athletes.ensure);
+    const id = await a.mutation(api.lifecycle.requestDeletion, {
+      confirmation: "DELETE MY ACCOUNT",
+    });
+    expect(
+      await t.mutation(internal.lifecycle.claimDeletion, { id }),
+    ).toBeNull();
+    vi.setSystemTime(Date.now() + 15 * 60000);
+    const first = (await t.mutation(internal.lifecycle.claimDeletion, { id }))!;
+    const payload = {
+      from: "synthetic@example.invalid",
+      to: "synthetic@example.invalid",
+      subject: "Deleted",
+      text: "Your account has been deleted.",
+    };
+    await t.mutation(internal.lifecycle.prepareNotification, {
+      id,
+      lease: first.job.lease,
+      payload,
+    });
+    const notice = (await t.query(internal.lifecycle.context, { id }))!.job
+      .notificationId!;
+    expect(await t.mutation(internal.email.claim, { id: notice })).toBeNull();
+    await t.mutation(internal.lifecycle.deletionFailed, {
+      id,
+      lease: first.job.lease,
+    });
+    const second = (await t.mutation(internal.lifecycle.claimDeletion, {
+      id,
+    }))!;
+    await expect(
+      t.mutation(internal.lifecycle.purgeBatch, {
+        athleteId,
+        jobId: id,
+        lease: first.job.lease,
+      }),
+    ).rejects.toThrow("unavailable");
+    await expect(
+      t.mutation(internal.lifecycle.purgeBatch, {
+        athleteId: otherId,
+        jobId: id,
+        lease: second.job.lease,
+      }),
+    ).rejects.toThrow("unavailable");
+    while (
+      !(await t.mutation(internal.lifecycle.purgeBatch, {
+        athleteId,
+        jobId: id,
+        lease: second.job.lease,
+      }))
+    ) {}
+    expect(await t.run((ctx) => ctx.db.get(athleteId))).toBeNull();
+    expect(await t.run((ctx) => ctx.db.get(otherId))).not.toBeNull();
+    const email = (await t.mutation(internal.email.claim, { id: notice }))!;
+    expect(
+      await t.mutation(internal.email.rememberPayload, {
+        id: notice,
+        attempt: email.attempt,
+        payload,
+      }),
+    ).toEqual(payload);
+    await t.mutation(internal.email.result, {
+      id: notice,
+      attempt: email.attempt,
+      providerId: "deletion-provider",
+      failed: false,
+    });
+    expect(await t.run((ctx) => ctx.db.get(notice))).toBeNull();
+    await t.mutation(internal.email.delivery, {
+      providerId: "deletion-provider",
+      status: "delivered",
+      occurredAt: Date.now(),
+      eventId: "signed-provider-event",
+    });
+    const events = await t.query(internal.email.deliveryEvents, { after: 0 });
+    expect(events[0]).toMatchObject({
+      status: "delivered",
+      template: "deletion",
+    });
+    expect(events[0].athleteId).toBeUndefined();
+    expect(JSON.stringify(events)).not.toContain("synthetic@example.invalid");
+  });
   it("requires explicit confirmation, locks immediately and purges only the requesting owner", async () => {
     vi.useFakeTimers();
     const t = convexTest(schema, modules),
@@ -31,10 +122,15 @@ describe("destructive lifecycle boundaries", () => {
     await expect(a.mutation(api.athletes.ensure, {})).rejects.toThrow(
       "being deleted",
     );
+    vi.setSystemTime(Date.now() + 15 * 60000);
+    const claimed = (await t.mutation(internal.lifecycle.claimDeletion, {
+      id,
+    }))!;
     while (
       !(await t.mutation(internal.lifecycle.purgeBatch, {
         athleteId: aid,
         jobId: id,
+        lease: claimed.job.lease,
       }))
     ) {}
     expect(await t.run((ctx) => ctx.db.get(aid))).toBeNull();

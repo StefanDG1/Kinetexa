@@ -14,6 +14,11 @@ const env = parseEnv(
   ),
 );
 const keys = [
+  "KINETEXA_ENVIRONMENT",
+  "BACKUP_ENDPOINT",
+  "BACKUP_BUCKET",
+  "BACKUP_ACCESS_KEY_ID",
+  "BACKUP_SECRET_ACCESS_KEY",
   "WORKOS_CLIENT_ID",
   "WORKOS_API_KEY",
   "R2_ENDPOINT",

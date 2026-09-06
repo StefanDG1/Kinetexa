@@ -216,11 +216,13 @@ export default defineSchema({
   })
     .index("by_athlete", ["athleteId"])
     .index("by_key", ["dedupeKey"])
+    .index("by_template_created", ["template", "createdAt"])
     .index("by_provider", ["providerId"]),
   emailEvents: defineTable({
     athleteId: v.optional(v.id("athletes")),
     providerId: v.string(),
     eventId: v.string(),
+    template: v.optional(v.string()),
     status: v.string(),
     occurredAt: v.number(),
     createdAt: v.number(),
@@ -285,6 +287,7 @@ export default defineSchema({
     attempts: v.optional(v.number()),
     position: v.optional(exportPosition),
     partCount: v.optional(v.number()),
+    notificationId: v.optional(v.id("outbox")),
     expiresAt: v.optional(v.number()),
     finishedAt: v.optional(v.number()),
   })

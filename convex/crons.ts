@@ -9,6 +9,12 @@ crons.daily(
 );
 export default crons;
 crons.daily(
+  "remove deletion notice recipients",
+  { hourUTC: 3, minuteUTC: 45 },
+  internal.email.pruneDeletionNotices,
+  {},
+);
+crons.daily(
   "expire private account exports",
   { hourUTC: 3, minuteUTC: 30 },
   internal.exports.expirePage,

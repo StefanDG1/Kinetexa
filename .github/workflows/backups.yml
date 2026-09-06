@@ -1,0 +1,35 @@
+name: Private backups
+on:
+  schedule:
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: private-backups
+  cancel-in-progress: false
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        environment: [staging, production]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Snapshot database and retain private objects
+        run: node scripts/backup.mjs
+        env:
+          BACKUP_CONFIG: ${{ matrix.environment == 'staging' && secrets.KINETEXA_BACKUP_STAGING || secrets.KINETEXA_BACKUP_PRODUCTION }}
+      - name: Enforce retention even if snapshot creation failed
+        if: always()
+        run: node scripts/backup.mjs --prune-only
+        env:
+          BACKUP_CONFIG: ${{ matrix.environment == 'staging' && secrets.KINETEXA_BACKUP_STAGING || secrets.KINETEXA_BACKUP_PRODUCTION }}

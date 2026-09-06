@@ -16,6 +16,7 @@ import type * as aiData from "../aiData.js";
 import type * as aiProvider from "../aiProvider.js";
 import type * as analytics from "../analytics.js";
 import type * as athletes from "../athletes.js";
+import type * as backups from "../backups.js";
 import type * as billing from "../billing.js";
 import type * as billingActions from "../billingActions.js";
 import type * as crons from "../crons.js";
@@ -54,6 +55,7 @@ declare const fullApi: ApiFromModules<{
   aiProvider: typeof aiProvider;
   analytics: typeof analytics;
   athletes: typeof athletes;
+  backups: typeof backups;
   billing: typeof billing;
   billingActions: typeof billingActions;
   crons: typeof crons;

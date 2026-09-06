@@ -131,21 +131,159 @@ export const status = internalMutation({
   },
 });
 export const purgeBatch = internalMutation({
-  args: { athleteId: v.id("athletes"), jobId: v.id("lifecycleJobs") },
-  handler: async (ctx, { athleteId, jobId }) => {
+  args: {
+    athleteId: v.id("athletes"),
+    jobId: v.id("lifecycleJobs"),
+    lease: v.number(),
+  },
+  handler: async (ctx, { athleteId, jobId, lease }) => {
+    const job = await ctx.db.get(jobId),
+      athlete = await ctx.db.get(athleteId);
+    if (
+      !job ||
+      job.kind !== "deletion" ||
+      job.athleteId !== athleteId ||
+      athlete?.status !== "deleting" ||
+      job.status !== "running" ||
+      job.lease !== lease
+    )
+      throw new ConvexError("Deletion attempt unavailable.");
     for (const table of tables) {
       const rows = await ctx.db
         .query(table)
         .withIndex("by_athlete", (q) => q.eq("athleteId", athleteId))
         .take(100);
-      const eligible = rows.filter((r) => r._id !== jobId);
+      const eligible = rows.filter(
+        (r) => r._id !== jobId && r._id !== job.notificationId,
+      );
       if (eligible.length) {
         for (const row of eligible) await ctx.db.delete(row._id);
         return false;
       }
     }
+    if (job.notificationId && (await ctx.db.get(job.notificationId))) {
+      await ctx.db.patch(job.notificationId, {
+        status: athlete.emailSuppressed ? "suppressed" : "queued",
+        ...(athlete.emailSuppressed ? { payload: undefined } : {}),
+      });
+      if (!athlete.emailSuppressed)
+        await ctx.scheduler.runAfter(0, internal.emailActions.send, {
+          id: job.notificationId,
+        });
+    }
     await ctx.db.delete(jobId);
     await ctx.db.delete(athleteId);
     return true;
+  },
+});
+export const claimDeletion = internalMutation({
+  args: { id: v.id("lifecycleJobs") },
+  handler: async (ctx, { id }) => {
+    const job = await ctx.db.get(id),
+      athlete = job ? await ctx.db.get(job.athleteId) : null;
+    if (
+      !job ||
+      job.kind !== "deletion" ||
+      athlete?.status !== "deleting" ||
+      !["queued", "retrying"].includes(job.status)
+    )
+      return null;
+    if (Date.now() < job.createdAt + 15 * 60000) return null;
+    const lease = (job.lease ?? 0) + 1,
+      attempts = (job.attempts ?? 0) + 1;
+    const notificationId =
+      job.notificationId && (await ctx.db.get(job.notificationId))
+        ? job.notificationId
+        : undefined;
+    await ctx.db.patch(id, {
+      status: "running",
+      lease,
+      attempts,
+      notificationId,
+      error: undefined,
+    });
+    await ctx.scheduler.runAfter(
+      11 * 60000,
+      internal.lifecycle.deletionFailed,
+      { id, lease },
+    );
+    return { job: { ...job, lease, attempts, notificationId }, athlete };
+  },
+});
+export const prepareNotification = internalMutation({
+  args: {
+    id: v.id("lifecycleJobs"),
+    lease: v.number(),
+    payload: v.object({
+      from: v.string(),
+      to: v.string(),
+      subject: v.string(),
+      text: v.string(),
+    }),
+  },
+  handler: async (ctx, { id, lease, payload }) => {
+    const job = await ctx.db.get(id),
+      athlete = job ? await ctx.db.get(job.athleteId) : null;
+    if (
+      !job ||
+      job.kind !== "deletion" ||
+      job.lease !== lease ||
+      job.status !== "running" ||
+      athlete?.status !== "deleting"
+    )
+      throw new ConvexError("Deletion attempt unavailable.");
+    if (job.notificationId || athlete.emailSuppressed) return;
+    const notificationId = await ctx.db.insert("outbox", {
+      athleteId: job.athleteId,
+      template: "deletion",
+      dedupeKey: `deletion-${id}`,
+      status: "waiting-deletion",
+      attempts: 0,
+      payload,
+      createdAt: Date.now(),
+    });
+    await ctx.db.patch(id, { notificationId });
+  },
+});
+export const deletionFailed = internalMutation({
+  args: { id: v.id("lifecycleJobs"), lease: v.number() },
+  handler: async (ctx, { id, lease }) => {
+    const job = await ctx.db.get(id);
+    if (
+      !job ||
+      job.kind !== "deletion" ||
+      job.status !== "running" ||
+      job.lease !== lease
+    )
+      return;
+    const retry = (job.attempts ?? 0) < 4;
+    await ctx.db.patch(id, {
+      status: retry ? "retrying" : "failed",
+      error: retry
+        ? undefined
+        : "Deletion needs operator attention. The account remains locked.",
+    });
+    if (retry)
+      await ctx.scheduler.runAfter(
+        30000 * 2 ** (job.attempts ?? 1) + Math.floor(Math.random() * 10000),
+        internal.lifecycleActions.deleteData,
+        { id },
+      );
+  },
+});
+export const retryDeletion = internalMutation({
+  args: { id: v.id("lifecycleJobs") },
+  handler: async (ctx, { id }) => {
+    const job = await ctx.db.get(id);
+    if (!job || job.kind !== "deletion" || job.status !== "failed")
+      throw new ConvexError("Deletion is not awaiting recovery.");
+    await ctx.db.patch(id, {
+      status: "retrying",
+      attempts: 0,
+      error: undefined,
+    });
+    await ctx.scheduler.runAfter(0, internal.lifecycleActions.deleteData, {
+      id,
+    });
   },
 });

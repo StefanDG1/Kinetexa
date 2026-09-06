@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add private daily database/object backups, incremental retention and checksum-verified restore preparation with an independent deletion ledger.
+- Recover interrupted deletion attempts and send a confirmation only after removal; erase its cached recipient after provider acceptance.
+
 ## 0.3.0-alpha.2 - 2026-09-06
 
 - Preserve recording breaks through distance, sensor coverage, records and private/public route geometry; prevent nested duplicate merges.

@@ -1,5 +1,10 @@
 import { v } from "convex/values";
-import { internalMutation, query, type MutationCtx } from "./_generated/server";
+import {
+  internalMutation,
+  internalQuery,
+  query,
+  type MutationCtx,
+} from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { requireAthlete } from "./athletes";
@@ -79,8 +84,14 @@ export const claim = internalMutation({
     const row = await ctx.db.get(id);
     if (!row || !["queued", "retrying"].includes(row.status)) return null;
     const a = await ctx.db.get(row.athleteId);
-    if (!a || a.status !== "active") return null;
-    if (a.emailSuppressed) {
+    const deletion = row.template === "deletion";
+    if (deletion && Date.now() - row.createdAt >= 86400000) {
+      await ctx.db.delete(id);
+      return null;
+    }
+    if (deletion ? Boolean(a) || !row.payload : !a || a.status !== "active")
+      return null;
+    if (a?.emailSuppressed) {
       await ctx.db.patch(id, { status: "suppressed", payload: undefined });
       return null;
     }
@@ -128,7 +139,7 @@ export const claim = internalMutation({
       id,
       attempt,
     });
-    return { row, userId: a.workosUserId, attempt };
+    return { row, userId: a?.workosUserId ?? "", attempt };
   },
 });
 export const rememberPayload = internalMutation({
@@ -138,7 +149,11 @@ export const rememberPayload = internalMutation({
     if (!row || row.status !== "sending" || row.attempts !== args.attempt)
       throw new Error("Email attempt expired.");
     const a = await ctx.db.get(row.athleteId);
-    if (!a || a.status !== "active" || a.emailSuppressed)
+    if (
+      row.template === "deletion"
+        ? Boolean(a) || !row.payload
+        : !a || a.status !== "active" || a.emailSuppressed
+    )
       throw new Error("Recipient unavailable.");
     if (!row.payload) await ctx.db.patch(row._id, { payload: args.payload });
     return row.payload ?? args.payload;
@@ -192,7 +207,24 @@ export const result = internalMutation({
         .withIndex("by_provider", (q) => q.eq("providerId", args.providerId!))
         .unique();
       if (event) await applyDelivery(ctx, row, event);
+      if (row.template === "deletion") {
+        if (event)
+          await ctx.db.patch(event._id, {
+            athleteId: undefined,
+            template: "deletion",
+          });
+        else
+          await ctx.db.insert("emailEvents", {
+            providerId: args.providerId,
+            eventId: `accepted-${args.providerId}`,
+            template: "deletion",
+            status: "sent",
+            occurredAt: 0,
+            createdAt: Date.now(),
+          });
+      }
     }
+    if (!retry && row.template === "deletion") await ctx.db.delete(row._id);
     if (retry)
       await ctx.scheduler.runAfter(
         30000 * 2 ** row.attempts,
@@ -260,6 +292,29 @@ export const pruneEvents = internalMutation({
     if (expired.length === 200)
       await ctx.scheduler.runAfter(1000, internal.email.pruneEvents, {});
   },
+});
+export const pruneDeletionNotices = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const rows = await ctx.db
+      .query("outbox")
+      .withIndex("by_template_created", (q) =>
+        q.eq("template", "deletion").lt("createdAt", Date.now() - 86400000),
+      )
+      .take(200);
+    for (const row of rows) await ctx.db.delete(row._id);
+    if (rows.length === 200)
+      await ctx.scheduler.runAfter(0, internal.email.pruneDeletionNotices, {});
+  },
+});
+export const deliveryEvents = internalQuery({
+  args: { after: v.number() },
+  handler: (ctx, { after }) =>
+    ctx.db
+      .query("emailEvents")
+      .withIndex("by_created", (q) => q.gte("createdAt", after))
+      .order("desc")
+      .take(100),
 });
 
 // One-time upgrade for sends created before attempt leases existed. Never risk resending an accepted legacy message.

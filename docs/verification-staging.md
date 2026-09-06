@@ -101,6 +101,16 @@ Commit `5fc87d3` passed GitHub CI and the Vercel build. Deployment `dpl_APhJm6tB
 
 WorkOS staging's homepage, initiate-login URL and default sign-out URI now use the staging domain; localhost remains an allowed development callback/sign-out URI. An actual browser sign-out returned to `https://staging.kinetexa.com/`. Visual redesign remains paused at the user's request. This backend milestone is a prerelease, not operational V1.
 
+## Backup, deletion and recovery verification
+
+A private EU R2 backup bucket now holds native Convex snapshots and retained source/current/previous canonical objects. The first staging snapshot captured 204 records and 32 objects in 17.7 seconds. A later incremental snapshot captured 213 records and 34 objects, copying only two new objects in 10.5 seconds. The production snapshot completed against the currently empty production dataset. Daily scheduling is configured in `.github/workflows/backups.yml`; activation and hosted workflow execution are the next operational check.
+
+An isolated restore verified all 32 object checksums and restored seven activities, thirteen health records and both synthetic owners' saved data. A separate synthetic account then completed real hosted deletion after its fifteen-minute grace period. WorkOS returned 404, R2 contained no owned objects, and all twenty owned application tables were empty. A signed Resend webhook confirmed the deletion receipt was delivered; the application retained neither its recipient nor an athlete association.
+
+Restoring a snapshot taken before that deletion applied the independent deletion ledger. The deleted account's records and files remained absent, while the two other owners retained four and three activities, one and twelve health rows, and unchanged distance totals. Temporary export jobs were expired during recovery. The restore deployment has no payment, email or AI service credentials.
+
+Eighty-four focused tests and TypeScript checks pass. Deletion workers now fence destructive work by lease, retry failures, cancel billing, abort abandoned multipart uploads, remove private objects and purge records before sending confirmation. See [backup and recovery](backup-and-recovery.md) for retention, credentials and the isolated recovery procedure.
+
 ## Remaining release work
 
-Full requirement closure remains open, including provider approval and connector operations, large-history performance, complete comparison/AI/health criteria, policy review, backup automation and retention, operational alerts and the full UI/accessibility matrix. Production continues to serve the holding page. This evidence does not justify `v1.0.0`.
+Full requirement closure remains open, including provider approval and connector operations, large-history performance, complete comparison/AI/health criteria, policy review, scheduled backup execution, operational alerts and the full UI/accessibility matrix. Production continues to serve the holding page. This evidence does not justify `v1.0.0`.

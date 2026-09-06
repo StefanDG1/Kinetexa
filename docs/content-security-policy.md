@@ -1,0 +1,9 @@
+# Content Security Policy
+
+The Next.js proxy generates a fresh nonce for each request, overwrites caller-supplied nonce/CSP headers and passes the policy through AuthKit's request-header merge. The same policy is returned to the browser. Next.js reads the request policy and attaches the nonce to framework scripts. The root layout waits for a request, so HTML is dynamically rendered instead of shared as a prerendered document with a reusable nonce.
+
+Scripts require the nonce and use `strict-dynamic` for framework-loaded chunks. Production excludes `unsafe-eval`. Styles allow inline attributes because MapLibre and chart positioning use them. Map workers may use same-origin and blob workers. Connections are limited to the configured Convex HTTPS/WebSocket origin, the configured map-style origin, the private R2 service domain and same-origin requests. Local development additionally allows its WebSocket and script evaluation. Images support local assets, map assets, blobs and data URLs; fonts are local or data URLs. Objects are disabled, base/form targets are same-origin and framing is denied.
+
+The default OpenFreeMap Liberty style's tiles, sprites and glyphs use `tiles.openfreemap.org`. Changing map services requires checking every referenced asset origin against this policy. Adding an external browser integration also requires reviewing its exact network needs. PostHog remains server-side and disabled pending setup; the policy does not enable browser analytics.
+
+Local production-build verification checked fresh nonces across two HTTP responses, all generated script tags, spoofed request headers, map-worker directives and the unauthenticated disclosure file. A real browser click on an injected inline event handler was blocked with `script-src-attr`, while the landing page rendered. Inspector-evaluated code is privileged and is not treated as an ordinary page-injection test. Hosted map and application compatibility checks are still in progress.

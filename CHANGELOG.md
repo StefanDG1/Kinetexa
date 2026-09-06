@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add nonce-based script CSP through the AuthKit proxy, retain MapLibre workers and required data-service origins, and render each HTML response with a fresh nonce.
+
 - Preserve logout denial before first registration, include identity-owned revocations in export/deletion, and exclude them from older backups using an independent hashed identity deletion marker. Clean up never-registered identities only after confirmed provider deletion.
 
 - Reject damaged ZIP entries with strict header and CRC validation, bounded actual decompression and duplicate-path checks. Preserve migration metadata and retained originals.

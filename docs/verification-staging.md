@@ -49,6 +49,12 @@ Fifty-three tests pass, including health processing preferences, idempotent batc
 
 Desktop Ask had no Axe WCAG A/AA violations. The populated mobile review found inaccessible scroll containers and poor date wrapping; a responsive card view and focusable chart-data regions address those findings. The revised hosted Ask review at 390px passed Axe WCAG A/AA with no page overflow. Recovery with all six recorded signals also passed at 390px and 1440px; manual inspection confirmed readable values, source records and coverage notes. The activity comparison loaded both recorded streams and its 601-row aligned data table.
 
+## Retained-file reprocessing
+
+Authenticated staging API checks rebuilt an older health-only FIT from three readings to six, repeated that rebuild without duplicate health rows, and rebuilt a cycling activity without changing its title, notes, tags, equipment, record-exclusion setting, distance or duration. The original downloaded file still matched its recorded SHA-256; the previous stream and metric snapshot remained available. A second athlete could not request that rebuild.
+
+Fifty-seven focused tests pass. New cases verify atomic publication of staged health results, hidden incomplete generations, idempotent completion, bounded interruption retries, checksum failure, preservation of edits and version history, health preference off/on changes, concurrent threshold changes and account deletion fencing. Reprocessing operates from retained originals; per-file status survives browser closure. Visual redesign is now user-owned and paused while backend work continues.
+
 ## Remaining release work
 
 Full requirement closure remains open, including provider approval and connector operations, large-history performance, complete comparison/AI/health criteria, policy review, backup automation and retention, operational alerts and the full UI/accessibility matrix. Production continues to serve the holding page. This evidence does not justify `v1.0.0`.

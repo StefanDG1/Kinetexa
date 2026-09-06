@@ -4,6 +4,8 @@ These explicit user decisions take precedence over the original planning documen
 
 ## Full implementation authorization, 6 September 2026
 
+- Implementation priority update: the user asked to pause design work and focus on complete, correct backend features, data handling and API verification. Keep the existing frontend usable for workflows; the user will work on UI design once functionality is ready. This changes sequencing and ownership of visual polish, not backend scope or the operational verification requirement.
+
 - Public support and privacy contact: `contact@exponentialeducation.ro`, explicitly supplied by the user during implementation.
 - The setup report has been delivered. The user explicitly authorized implementing and deploying the complete operational V1, verifying journeys, committing and pushing progress, and tagging verified SemVer milestones.
 - This supersedes the historical setup-only phase boundary. All applicable PRD requirements remain in scope. Garmin approval, Vercel plan restrictions, business policy review and other external requirements must be reported honestly, without claiming GA or tagging `v1.0.0` before its gates pass.

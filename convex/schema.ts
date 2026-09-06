@@ -11,6 +11,7 @@ export default defineSchema({
     aiConsent: v.boolean(),
     aiConsentRevision: v.optional(v.number()),
     healthProcessing: v.optional(v.boolean()),
+    healthProcessingRevision: v.optional(v.number()),
     analyticsConsent: v.boolean(),
     consentUpdatedAt: v.number(),
     onboarded: v.boolean(),
@@ -62,6 +63,12 @@ export default defineSchema({
     activityId: v.optional(v.id("activities")),
     parentId: v.optional(v.id("sources")),
     parserVersion: v.optional(v.string()),
+    healthGeneration: v.optional(v.number()),
+    reprocessStatus: v.optional(v.string()),
+    reprocessAttempt: v.optional(v.number()),
+    reprocessRetries: v.optional(v.number()),
+    reprocessError: v.optional(v.string()),
+    reprocessedAt: v.optional(v.number()),
     childIds: v.optional(v.array(v.id("sources"))),
     completedChildren: v.optional(v.number()),
     failedChildren: v.optional(v.number()),
@@ -83,6 +90,9 @@ export default defineSchema({
     activityId: v.id("activities"),
     metrics: v.any(),
     at: v.number(),
+    version: v.optional(v.string()),
+    summary: v.optional(v.any()),
+    streamKey: v.optional(v.string()),
   })
     .index("by_athlete", ["athleteId"])
     .index("by_activity", ["activityId", "at"]),
@@ -147,6 +157,7 @@ export default defineSchema({
     sourceId: v.optional(v.id("sources")),
     at: v.optional(v.number()),
     unit: v.optional(v.string()),
+    generation: v.optional(v.number()),
   })
     .index("by_athlete", ["athleteId", "date"])
     .index("by_kind", ["athleteId", "kind", "date"])

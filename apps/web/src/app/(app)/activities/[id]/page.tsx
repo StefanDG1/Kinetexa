@@ -370,7 +370,7 @@ export default function ActivityPage({
             />
           </div>
           <div>
-            <h3>Running distance efforts</h3>
+            <h3>Distance efforts</h3>
             <div className="table-wrap">
               <table>
                 <thead>

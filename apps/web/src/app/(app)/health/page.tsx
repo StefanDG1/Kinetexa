@@ -23,7 +23,7 @@ export default function Health() {
     if (history.status === "CanLoadMore") history.loadMore(100);
   }, [history.status, history.loadMore]);
   const daily = useMemo(() => dailyHealth(history.results), [history.results]);
-  const loading = valid && history.status !== "Exhausted";
+  const loading = valid && (!status || history.status !== "Exhausted");
   return (
     <>
       <h1>Recovery in context.</h1>

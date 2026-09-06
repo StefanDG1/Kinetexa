@@ -11,16 +11,35 @@ import { duplicateConfidence } from "../packages/core/dedup";
 import { VERSION } from "../packages/core/model";
 import { rateLimit } from "./limits";
 import { dayKey } from "../packages/core/dashboard";
+import { paginationOptsValidator } from "convex/server";
 
-export const list = query({
-  args: {},
-  handler: async (ctx) => {
+export const page = query({
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
     const a = await requireAthlete(ctx);
     return ctx.db
       .query("sources")
       .withIndex("by_athlete", (q) => q.eq("athleteId", a._id))
       .order("desc")
-      .take(500);
+      .paginate({
+        ...args.paginationOpts,
+        numItems: Math.min(100, Math.max(1, args.paginationOpts.numItems)),
+      });
+  },
+});
+
+export const list = query({
+  args: {},
+  handler: async (ctx) => {
+    const a = await requireAthlete(ctx);
+    const rows = await ctx.db
+      .query("sources")
+      .withIndex("by_athlete", (q) => q.eq("athleteId", a._id))
+      .order("desc")
+      .take(501);
+    if (rows.length > 500)
+      throw new ConvexError("Use paginated import history for this account.");
+    return rows;
   },
 });
 export const reserve = mutation({

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Rebuild retained originals with checksum verification, durable retries, atomic health publication and preserved activity edits and metric history.
+- Paginate import history and reject legacy requests that would silently truncate it.
+- Prioritize backend completeness and API verification; user will handle subsequent visual design.
+
 ## 0.2.0-alpha.2 - 2026-09-06
 
 - Complete the six supported FIT health signals, expose source and date availability, and paginate health history with a processing preference.

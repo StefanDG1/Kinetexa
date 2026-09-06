@@ -17,7 +17,6 @@ export const overview = query({
       analyses,
       privacyZones,
       shares,
-      health,
       billing,
       messages,
       jobs,
@@ -47,11 +46,6 @@ export const overview = query({
         .withIndex("by_athlete", (q) => q.eq("athleteId", a._id))
         .collect(),
       ctx.db
-        .query("health")
-        .withIndex("by_athlete", (q) => q.eq("athleteId", a._id))
-        .order("desc")
-        .take(500),
-      ctx.db
         .query("billing")
         .withIndex("by_athlete", (q) => q.eq("athleteId", a._id))
         .unique(),
@@ -72,7 +66,6 @@ export const overview = query({
       analyses,
       privacyZones,
       shares,
-      health,
       billing,
       messages: messages.reverse(),
       jobs,

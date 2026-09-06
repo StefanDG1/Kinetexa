@@ -1,5 +1,5 @@
 "use client";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, usePaginatedQuery } from "convex/react";
 import { useState } from "react";
 import Link from "next/link";
 import { api } from "@convex/_generated/api";
@@ -7,8 +7,10 @@ import type { Id } from "@convex/_generated/dataModel";
 export default function ImportPage() {
   const prepare = useAction(api.processing.prepare),
     enqueue = useMutation(api.imports.enqueue),
+    reprocess = useMutation(api.reprocessing.request),
     download = useAction(api.processing.original),
-    jobs = useQuery(api.imports.list),
+    history = usePaginatedQuery(api.imports.page, {}, { initialNumItems: 50 }),
+    jobs = history.results,
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [progress, setProgress] = useState("");
@@ -78,6 +80,31 @@ export default function ImportPage() {
       </details>
       <section className="section">
         <h2>Import history</h2>
+        <p>
+          Rebuild derived results from your retained originals after a parser
+          update. Activity edits stay in place, and previous results remain
+          available until each file succeeds.
+        </p>
+        <button
+          className="secondary"
+          onClick={async () => {
+            try {
+              await reprocess({});
+              setError("");
+              setProgress(
+                "Rebuilding retained files in the background. You can close this page.",
+              );
+            } catch (e) {
+              setError(
+                e instanceof Error
+                  ? e.message
+                  : "Could not start reprocessing.",
+              );
+            }
+          }}
+        >
+          Reprocess retained files
+        </button>
         <div className="progress-list">
           {jobs?.map((j) => (
             <div className="job" key={j._id}>
@@ -87,6 +114,13 @@ export default function ImportPage() {
                   {(j.bytes / 1024).toFixed(0)} KiB · Attempt {j.attempts}
                 </p>
                 {j.error && <p>{j.error}</p>}
+                {j.reprocessStatus && (
+                  <p role="status">
+                    Reprocessing: {j.reprocessStatus} · Attempt{" "}
+                    {j.reprocessAttempt ?? 0}
+                  </p>
+                )}
+                {j.reprocessError && <p>{j.reprocessError}</p>}
                 {j.childIds && (
                   <p>
                     {j.completedChildren ?? 0} of {j.childIds.length} files
@@ -102,6 +136,29 @@ export default function ImportPage() {
               </div>
               <div>
                 <p className="status">{j.status.replaceAll("-", " ")}</p>
+                {j.status === "complete" &&
+                  !/\.zip$/i.test(j.name) &&
+                  !["queued", "running"].includes(j.reprocessStatus ?? "") && (
+                    <button
+                      className="secondary"
+                      onClick={async () => {
+                        try {
+                          await reprocess({ id: j._id });
+                          setError("");
+                        } catch (e) {
+                          setError(
+                            e instanceof Error
+                              ? e.message
+                              : "Could not reprocess this file.",
+                          );
+                        }
+                      }}
+                    >
+                      {j.reprocessStatus === "failed"
+                        ? "Retry reprocessing"
+                        : "Reprocess"}
+                    </button>
+                  )}
                 {j.status === "failed" && (
                   <button
                     className="secondary"
@@ -129,6 +186,14 @@ export default function ImportPage() {
           ))}
         </div>
         {jobs?.length === 0 && <p className="muted">No imports yet.</p>}
+        {history.status === "CanLoadMore" && (
+          <button className="secondary" onClick={() => history.loadMore(50)}>
+            Load earlier imports
+          </button>
+        )}
+        {["LoadingFirstPage", "LoadingMore"].includes(history.status) && (
+          <p role="status">Loading import history…</p>
+        )}
       </section>
     </>
   );

@@ -10,6 +10,8 @@ The Next.js application handles pages, authenticated entry points and integratio
 
 Raw files and high-resolution streams belong in private object storage. The browser receives authorized, bounded views. Public shares return explicit field projections and server-masked geometry; they never reuse the private activity response.
 
+Reprocessing uses each source's durable status and monotonically increasing attempt number. A new stream uses a separate object key; health readings are staged under that attempt. A fenced transaction publishes the new pointers only after parsing and calculations succeed, preserving activity edits and a previous metric/summary/version/stream snapshot. Readers select the active health generation. Bounded cleanup removes superseded health rows; account deletion removes the entire private object prefix, including prior stream versions. A settings change during processing triggers a new attempt, and interruption recovery stops after four attempts with a visible retryable failure.
+
 AI tools query through the same authorization and deterministic analytics boundaries. Global AI consent is off by default. Disabling consent prevents subsequent external model requests. Exact GPS coordinates and unrestricted health histories are excluded from default model context.
 
 ## Repository shape

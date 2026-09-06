@@ -48,7 +48,7 @@ Every numbered requirement from the unchanged PRD is listed below. Open means im
 | DATA-003      | — Health/recovery model [P1]                               | Open            | Pending                                                                                        |
 | DATA-004      | — Provenance graph [P0]                                    | Partial         | Implemented paths; full acceptance remains open. [Record](verification-staging.md)             |
 | DATA-005      | — User-visible provenance [P1]                             | Partial         | Implemented paths; full acceptance remains open. [Record](verification-staging.md)             |
-| DATA-006      | — Reprocessing [P0]                                        | Open            | Pending                                                                                        |
+| DATA-006      | — Reprocessing [P0]                                        | Verified        | Versioned, fenced rebuilds; API and 57 tests. [Record](verification-staging.md)                |
 | DATA-007      | — Data deletion semantics [P0]                             | Open            | Pending                                                                                        |
 | DEDUP-001     | — High-confidence auto merge [P0]                          | Open            | Pending                                                                                        |
 | DEDUP-002     | — Uncertain merge [P0]                                     | Open            | Pending                                                                                        |

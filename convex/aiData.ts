@@ -48,6 +48,12 @@ export const page = internalQuery({
           excluded++;
           continue;
         }
+        if (
+          args.table === "health" &&
+          (("generation" in row ? row.generation : undefined) ?? 0) !==
+            (source.healthGeneration ?? 0)
+        )
+          continue;
       }
       page.push(row);
     }

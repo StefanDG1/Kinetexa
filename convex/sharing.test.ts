@@ -57,7 +57,7 @@ it("projects only selected public fields, masks geometry and revokes immediately
       activityIds: [id],
       fields: ["sport", "route"],
     });
-  const payload = await t.query(api.sharing.publicView, { token });
+  const payload = await t.mutation(api.sharing.publicView, { token });
   await expect(
     a.mutation(api.sharing.create, {
       token,
@@ -78,7 +78,7 @@ it("projects only selected public fields, masks geometry and revokes immediately
     "unavailable",
   );
   await a.mutation(api.sharing.revoke, { id: sid });
-  expect(await t.query(api.sharing.publicView, { token })).toBeNull();
+  expect(await t.mutation(api.sharing.publicView, { token })).toBeNull();
 });
 
 it("keeps share preview and creation validation aligned and totals privacy-limited", async () => {
@@ -152,7 +152,9 @@ it("keeps share preview and creation validation aligned and totals privacy-limit
       token = String(i).repeat(64);
     const preview = await owner.query(api.sharing.preview, selection);
     await owner.mutation(api.sharing.create, { ...selection, token });
-    expect(await t.query(api.sharing.publicView, { token })).toEqual(preview);
+    expect(await t.mutation(api.sharing.publicView, { token })).toEqual(
+      preview,
+    );
     expect(preview.activities.map((a) => a.date)).toEqual([
       "2026-09-01",
       "2026-09-01",
@@ -181,7 +183,7 @@ it("keeps share preview and creation validation aligned and totals privacy-limit
     await ctx.db.patch(share!._id, { activityIds: [ids[0], ids[0], ids[1]] });
   });
   expect(
-    (await t.query(api.sharing.publicView, { token: "2".repeat(64) }))
+    (await t.mutation(api.sharing.publicView, { token: "2".repeat(64) }))
       ?.activities,
   ).toHaveLength(2);
 });
@@ -228,7 +230,7 @@ it("reapplies changed privacy zones and denies expired or inactive-owner links i
     fields: ["route"],
     expires,
   });
-  const before = await t.query(api.sharing.publicView, { token });
+  const before = await t.mutation(api.sharing.publicView, { token });
   expect((before?.activities[0].route as number[][][]).flat()).toContainEqual([
     0.01, 0,
   ]);
@@ -238,16 +240,62 @@ it("reapplies changed privacy zones and denies expired or inactive-owner links i
     lon: 0.01,
     radius: 300,
   });
-  const after = await t.query(api.sharing.publicView, { token });
+  const after = await t.mutation(api.sharing.publicView, { token });
   expect(
     (after?.activities[0].route as number[][][]).flat(),
   ).not.toContainEqual([0.01, 0]);
   await t.run((ctx) => ctx.db.patch(athleteId, { status: "deleting" }));
-  expect(await t.query(api.sharing.publicView, { token })).toBeNull();
+  expect(await t.mutation(api.sharing.publicView, { token })).toBeNull();
   await t.run((ctx) => ctx.db.patch(athleteId, { status: "active" }));
   vi.setSystemTime(expires - 1);
-  expect(await t.query(api.sharing.publicView, { token })).not.toBeNull();
+  expect(await t.mutation(api.sharing.publicView, { token })).not.toBeNull();
   vi.setSystemTime(expires);
   // No scheduler has run: expiry must be enforced by the read itself.
-  expect(await t.query(api.sharing.publicView, { token })).toBeNull();
+  expect(await t.mutation(api.sharing.publicView, { token })).toBeNull();
+});
+
+it("limits public reads per link before projection, resets the counter without visitor history", async () => {
+  const t = convexTest(schema, modules),
+    owner = t.withIdentity({ subject: "rate-owner" });
+  const athleteId = await owner.mutation(api.athletes.ensure);
+  vi.setSystemTime(1800000000000);
+  const token = "e".repeat(64);
+  const id = await t.run((ctx) =>
+    ctx.db.insert("shares", {
+      athleteId,
+      token,
+      kind: "map",
+      activityIds: [],
+      fields: ["route"],
+      revoked: false,
+      createdAt: Date.now(),
+    }),
+  );
+  for (let i = 0; i < 120; i++)
+    expect(await t.mutation(api.sharing.publicView, { token })).not.toBeNull();
+  await expect(
+    t.mutation(api.sharing.publicView, { token }),
+  ).rejects.toMatchObject({
+    data: { code: "SHARE_RATE_LIMITED", retryAfterSeconds: 60 },
+  });
+  // Invalid tokens do not allocate rate-limit rows or alter the valid link's counter.
+  expect(
+    await t.mutation(api.sharing.publicView, { token: "f".repeat(64) }),
+  ).toBeNull();
+  expect(
+    await t.mutation(api.sharing.publicView, { token: "invalid" }),
+  ).toBeNull();
+  expect(await t.run(async (ctx) => (await ctx.db.get(id))?.viewCount)).toBe(
+    120,
+  );
+  vi.setSystemTime(1800000060000);
+  expect(await t.mutation(api.sharing.publicView, { token })).not.toBeNull();
+  const row = await t.run((ctx) => ctx.db.get(id));
+  expect(row?.viewCount).toBe(1);
+  expect(await t.run((ctx) => ctx.db.query("shares").collect())).toHaveLength(
+    1,
+  );
+  await owner.mutation(api.sharing.revoke, { id });
+  expect(await t.mutation(api.sharing.publicView, { token })).toBeNull();
+  expect(await t.run(async (ctx) => (await ctx.db.get(id))?.viewCount)).toBe(1);
 });

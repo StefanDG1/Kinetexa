@@ -1,0 +1,8 @@
+{
+  "verifiedAt": "2026-09-06T20:44:33.838Z",
+  "concurrentReadsAccepted": 120,
+  "nextReadRateLimited": true,
+  "queryTransportBypassRejected": true,
+  "persistedCountExact": true,
+  "visitorIdentifiersStored": false
+}

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Rate-limit public share projection atomically to 120 views per link per minute, retain no visitor identifiers and update the share page for mutation transport and retry guidance.
+
 - Align share preview/create validation, deduplicate legacy activity selections, enforce exact expiry, use profile calendar dates and expose selected-field totals with missing measurement counts.
 
 ## 0.4.0-alpha.3 - 2026-09-06

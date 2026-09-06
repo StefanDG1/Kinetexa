@@ -246,6 +246,8 @@ export default defineSchema({
     expires: v.optional(v.number()),
     revoked: v.boolean(),
     createdAt: v.number(),
+    viewWindow: v.optional(v.number()),
+    viewCount: v.optional(v.number()),
   })
     .index("by_token", ["token"])
     .index("by_athlete", ["athleteId"]),

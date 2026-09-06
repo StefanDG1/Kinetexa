@@ -105,7 +105,7 @@ export const revoke = mutation({
     });
   },
 });
-export const publicView = query({
+export const publicView = mutation({
   args: { token: v.string() },
   handler: async (ctx, { token }) => {
     if (!/^[a-f0-9]{64}$/.test(token)) return null;
@@ -117,6 +117,14 @@ export const publicView = query({
       return null;
     const owner = await ctx.db.get(s.athleteId);
     if (!owner || owner.status !== "active") return null;
+    const window = Math.floor(Date.now() / 60000);
+    const count = s.viewWindow === window ? (s.viewCount ?? 0) : 0;
+    if (count >= 120)
+      throw new ConvexError({
+        code: "SHARE_RATE_LIMITED",
+        retryAfterSeconds: 60 - Math.floor((Date.now() % 60000) / 1000),
+      });
+    await ctx.db.patch(s._id, { viewWindow: window, viewCount: count + 1 });
     return projectShare(ctx, s.athleteId, s, owner.timezone);
   },
 });

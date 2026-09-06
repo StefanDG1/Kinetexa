@@ -4,6 +4,8 @@ This records prerelease evidence, not completion of all V1 acceptance criteria. 
 
 ## Latest backend checkpoint
 
+Public-share rate limits bring the suite to 122 tests, with a passing production Next.js build. Hosted staging accepted 120 concurrent valid reads, rejected the next with a retry duration and denied the old query transport. The persisted counter was exactly 120 and the temporary link was revoked. Unit checks cover minute reset, unavailable-link behavior and bounded counter storage. [Sanitized evidence](verification/sharing-rate-2026-09-06.json).
+
 Sharing corrections bring the suite to 121 focused tests. Hosted staging verified all four kinds against their previews, independently checked selected-field totals and profile dates, rejected invalid selections and cross-owner access, and verified expiry. All five temporary links were revoked and returned null. Tests additionally cover changed privacy masks, inactive owners, the exact expiry cutoff, legacy duplicate IDs and unavailable measurements. [Sanitized evidence](verification/sharing-2026-09-06.json). Frontend adoption of server totals remains in the user UI phase.
 
 Verified webhook monitoring brings the focused suite to 119 tests. Hosted staging exercised forged rejection without persistent observation, a signed unowned billing notification, ignored email events, a duplicate delivery and a signed malformed event. Five logical outcomes were stored, with no body/signature content, and repeated identical outcomes did not inflate counts. The ordinary client could not write private operator observations. Provider metrics and OTLP attributes were read back. These are signed synthetic requests; no payment or email was sent. Production verification uses only ignored, non-mutating events.

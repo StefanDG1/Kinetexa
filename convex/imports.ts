@@ -32,6 +32,7 @@ export const page = query({
       .paginate({
         ...args.paginationOpts,
         numItems: Math.min(100, Math.max(1, args.paginationOpts.numItems)),
+        maximumBytesRead: 4 * 1024 * 1024,
       });
   },
 });

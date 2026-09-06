@@ -218,3 +218,7 @@ All seven retained staging activities reprocessed to `0.4.0-alpha.6` with unchan
 Four FIT and two TCX imports verified supplied moving time, recorded zero, invalid source time, paused timers without events, stationary speed and rejected speed. A further FIT with start/stop events verified active timer windows, selected-interval clipping and zero active/moving time in a fully paused interval. Full schedules round-trip in canonical files; history/chart reads keep only their count. Original bytes and rejected raw source fields remain available. All 142 tests pass.
 
 Seven retained staging activities reprocessed to `0.4.0-alpha.7` with unchanged load values, curves, zones, totals, edits and original checksums. Prior versions remain in history. All seven temporary fixtures were removed by returning the isolated environment to its verified 45-object, 369-document snapshot. [Evidence](verification/movement-2026-09-07.json), [methods and limits](methods.md).
+
+## History pagination byte budgets
+
+Activity, import and health pages use a 4 MiB read target and honor requested row counts up to 100. A focused integration case traverses all 35 metadata-heavy activities and sources across early-ending pages, with no missing or repeated IDs and no cross-owner reads. Staging read every retained activity, import and health record through one-row cursors for both synthetic owners. This checks cursor compatibility on hosted data; the metadata-heavy dataset was an integration fixture. [Evidence](verification/history-bounds-2026-09-07.json).

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Bound activity, import and health pagination by bytes as well as row count; verify complete traversal of metadata-heavy histories.
+
 - Preserve separate FIT elapsed/timer/moving durations and correct moving-time estimates for stationary, missing, rejected and paused data.
 
 ## 0.4.0-alpha.6 - 2026-09-07

@@ -31,7 +31,7 @@ Results carry units, date ranges, contributing activity IDs, reproducible querie
 - `activities:provenance({ id })`: original checksums, part indexes, parser versions and prior metric/summary/stream versions.
 - `reprocessing:request({ id? })`: rebuild one retained source or all eligible sources in paginated background work. Read status through `imports:owned` or `imports:page`.
 
-History endpoints `activities:page`, `imports:page` and `health:page` use Convex pagination cursors. Continue until `isDone`; an empty filtered page can still have a continuation cursor. Legacy list endpoints explicitly reject oversized history rather than returning silently truncated totals.
+History endpoints `activities:page`, `imports:page` and `health:page` use Convex pagination cursors, at most 100 requested rows and a 4 MiB database pagination read budget. A page can finish early for large source metadata, and the final document can cross that byte target. Continue until `isDone`; an empty filtered page can still have a continuation cursor. Legacy list endpoints explicitly reject oversized history rather than returning silently truncated totals.
 
 `activityFacts:prepare` resumes numerical index preparation and returns true when complete. Normal analytics actions perform this step automatically. `activityFacts:page` reads the complete owned index with stable date bounds; it omits geometry and private notes. Internal `activityFacts:rebuild` marks an account for repair after an operator imports canonical metadata directly. Application mutations keep the index current transactionally.
 

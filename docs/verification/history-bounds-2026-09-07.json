@@ -1,0 +1,47 @@
+{
+  "verifiedAt": "2026-09-06T23:38:45.901Z",
+  "environment": "staging",
+  "oneRowCursorTraversalVerified": true,
+  "owners": [
+    {
+      "account": 1,
+      "counts": {
+        "activities": {
+          "rows": 4,
+          "pages": 5
+        },
+        "imports": {
+          "rows": 8,
+          "pages": 9
+        },
+        "health": {
+          "rows": 1,
+          "pages": 2
+        }
+      }
+    },
+    {
+      "account": 2,
+      "counts": {
+        "activities": {
+          "rows": 3,
+          "pages": 4
+        },
+        "imports": {
+          "rows": 9,
+          "pages": 10
+        },
+        "health": {
+          "rows": 12,
+          "pages": 13
+        }
+      }
+    }
+  ],
+  "metadataHeavyIntegration": {
+    "rowsPerOwnedTable": 35,
+    "sourceMetadataCharactersPerRow": 200000,
+    "multiplePagesWithoutLossOrDuplication": true,
+    "otherOwnerDenied": true
+  }
+}

@@ -1,0 +1,5 @@
+Contact: mailto:contact@exponentialeducation.ro
+Expires: 2027-03-06T00:00:00Z
+Preferred-Languages: en, ro
+Canonical: https://kinetexa.com/.well-known/security.txt
+Policy: https://github.com/StefanDG1/Kinetexa/blob/main/SECURITY.md

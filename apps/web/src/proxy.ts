@@ -12,6 +12,7 @@ export default authkitMiddleware({
       "/sign-up",
       "/callback",
       "/api/health",
+      "/.well-known/security.txt",
       "/api/webhooks/(.*)",
       "/share/(.*)",
     ],

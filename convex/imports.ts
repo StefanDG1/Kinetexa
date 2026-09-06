@@ -7,9 +7,10 @@ import {
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireAthlete } from "./athletes";
-import { duplicateConfidence } from "../packages/core/import";
+import { duplicateConfidence } from "../packages/core/dedup";
 import { VERSION } from "../packages/core/model";
 import { rateLimit } from "./limits";
+import { dayKey } from "../packages/core/dashboard";
 
 export const list = query({
   args: {},
@@ -79,6 +80,10 @@ export const claim = internalMutation({
     const a = await ctx.db.get(s.athleteId);
     if (!a || a.status !== "active") return null;
     await ctx.db.patch(id, { status: "running", attempts: s.attempts + 1 });
+    await ctx.scheduler.runAfter(660000, internal.imports.watchdog, {
+      id,
+      attempt: s.attempts + 1,
+    });
     return { source: s, thresholds: a.thresholds ?? {} };
   },
 });
@@ -145,9 +150,29 @@ export const complete = internalMutation({
     const duplicate = near.find(
       (n) => duplicateConfidence(n.summary, args.summary) >= 0.7,
     );
+    const meta = s.importMetadata as
+      import("../packages/core/import").MigrationMetadata | undefined;
+    const gearIds: import("./_generated/dataModel").Id<"gear">[] = [];
+    if (meta?.gear) {
+      const existing = await ctx.db
+        .query("gear")
+        .withIndex("by_athlete", (q) => q.eq("athleteId", s.athleteId))
+        .filter((q) => q.eq(q.field("name"), meta.gear))
+        .first();
+      gearIds.push(
+        existing?._id ??
+          (await ctx.db.insert("gear", {
+            athleteId: s.athleteId,
+            name: meta.gear,
+            kind: args.summary.sport === "cycling" ? "bicycle" : "running shoe",
+            retired: false,
+            servicedAt: 0,
+          })),
+      );
+    }
     const id = await ctx.db.insert("activities", {
       athleteId: s.athleteId,
-      title: args.summary.title,
+      title: meta?.title || args.summary.title,
       sport: args.summary.sport,
       start: args.summary.start,
       duration: args.summary.duration,
@@ -157,9 +182,9 @@ export const complete = internalMutation({
       route: args.route,
       streamKey: args.streamKey,
       sourceId: s._id,
-      notes: "",
-      tags: [],
-      gearIds: [],
+      notes: meta?.notes || "",
+      tags: meta?.commute ? ["commute"] : [],
+      gearIds,
       excludedRecords: false,
       version: VERSION,
       createdAt: Date.now(),
@@ -171,6 +196,12 @@ export const complete = internalMutation({
       activityId: id,
       parserVersion: VERSION,
     });
+    if (!s.parentId)
+      await ctx.scheduler.runAfter(0, internal.email.enqueue, {
+        athleteId: s.athleteId,
+        template: "import",
+        dedupeKey: `import-${s._id}`,
+      });
   },
 });
 export const child = internalMutation({
@@ -180,6 +211,7 @@ export const child = internalMutation({
     key: v.string(),
     bytes: v.number(),
     hash: v.string(),
+    importMetadata: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
     const p = await ctx.db.get(args.parentId);
@@ -203,11 +235,119 @@ export const child = internalMutation({
   },
 });
 export const archiveComplete = internalMutation({
-  args: { id: v.id("sources"), hash: v.string() },
+  args: {
+    id: v.id("sources"),
+    hash: v.string(),
+    childIds: v.array(v.id("sources")),
+  },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.id, {
-      status: "complete",
+      status: "processing-archive",
       hash: args.hash,
+      parserVersion: VERSION,
+      childIds: args.childIds,
+    });
+    await ctx.scheduler.runAfter(1000, internal.imports.archiveProgress, {
+      id: args.id,
+    });
+  },
+});
+export const watchdog = internalMutation({
+  args: { id: v.id("sources"), attempt: v.number() },
+  handler: async (ctx, { id, attempt }) => {
+    const s = await ctx.db.get(id);
+    if (!s || s.status !== "running" || s.attempts !== attempt) return;
+    const retry = s.attempts < 4;
+    await ctx.db.patch(id, {
+      status: retry ? "retrying" : "failed",
+      error: retry
+        ? "Processing was interrupted. Retrying from the retained original."
+        : "Processing was interrupted repeatedly. Your original is retained; retry from import history.",
+    });
+    if (retry)
+      await ctx.scheduler.runAfter(1000, internal.processing.process, { id });
+  },
+});
+export const archiveProgress = internalMutation({
+  args: { id: v.id("sources") },
+  handler: async (ctx, { id }) => {
+    const s = await ctx.db.get(id);
+    if (!s || s.status !== "processing-archive") return;
+    const a = await ctx.db.get(s.athleteId);
+    if (!a || a.status !== "active") return;
+    const children = await Promise.all(
+      (s.childIds ?? []).map((id) => ctx.db.get(id)),
+    );
+    const completed = children.filter(
+        (c) => c && ["complete", "duplicate"].includes(c.status),
+      ).length,
+      failed = children.filter((c) => !c || c.status === "failed").length,
+      done = completed + failed === children.length;
+    await ctx.db.patch(id, {
+      completedChildren: completed,
+      failedChildren: failed,
+      status: done ? (failed ? "partial" : "complete") : "processing-archive",
+    });
+    if (!done)
+      await ctx.scheduler.runAfter(30000, internal.imports.archiveProgress, {
+        id,
+      });
+    else
+      await ctx.scheduler.runAfter(0, internal.email.enqueue, {
+        athleteId: s.athleteId,
+        template: "import",
+        dedupeKey: `import-${id}`,
+      });
+  },
+});
+export const health = internalMutation({
+  args: {
+    id: v.id("sources"),
+    hash: v.string(),
+    samples: v.array(
+      v.object({
+        at: v.number(),
+        kind: v.string(),
+        value: v.number(),
+        unit: v.string(),
+      }),
+    ),
+  },
+  handler: async (ctx, { id, hash, samples }) => {
+    const s = await ctx.db.get(id);
+    if (!s) return;
+    const a = await ctx.db.get(s.athleteId);
+    if (!a || a.status !== "active") return;
+    const old = await ctx.db
+      .query("sources")
+      .withIndex("by_hash", (q) => q.eq("athleteId", a._id).eq("hash", hash))
+      .filter((q) => q.eq(q.field("status"), "complete"))
+      .first();
+    if (old) return;
+    const existing = await ctx.db
+      .query("health")
+      .withIndex("by_athlete", (q) => q.eq("athleteId", a._id))
+      .filter((q) => q.eq(q.field("sourceId"), id))
+      .collect();
+    for (const row of existing) await ctx.db.delete(row._id);
+    for (const h of samples)
+      await ctx.db.insert("health", {
+        ...h,
+        date: dayKey(h.at, a.timezone),
+        athleteId: a._id,
+        source: s.name,
+        sourceId: id,
+      });
+  },
+});
+export const healthComplete = internalMutation({
+  args: { id: v.id("sources"), hash: v.string() },
+  handler: async (ctx, { id, hash }) => {
+    const s = await ctx.db.get(id);
+    if (!s) return;
+    await ctx.db.patch(id, {
+      status: "complete",
+      hash,
       parserVersion: VERSION,
     });
   },

@@ -104,6 +104,21 @@ export function bestDistances(
   samples: Sample[],
   distances = [400, 1000, 1609.344, 5000, 10000, 21097.5, 42195],
 ) {
+  // Segment counters prevent a candidate from crossing any missing/reset distance or time gap.
+  const segment = samples.map(() => 0);
+  for (let i = 1; i < samples.length; i++) {
+    const a = samples[i - 1],
+      b = samples[i];
+    segment[i] =
+      segment[i - 1] +
+      Number(
+        a.distance === undefined ||
+          b.distance === undefined ||
+          b.distance < a.distance ||
+          b.t <= a.t ||
+          b.t - a.t > 30,
+      );
+  }
   return distances.map((distance) => {
     let best: number | null = null,
       start = 0,
@@ -114,11 +129,13 @@ export function bestDistances(
       j = Math.max(j, i + 1);
       while (
         j < samples.length &&
+        segment[j] === segment[i] &&
         (samples[j].distance === undefined ||
           samples[j].distance! - a.distance < distance)
       )
         j++;
       if (j >= samples.length) break;
+      if (segment[j] !== segment[i]) continue;
       const end = samples[j],
         prev = samples[j - 1];
       if (
@@ -163,7 +180,7 @@ export function analyze(activity: Activity, thresholds: Thresholds = {}) {
       count++;
     }
   }
-  const wp = count >= 30 ? (fourth / count) ** 0.25 : null;
+  const wp = count >= 31 ? (fourth / count) ** 0.25 : null;
   const intensity = wp !== null && thresholds.ftp ? wp / thresholds.ftp : null;
   const reserve =
     hr !== undefined &&
@@ -201,7 +218,14 @@ export function analyze(activity: Activity, thresholds: Thresholds = {}) {
   const load =
     intensity !== null
       ? (activity.duration / 3600) * intensity ** 2 * 100
-      : trimp;
+      : (trimp ??
+        (activity.sport === "running" &&
+        speed !== undefined &&
+        thresholds.thresholdSpeed
+          ? (activity.duration / 3600) *
+            (speed / thresholds.thresholdSpeed) ** 2 *
+            100
+          : null));
   const metrics = {
     load: metric(
       load,
@@ -209,15 +233,19 @@ export function analyze(activity: Activity, thresholds: Thresholds = {}) {
       "Training load",
       intensity !== null
         ? "hours × (weighted power / FTP)² × 100"
-        : "minutes × HR reserve × 0.64 × exp(1.92 × HR reserve)",
+        : trimp !== null
+          ? "minutes × HR reserve × 0.64 × exp(1.92 × HR reserve)"
+          : "hours × (mean running speed / threshold speed)² × 100",
       {
         duration: activity.duration,
         ftp: thresholds.ftp ?? null,
         hr: hr ?? null,
         restHr: thresholds.restHr ?? null,
         maxHr: thresholds.maxHr ?? null,
+        speed: speed ?? null,
+        thresholdSpeed: thresholds.thresholdSpeed ?? null,
       },
-      "Requires a configured threshold and sufficient sensor data. HR load uses a fixed Banister coefficient, not an individualized physiological measurement. Power load and HR load are different estimates.",
+      "Uses power first, then heart rate, then running pace when its threshold is set. These estimates are not interchangeable. HR uses a fixed Banister coefficient; pace is not adjusted for hills or weather.",
     ),
     trimp: metric(
       trimp,

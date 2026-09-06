@@ -60,6 +60,10 @@ export default defineSchema({
     activityId: v.optional(v.id("activities")),
     parentId: v.optional(v.id("sources")),
     parserVersion: v.optional(v.string()),
+    childIds: v.optional(v.array(v.id("sources"))),
+    completedChildren: v.optional(v.number()),
+    failedChildren: v.optional(v.number()),
+    importMetadata: v.optional(v.any()),
   })
     .index("by_athlete", ["athleteId", "createdAt"])
     .index("by_hash", ["athleteId", "hash"]),
@@ -68,7 +72,9 @@ export default defineSchema({
     activityId: v.id("activities"),
     metrics: v.any(),
     at: v.number(),
-  }).index("by_athlete", ["athleteId"]),
+  })
+    .index("by_athlete", ["athleteId"])
+    .index("by_activity", ["activityId", "at"]),
   gear: defineTable({
     athleteId: v.id("athletes"),
     name: v.string(),
@@ -127,6 +133,9 @@ export default defineSchema({
     kind: v.string(),
     value: v.number(),
     source: v.string(),
+    sourceId: v.optional(v.id("sources")),
+    at: v.optional(v.number()),
+    unit: v.optional(v.string()),
   }).index("by_athlete", ["athleteId", "date"]),
   billing: defineTable({
     athleteId: v.id("athletes"),
@@ -141,6 +150,22 @@ export default defineSchema({
   webhookEvents: defineTable({ eventId: v.string(), at: v.number() }).index(
     "by_event",
     ["eventId"],
+  ),
+  outbox: defineTable({
+    athleteId: v.id("athletes"),
+    template: v.string(),
+    dedupeKey: v.string(),
+    status: v.string(),
+    providerId: v.optional(v.string()),
+    attempts: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_athlete", ["athleteId"])
+    .index("by_key", ["dedupeKey"])
+    .index("by_provider", ["providerId"]),
+  systemCounters: defineTable({ key: v.string(), count: v.number() }).index(
+    "by_key",
+    ["key"],
   ),
   usage: defineTable({
     athleteId: v.id("athletes"),

@@ -14,6 +14,11 @@ jobs:
       - run: npm ci
       - run: npm run format:check
       - run: npm run typecheck
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_CONVEX_URL: https://example.convex.cloud
+          NEXT_PUBLIC_WORKOS_REDIRECT_URI: http://localhost:3000/callback
+          KINETEXA_APP_ENABLED: "false"
       - run: npx tsc --noEmit -p apps/web/tsconfig.json
       - run: npm test
       - run: npm audit --audit-level=high

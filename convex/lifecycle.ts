@@ -24,6 +24,7 @@ export const tables = [
   "messages",
   "auditEvents",
   "lifecycleJobs",
+  "outbox",
 ] as const;
 export const requestExport = mutation({
   args: {},

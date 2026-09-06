@@ -2,8 +2,16 @@ import fs from "node:fs";
 import { parseEnv } from "node:util";
 import { spawnSync } from "node:child_process";
 const prod = process.argv.includes("--prod");
+const staging = process.argv.includes("--staging");
 const env = parseEnv(
-  fs.readFileSync(prod ? ".env.production.local" : ".env.local", "utf8"),
+  fs.readFileSync(
+    prod
+      ? ".env.production.local"
+      : staging
+        ? ".env.staging.local"
+        : ".env.local",
+    "utf8",
+  ),
 );
 const keys = [
   "WORKOS_CLIENT_ID",
@@ -21,6 +29,8 @@ const keys = [
   "KINETEXA_AI_MODEL",
   "RESEND_API_KEY",
   "RESEND_FROM_EMAIL",
+  "RESEND_WEBHOOK_SECRET",
+  "KINETEXA_TEST_EMAIL",
   "NEXT_PUBLIC_APP_URL",
 ];
 for (const key of keys) {
@@ -31,7 +41,7 @@ for (const key of keys) {
       "node_modules/convex/bin/main.js",
       "env",
       "set",
-      ...(prod ? ["--prod"] : []),
+      ...(prod ? ["--prod"] : staging ? ["--deployment", "staging"] : []),
       key,
       "--",
       env[key],

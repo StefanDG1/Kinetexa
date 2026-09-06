@@ -10,7 +10,11 @@ import {
   downloadUrl,
   objectSize,
 } from "./storage";
-import { parseActivity, unpackArchive } from "../packages/core/import";
+import {
+  parseActivity,
+  unpackArchive,
+  parseFitHealth,
+} from "../packages/core/import";
 import { analyze } from "../packages/core/analytics";
 import { clean } from "../packages/core/model";
 import { route } from "../packages/core/geo";
@@ -76,22 +80,58 @@ export const process = internalAction({
         hash = createHash("sha256").update(bytes).digest("hex");
       if (/\.zip$/i.test(s.name)) {
         const files = unpackArchive(bytes);
+        const childIds: import("./_generated/dataModel").Id<"sources">[] = [];
         for (const f of files) {
           const childHash = createHash("sha256").update(f.bytes).digest("hex"),
             key = `${s.athleteId}/originals/${childHash}`;
           await putObject(key, f.bytes);
-          await ctx.runMutation(internal.imports.child, {
-            parentId: id,
-            name: f.name,
-            key,
-            bytes: f.bytes.length,
-            hash: childHash,
-          });
+          childIds.push(
+            await ctx.runMutation(
+              internal.imports.child,
+              clean({
+                parentId: id,
+                name: f.name,
+                key,
+                bytes: f.bytes.length,
+                hash: childHash,
+                importMetadata: f.metadata,
+              }),
+            ),
+          );
         }
-        await ctx.runMutation(internal.imports.archiveComplete, { id, hash });
+        await ctx.runMutation(internal.imports.archiveComplete, {
+          id,
+          hash,
+          childIds,
+        });
       } else {
-        const activity = await parseActivity(s.name, bytes),
-          metrics = analyze(activity, thresholds),
+        const health = /\.fit$/i.test(s.name)
+          ? await parseFitHealth(bytes)
+          : [];
+        if (health.length)
+          await ctx.runMutation(internal.imports.health, {
+            id,
+            hash,
+            samples: health,
+          });
+        let activity;
+        try {
+          activity = await parseActivity(s.name, bytes);
+        } catch (e) {
+          if (
+            health.length &&
+            e instanceof Error &&
+            /No valid/.test(e.message)
+          ) {
+            await ctx.runMutation(internal.imports.healthComplete, {
+              id,
+              hash,
+            });
+            return;
+          }
+          throw e;
+        }
+        const metrics = analyze(activity, thresholds),
           streamKey = `${s.athleteId}/streams/${id}.json`;
         await putObject(
           streamKey,

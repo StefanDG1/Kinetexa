@@ -1,6 +1,6 @@
 {
   "name": "kinetexa",
-  "version": "0.1.0-alpha.2",
+  "version": "0.2.0-alpha.1",
   "private": true,
   "license": "AGPL-3.0-only",
   "workspaces": [
@@ -27,10 +27,12 @@
     "@aws-sdk/lib-storage": "^3.1127.0",
     "@aws-sdk/s3-request-presigner": "^3.1127.0",
     "convex": "1.45.0",
+    "csv-parse": "^7.0.2",
     "fast-xml-parser": "^5.11.1",
     "fflate": "^0.8.3",
     "fit-file-parser": "^5.0.2",
     "stripe": "^22.6.1",
+    "svix": "^2.3.0",
     "zod": "^4.5.4"
   },
   "devDependencies": {

@@ -64,6 +64,12 @@ export const save = internalMutation({
       metrics: old.metrics,
       at: Date.now(),
     });
-    await ctx.db.patch(id, args);
+    await ctx.db.patch(id, {
+      ...args,
+      sport: args.summary.sport,
+      start: args.summary.start,
+      duration: args.summary.duration,
+      distance: args.summary.distance,
+    });
   },
 });

@@ -3,6 +3,7 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import Link from "next/link";
 import { api } from "@convex/_generated/api";
+import { DashboardSettings } from "@/components/dashboard-settings";
 export default function Settings() {
   const profile = useQuery(api.athletes.current),
     data = useQuery(api.workspace.overview),
@@ -25,6 +26,7 @@ export default function Settings() {
   return (
     <>
       <h1>Make Kinetexa yours.</h1>
+      <DashboardSettings />
       {message && (
         <p role="status" className="privacy-note">
           {message}
@@ -65,7 +67,6 @@ export default function Settings() {
               Units
               <select name="units" defaultValue={profile.units}>
                 <option value="metric">Metric</option>
-                <option value="imperial">Imperial</option>
               </select>
             </label>
           </div>

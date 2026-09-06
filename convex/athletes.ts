@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import type { QueryCtx } from "./_generated/server";
 
 export async function requireAthlete(ctx: QueryCtx) {
@@ -53,7 +54,7 @@ export const ensure = mutation({
       return existing._id;
     }
     const now = Date.now();
-    return ctx.db.insert("athletes", {
+    const id = await ctx.db.insert("athletes", {
       tokenIdentifier: identity.tokenIdentifier,
       workosUserId: identity.subject,
       displayName: identity.givenName ?? identity.name ?? "Athlete",
@@ -66,6 +67,12 @@ export const ensure = mutation({
       status: "active",
       createdAt: now,
     });
+    await ctx.scheduler.runAfter(0, internal.email.enqueue, {
+      athleteId: id,
+      template: "welcome",
+      dedupeKey: `welcome-${id}`,
+    });
+    return id;
   },
 });
 

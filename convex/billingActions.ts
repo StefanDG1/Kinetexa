@@ -4,6 +4,34 @@ import { randomBytes } from "node:crypto";
 import { v, ConvexError } from "convex/values";
 import { action, internalAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
+export const catalog = action({
+  args: {},
+  handler: async (
+    ctx,
+  ): Promise<
+    { interval: "monthly" | "annual"; amount: number; currency: string }[]
+  > => {
+    await ctx.runQuery(api.billing.current, {});
+    return Promise.all(
+      (["monthly", "annual"] as const).map(async (interval) => {
+        const price = await stripeClient().prices.retrieve(
+          process.env[
+            interval === "monthly"
+              ? "STRIPE_PREMIUM_MONTHLY_PRICE_ID"
+              : "STRIPE_PREMIUM_ANNUAL_PRICE_ID"
+          ]!,
+        );
+        if (!price.active || price.unit_amount === null || !price.recurring)
+          throw new ConvexError("Pricing is temporarily unavailable.");
+        return {
+          interval,
+          amount: price.unit_amount / 100,
+          currency: price.currency,
+        };
+      }),
+    );
+  },
+});
 export function stripeClient() {
   if (!process.env.STRIPE_SECRET_KEY)
     throw new Error("Billing is not configured.");

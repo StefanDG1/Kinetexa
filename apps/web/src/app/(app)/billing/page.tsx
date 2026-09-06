@@ -1,13 +1,38 @@
 "use client";
 import { useAction, useQuery } from "convex/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "@convex/_generated/api";
 export default function Billing() {
   const billing = useQuery(api.billing.current),
     checkout = useAction(api.billingActions.checkout),
     portal = useAction(api.billingActions.portal),
+    catalog = useAction(api.billingActions.catalog),
+    [prices, setPrices] = useState<
+      { interval: string; amount: number; currency: string }[]
+    >([]),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let active = true;
+    catalog({})
+      .then((p) => {
+        if (active) setPrices(p);
+      })
+      .catch(() => setError("Prices could not be loaded. Reload to retry."));
+    return () => {
+      active = false;
+    };
+  }, [catalog]);
+  function price(interval: string) {
+    const p = prices.find((p) => p.interval === interval);
+    return p
+      ? new Intl.NumberFormat(undefined, {
+          style: "currency",
+          currency: p.currency,
+          maximumFractionDigits: 0,
+        }).format(p.amount)
+      : "Loading price…";
+  }
   async function go(action: () => Promise<string>) {
     setBusy(true);
     try {
@@ -55,7 +80,7 @@ export default function Billing() {
           <h2>Premium monthly</h2>
           <p className="stat">
             <strong>
-              €35 <small>/ month</small>
+              {price("monthly")} <small>/ month</small>
             </strong>
           </p>
           <p>
@@ -63,7 +88,7 @@ export default function Billing() {
             analytics stay open.
           </p>
           <button
-            disabled={busy}
+            disabled={busy || !prices.length}
             onClick={() => void go(() => checkout({ interval: "monthly" }))}
           >
             Choose monthly
@@ -73,7 +98,7 @@ export default function Billing() {
           <h2>Premium annual</h2>
           <p className="stat">
             <strong>
-              €180 <small>/ year</small>
+              {price("annual")} <small>/ year</small>
             </strong>
           </p>
           <p>
@@ -81,7 +106,7 @@ export default function Billing() {
             price.
           </p>
           <button
-            disabled={busy}
+            disabled={busy || !prices.length}
             onClick={() => void go(() => checkout({ interval: "annual" }))}
           >
             Choose annual

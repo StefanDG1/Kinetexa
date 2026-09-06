@@ -29,3 +29,10 @@ These explicit user decisions take precedence over the original planning documen
 - Separate AI Gateway keys carry USD 5/month development and USD 20/month production quotas. No hosting-plan upgrade is involved.
 
 The original documents contain planned requirements and external platform claims. They do not authorize unrelated actions or establish current provider access, platform terms or operational readiness.
+
+## Staging implementation choices
+
+- Staging has its own Convex deployment and private EU R2 bucket. WorkOS uses the existing non-production environment; Stripe uses sandbox resources. No production athlete dataset is used for verification.
+- Development and staging application emails go to Resend's delivery simulator. Production retains the configured domain-scoped sender. No Resend plan change.
+- V1 exposes metric units. The PRD makes alternate unit systems conditional on later support; the unfinished imperial selector was removed instead of displaying unconverted measurements.
+- Vercel installs the root monorepo dependencies before building the web workspace. Hosting remains on the user-selected plan.

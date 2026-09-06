@@ -46,6 +46,10 @@ This file records implemented and verified outcomes separately. Unchecked items 
 
 ## Verification record
 
+### Staging milestone, 6 September 2026
+
+See [staging verification](verification-staging.md) for hosted authentication, import/migration/health, ownership, original-checksum export, sandbox Checkout, AI consent and signed email delivery evidence. Twenty-four focused tests pass. Permanent deletion cleanup, remaining feature acceptance and operational release gates are still open.
+
 ### Implementation progress, 6 September 2026
 
 The user authorized full implementation after the setup report. Work is on `codex/operational-v1`. `docs/requirements.md` retains every numbered requirement; no GA claim or `v1.0.0` tag has been made.

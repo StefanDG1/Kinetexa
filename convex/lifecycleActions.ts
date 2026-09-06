@@ -23,6 +23,7 @@ const tableNames = [
   "usage",
   "messages",
   "auditEvents",
+  "outbox",
 ] as const;
 export const download = action({
   args: { id: v.id("lifecycleJobs") },
@@ -68,6 +69,29 @@ export const exportData = internalAction({
       zip.add(f);
       f.push(bytes, true);
     };
+    const drain = async () => {
+      if (stream.destroyed) throw new Error("Export upload interrupted.");
+      if (stream.writableNeedDrain)
+        await new Promise<void>((resolve, reject) => {
+          const cleanup = () => {
+            stream.off("drain", done);
+            stream.off("error", fail);
+            stream.off("close", closed);
+          };
+          const done = () => {
+            cleanup();
+            resolve();
+          };
+          const fail = (error: Error) => {
+            cleanup();
+            reject(error);
+          };
+          const closed = () => fail(new Error("Export stream closed."));
+          stream.once("drain", done);
+          stream.once("error", fail);
+          stream.once("close", closed);
+        });
+    };
     try {
       const {
         tokenIdentifier: _token,
@@ -100,17 +124,20 @@ export const exportData = internalAction({
           );
           if (table === "sources")
             for (const row of result.page as any[]) {
-              if (row.status !== "awaiting-upload")
+              if (row.status !== "awaiting-upload") {
                 add(
                   `originals/${row._id}/${row.name.replaceAll("\\", "/").split("/").at(-1)}`,
                   await getObject(row.key),
                 );
+                await drain();
+              }
             }
           if (table === "activities")
-            for (const row of result.page as any[])
+            for (const row of result.page as any[]) {
               add(`canonical/${row._id}.json`, await getObject(row.streamKey));
-          if (stream.writableNeedDrain)
-            await new Promise<void>((resolve) => stream.once("drain", resolve));
+              await drain();
+            }
+          await drain();
           cursor = result.isDone ? null : result.continueCursor;
         } while (cursor);
       }
@@ -120,6 +147,11 @@ export const exportData = internalAction({
         id,
         status: "complete",
         key,
+      });
+      await ctx.runMutation(internal.email.enqueue, {
+        athleteId: athlete._id,
+        template: "export",
+        dedupeKey: `export-${id}`,
       });
       console.info(JSON.stringify({ event: "export_completed", jobId: id }));
     } catch {

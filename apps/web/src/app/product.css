@@ -1,3 +1,20 @@
+.dashboard-widgets {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(250px, 1fr);
+  gap: 0 32px;
+  align-items: start;
+}
+.dashboard-widgets .widget-timeline,
+.dashboard-widgets .widget-recent,
+.dashboard-widgets .widget-map,
+.dashboard-widgets .widget-analyses {
+  grid-column: 1/-1;
+}
+@media (max-width: 900px) {
+  .dashboard-widgets {
+    grid-template-columns: 1fr;
+  }
+}
 .app-shell {
   --rail: 220px;
   min-height: 100vh;
@@ -638,4 +655,28 @@ progress {
     transition: none !important;
     scroll-behavior: auto !important;
   }
+}
+
+.mobile-menu-button {
+  display: none;
+}
+.all-pages {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+@media (max-width: 800px) {
+  .mobile-menu-button {
+    display: inline-flex;
+  }
+  .workspace-top {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+}
+
+.checksum {
+  overflow-wrap: anywhere;
+  font-family: monospace;
 }

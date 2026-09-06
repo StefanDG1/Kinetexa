@@ -1,11 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.2.0-alpha.1 - 2026-09-06
 
 - Add canonical FIT/TCX/GPX parsing, bounded archive imports, private original storage, background import state, and duplicate suggestions.
 - Add deterministic load, zones, fitness decay and best-effort calculations with synthetic fixtures.
 - Add athlete ownership checks, mutation quotas, and two-identity backend tests.
-- Begin the authenticated responsive application, onboarding, import history, activities and training timeline. These are implementation progress, not verified hosted V1 outcomes.
+- Deploy an isolated staging application with WorkOS sign-in, private onboarding, configurable dashboard, activities, records, maps, saved analyses, goals, calendar, gear and sharing. This is a prerelease, with remaining acceptance work tracked in the requirement ledger.
+- Preserve Strava CSV migration metadata and ingest FIT resting heart rate, HRV and weight when present. Recover interrupted import workers and wait for archive child completion.
+- Verify staging uploads, cross-account isolation, sandbox Checkout through the hosted payment page, signed subscription updates, consented Gateway responses, and an export containing seven originals and four canonical streams.
+- Add a free-tier email outbox and verify an export notification through a signed Resend delivery event.
+- Add source checksums, calculation history, interval stream loading and map-driven recording selection.
 - Record all 213 numbered PRD requirements and the user's authorization to proceed beyond setup.
 
 Versions use Semantic Versioning. Setup and development milestones use prerelease versions. Version 1.0.0 is reserved for complete, operational V1 with recorded verification.

@@ -22,7 +22,7 @@ export function number(n: number | undefined | null, digits = 1) {
 export function duration(n: number) {
   const h = Math.floor(n / 3600),
     m = Math.floor((n % 3600) / 60);
-  return h ? `${h}h ${m}m` : `${m}m`;
+  return h ? `${h}h ${m}m` : m ? `${m}m` : `${Math.round(n)}s`;
 }
 export function date(n: number) {
   return new Date(n).toLocaleDateString(undefined, {

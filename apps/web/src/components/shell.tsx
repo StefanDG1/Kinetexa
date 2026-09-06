@@ -36,6 +36,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
     ensure = useMutation(api.athletes.ensure),
     profile = useQuery(api.athletes.current, isAuthenticated ? {} : "skip");
   const [error, setError] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => setMenuOpen(false), [pathname]);
   useEffect(() => {
     if (isAuthenticated)
       ensure().catch(() =>
@@ -74,10 +76,35 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <main id="content" className="workspace">
         <header className="workspace-top">
           <span>Private training workspace</span>
+          <button
+            className="mobile-menu-button secondary"
+            aria-expanded={menuOpen}
+            aria-controls="all-pages"
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            Menu
+          </button>
           <Link className="button small" href="/import">
             <Upload size={16} /> Import activities
           </Link>
         </header>
+        {menuOpen && (
+          <nav
+            id="all-pages"
+            className="all-pages surface"
+            aria-label="All pages"
+          >
+            {links.map(([href, label]) => (
+              <Link key={href} href={href}>
+                {label}
+              </Link>
+            ))}
+            <Link href="/records">Records</Link>
+            <Link href="/sharing">Sharing</Link>
+            <Link href="/billing">Your plan</Link>
+            <a href="/sign-out">Sign out</a>
+          </nav>
+        )}
         {error ? (
           <p role="alert">{error}</p>
         ) : !profile ? (

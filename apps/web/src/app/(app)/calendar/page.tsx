@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
-import { date, duration } from "@/components/data-ui";
+import { date, duration, number } from "@/components/data-ui";
 export default function CalendarPage() {
   const data = useQuery(api.workspace.overview),
     activities = useQuery(api.activities.list, {}),
@@ -76,7 +76,8 @@ export default function CalendarPage() {
                 ?.filter((a) => a.start >= from && a.start < to)
                 .map((a) => (
                   <Link href={`/activities/${a._id}`} key={a._id}>
-                    {a.sport} · {duration(a.duration)} · Completed
+                    {a.sport} · {duration(a.duration)} · Load{" "}
+                    {number(a.metrics.metrics.load.value)} · Completed
                   </Link>
                 ))}
               {data?.plans

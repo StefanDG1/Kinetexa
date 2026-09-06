@@ -2,6 +2,7 @@
 import { useQuery } from "convex/react";
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { api } from "@convex/_generated/api";
 import {
   ActivityList,
@@ -12,38 +13,298 @@ import {
   ranges,
   rangeStart,
 } from "@/components/data-ui";
-import { fitness } from "@core/analytics";
+import { dashboardData, WIDGETS } from "@core/dashboard";
+import { runQuery } from "@core/query";
+const RouteMap = dynamic(() => import("@/components/route-map"), {
+  ssr: false,
+});
 export default function Home() {
   const [range, setRange] = useState("28"),
-    [sport, setSport] = useState("");
+    [sport, setSport] = useState(""),
+    [customFrom, setCustomFrom] = useState(""),
+    [customTo, setCustomTo] = useState("");
   const items = useQuery(api.activities.list, { sport: sport || undefined }),
     profile = useQuery(api.athletes.current),
     workspace = useQuery(api.workspace.overview);
-  const selected = items?.filter((a) => a.start >= rangeStart(range));
-  const curve = useMemo(() => {
-    if (!items?.length) return [];
-    const start = Math.max(
-        Math.min(...items.map((a) => a.start)),
-        Date.now() - 365 * 86400000,
-      ),
-      daily = [];
-    for (let t = start; t <= Date.now(); t += 86400000) {
-      const label = new Date(t).toISOString().slice(0, 10),
-        day = items.filter(
-          (a) => new Date(a.start).toISOString().slice(0, 10) === label,
+  const [from, to] = useMemo(
+    () => [
+      range === "custom" ? Date.parse(customFrom) || 0 : rangeStart(range),
+      range === "custom"
+        ? Date.parse(customTo) + 86399999 || Date.now()
+        : Date.now(),
+    ],
+    [range, customFrom, customTo],
+  );
+  const d = useMemo(
+    () => dashboardData(items ?? [], from, to, profile?.timezone),
+    [items, from, to, profile?.timezone],
+  );
+  const routes = useMemo(
+    () =>
+      d.selected
+        .filter((a) => (a as any).route.length)
+        .map((a) => ({
+          id: a._id,
+          title: String(a.summary.title),
+          points: (a as any).route,
+        })),
+    [d.selected],
+  );
+  const order = profile?.dashboard?.length
+      ? profile.dashboard
+      : WIDGETS.map(([id]) => id),
+    hidden = profile?.hiddenWidgets ?? [],
+    latest = d.curve.at(-1);
+  function widget(id: string) {
+    switch (id) {
+      case "timeline":
+        return (
+          <>
+            <div className="period-summary">
+              <div className="stat">
+                <span>Fitness</span>
+                <strong>{number(latest?.fitness)}</strong>
+              </div>
+              <div className="stat">
+                <span>Fatigue</span>
+                <strong>{number(latest?.fatigue)}</strong>
+              </div>
+              <div className="stat">
+                <span>Form</span>
+                <strong>{number(latest?.form)}</strong>
+              </div>
+            </div>
+            <Chart data={d.curve} keys={["fitness", "fatigue", "form"]} />
+            <details>
+              <summary>Explain training state</summary>
+              <p>
+                Fitness and fatigue use exponential daily load decay with 42-day
+                and 7-day time constants. Form is prior-day fitness minus
+                fatigue. The model begins at zero, so early values underestimate
+                established fitness. {d.missingLoad} activities in this period
+                have no measurable load and are treated as zero here. Version
+                0.2.0-alpha.1.
+              </p>
+              <Link href="/activities">View contributing activities</Link>
+            </details>
+          </>
         );
-      daily.push({
-        date: label,
-        load: day.reduce((n, a) => n + (a.metrics.metrics.load.value ?? 0), 0),
-      });
+      case "weekly":
+        return (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>This week</th>
+                  <th>Last week</th>
+                  <th>Change</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(["count", "distance", "duration", "elevation"] as const).map(
+                  (k) => (
+                    <tr key={k}>
+                      <td>
+                        {
+                          {
+                            count: "Activities",
+                            distance: "Distance · km",
+                            duration: "Time · hours",
+                            elevation: "Elevation · m",
+                          }[k]
+                        }
+                      </td>
+                      <td>
+                        {number(
+                          d.currentWeek[k] === null
+                            ? null
+                            : d.currentWeek[k]! /
+                                (k === "distance"
+                                  ? 1000
+                                  : k === "duration"
+                                    ? 3600
+                                    : 1),
+                        )}
+                      </td>
+                      <td>
+                        {number(
+                          d.previousWeek[k] === null
+                            ? null
+                            : d.previousWeek[k]! /
+                                (k === "distance"
+                                  ? 1000
+                                  : k === "duration"
+                                    ? 3600
+                                    : 1),
+                        )}
+                      </td>
+                      <td>
+                        {d.previousWeek[k] && d.currentWeek[k] !== null
+                          ? `${number((100 * (d.currentWeek[k]! - d.previousWeek[k]!)) / d.previousWeek[k]!)}%`
+                          : "No baseline"}
+                      </td>
+                    </tr>
+                  ),
+                )}
+              </tbody>
+            </table>
+            <p className="muted">Current week is incomplete.</p>
+          </div>
+        );
+      case "recent":
+        return (
+          <ActivityList
+            items={
+              items
+                ?.filter((a) => a.start >= from && a.start <= to)
+                .slice(0, 6) ?? []
+            }
+          />
+        );
+      case "sports":
+        return (
+          <>
+            <Chart data={d.sports} bar />
+            <p className="muted">Training hours by sport</p>
+          </>
+        );
+      case "zones":
+        return d.zones.length ? (
+          <>
+            <Chart data={d.zones} bar />
+            <p className="muted">
+              Minutes in configured HR zones. Each activity uses the thresholds
+              stored with its calculation.
+            </p>
+          </>
+        ) : (
+          <p>
+            Heart-rate zone data is unavailable. Configure zone boundaries in
+            Settings.
+          </p>
+        );
+      case "load":
+        return (
+          <>
+            <Chart
+              data={d.curve.map((x) => ({ label: x.date, value: x.load }))}
+              bar
+            />
+            <p>
+              Weekly monotony: {number(d.monotony)}. Strain: {number(d.strain)}.
+            </p>
+            <details>
+              <summary>Explain load, monotony and strain</summary>
+              <p>
+                Load uses recorded power and FTP, HR reserve or configured
+                running pace. Monotony is mean daily load divided by its
+                population standard deviation over seven days. Strain is weekly
+                load multiplied by monotony. Constant load gives no finite
+                monotony estimate. These are training descriptions, not injury
+                predictions.
+              </p>
+            </details>
+          </>
+        );
+      case "records":
+        return (
+          <>
+            <p>
+              Personal bests come from complete sensor and distance windows.
+              Excluded records stay out of these rankings.
+            </p>
+            <Link href="/records">View all-time, year and period records</Link>
+          </>
+        );
+      case "goals":
+        return workspace?.goals.length ? (
+          workspace.goals.map((g) => {
+            const rows = (items ?? []).filter(
+                (a) => a.start >= g.start && a.start <= g.end,
+              ),
+              current =
+                g.kind === "custom" ||
+                g.kind === "event" ||
+                g.kind === "raceTime"
+                  ? (g.manualProgress ?? 0)
+                  : rows.reduce(
+                      (n, a) =>
+                        n +
+                        (g.kind === "distance"
+                          ? (a.distance ?? 0) / 1000
+                          : g.kind === "duration"
+                            ? a.duration / 3600
+                            : g.kind === "elevation"
+                              ? Number(a.summary.elevationGain ?? 0)
+                              : 1),
+                      0,
+                    );
+            return (
+              <div key={g._id}>
+                <Link href="/goals">{g.title}</Link>
+                <p>
+                  {number(current)} / {number(g.target)} ·{" "}
+                  {number((current / g.target) * 100, 0)}%
+                </p>
+                <progress value={current} max={g.target} />
+              </div>
+            );
+          })
+        ) : (
+          <p>
+            No goals yet. <Link href="/goals">Set a target</Link>.
+          </p>
+        );
+      case "consistency":
+        return (
+          <>
+            <p className="stat">
+              <strong>{d.activeDays} active days</strong>
+              <span>{d.streak}-day current streak</span>
+            </p>
+            <p className="muted">
+              A streak counts consecutive days with an activity, ending today or
+              yesterday. Rest days are useful too.
+            </p>
+          </>
+        );
+      case "map":
+        return routes.length ? (
+          <RouteMap routes={routes} />
+        ) : (
+          <p>No recorded GPS routes in this period.</p>
+        );
+      case "insight":
+        return (
+          <>
+            <p>
+              {profile?.aiConsent
+                ? "Ask about your training and inspect the measurements behind the answer."
+                : "AI is off. Your calculations work independently. You can enable optional AI explanations in Settings."}
+            </p>
+            <Link href={profile?.aiConsent ? "/ask" : "/settings"}>
+              {profile?.aiConsent ? "Ask Kinetexa" : "AI privacy settings"}
+            </Link>
+          </>
+        );
+      case "analyses":
+        return workspace?.analyses
+          .filter((a) => a.pinned)
+          .map((a) => {
+            const result = runQuery(d.selected, a.query);
+            return (
+              <div key={a._id}>
+                <h3>{a.name}</h3>
+                <Chart data={result} bar={a.query.visual === "bar"} />
+                <Link href="/analysis">Edit analysis</Link>
+              </div>
+            );
+          });
+      default:
+        return null;
     }
-    return fitness(daily)
-      .filter((d) => Date.parse(d.date) >= rangeStart(range))
-      .map((d) => ({ ...d, label: d.date }));
-  }, [items, range]);
-  const count = selected?.length ?? 0,
-    totalDistance = selected?.reduce((n, a) => n + (a.distance ?? 0), 0),
-    totalTime = selected?.reduce((n, a) => n + a.duration, 0) ?? 0;
+  }
   return (
     <>
       <h1>
@@ -55,23 +316,42 @@ export default function Home() {
         <label>
           Period
           <select value={range} onChange={(e) => setRange(e.target.value)}>
-            {ranges
-              .filter((r) => r[0] !== "custom")
-              .map(([v, l]) => (
-                <option value={v} key={v}>
-                  {l}
-                </option>
-              ))}
+            {ranges.map(([v, l]) => (
+              <option value={v} key={v}>
+                {l}
+              </option>
+            ))}
           </select>
         </label>
         <label>
           Sport
           <select value={sport} onChange={(e) => setSport(e.target.value)}>
             <option value="">All sports</option>
-            <option value="running">Running</option>
-            <option value="cycling">Cycling</option>
+            {["running", "cycling", "swimming", "walking", "other"].map((s) => (
+              <option key={s}>{s}</option>
+            ))}
           </select>
         </label>
+        {range === "custom" && (
+          <>
+            <label>
+              From
+              <input
+                type="date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+              />
+            </label>
+            <label>
+              Through
+              <input
+                type="date"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+              />
+            </label>
+          </>
+        )}
         <Link href="/settings">Customize dashboard</Link>
       </div>
       {items === undefined ? (
@@ -84,98 +364,41 @@ export default function Home() {
             <div className="stat">
               <span>Distance</span>
               <strong>
-                {number(totalDistance ? totalDistance / 1000 : null)}{" "}
+                {number(
+                  d.totals.distance === null ? null : d.totals.distance / 1000,
+                )}{" "}
                 <small>km</small>
               </strong>
             </div>
             <div className="stat">
               <span>Training time</span>
-              <strong>{duration(totalTime)}</strong>
+              <strong>{duration(d.totals.duration)}</strong>
             </div>
             <div className="stat">
               <span>Activities</span>
-              <strong>{count}</strong>
+              <strong>{d.totals.count}</strong>
             </div>
             <div className="stat">
               <span>Elevation gain</span>
               <strong>
-                {number(
-                  selected?.reduce(
-                    (n, a) => n + (a.summary.elevationGain ?? 0),
-                    0,
-                  ),
-                  0,
-                )}{" "}
-                <small>m</small>
+                {number(d.totals.elevation, 0)} <small>m</small>
               </strong>
             </div>
           </div>
-          <div className="home-grid">
-            <div>
-              <section className="section">
-                <div className="section-title">
-                  <h2>Training over time</h2>
-                  <Link href="/analysis">Explore your data</Link>
-                </div>
-                <Chart data={curve} keys={["chronic", "acute", "form"]} />
-                <details>
-                  <summary>Explain fitness, fatigue and form</summary>
-                  <p>
-                    Fitness uses 42-day exponential load decay. Fatigue uses 7
-                    days. Form is prior-day fitness minus fatigue. Missing load
-                    is treated as zero in this curve and can underestimate
-                    training. Configure your heart-rate or power thresholds to
-                    calculate load.
-                  </p>
-                  <Link href="/settings">Review thresholds</Link>
-                </details>
-              </section>
-              <section className="section">
-                <div className="section-title">
-                  <h2>Recent sessions</h2>
-                  <Link href="/activities">All activities</Link>
-                </div>
-                <ActivityList items={selected?.slice(0, 6) ?? []} />
-              </section>
-            </div>
-            <aside>
-              <section className="surface section">
-                <h2>Make sense of the week</h2>
-                <p>
-                  {profile?.aiConsent
-                    ? "Ask a question about your training. Answers include the activities and calculations used."
-                    : "AI is off. Your calculations work independently. Enable AI in Settings when you want an explanation from the assistant."}
-                </p>
-                <Link href={profile?.aiConsent ? "/ask" : "/settings"}>
-                  {profile?.aiConsent ? "Ask Kinetexa" : "AI privacy settings"}
-                </Link>
-              </section>
-              <section className="section">
-                <h2>Your goals</h2>
-                {workspace?.goals.length ? (
-                  workspace.goals.map((g) => (
-                    <p key={g._id}>
-                      <Link href="/goals">{g.title}</Link>
-                    </p>
-                  ))
-                ) : (
-                  <p>
-                    No goals yet.{" "}
-                    <Link href="/goals">Set your first target</Link>.
-                  </p>
-                )}
-              </section>
-              <section className="section">
-                <h2>Where you moved</h2>
-                <p>
-                  Explore your recorded routes together and see where your
-                  training takes you.
-                </p>
-                <Link className="button secondary" href="/maps">
-                  Open your map
-                </Link>
-              </section>
-            </aside>
+          <div className="dashboard-widgets">
+            {order
+              .filter((id) => !hidden.includes(id))
+              .map((id) => (
+                <section className={`section widget-${id}`} key={id}>
+                  <div className="section-title">
+                    <h2>{WIDGETS.find(([k]) => k === id)?.[1]}</h2>
+                    {id === "recent" && (
+                      <Link href="/activities">All activities</Link>
+                    )}
+                  </div>
+                  {widget(id)}
+                </section>
+              ))}
           </div>
         </>
       )}

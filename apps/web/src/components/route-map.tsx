@@ -7,17 +7,25 @@ export default function RouteMap({
   routes,
   cursor,
   onSelect,
+  onPointSelect,
   large = false,
 }: {
   routes: Route[];
   cursor?: number[];
   onSelect?: (id: string) => void;
+  onPointSelect?: (point: number[]) => void;
   large?: boolean;
 }) {
   const container = useRef<HTMLDivElement>(null),
     map = useRef<maplibregl.Map | null>(null),
     marker = useRef<maplibregl.Marker | null>(null),
     [error, setError] = useState("");
+  const selectRef = useRef(onSelect),
+    pointRef = useRef(onPointSelect);
+  useEffect(() => {
+    selectRef.current = onSelect;
+    pointRef.current = onPointSelect;
+  }, [onSelect, onPointSelect]);
   useEffect(() => {
     if (!container.current) return;
     const m = new maplibregl.Map({
@@ -78,7 +86,8 @@ export default function RouteMap({
       }
       m.on("click", "route-lines", (e) => {
         const id = e.features?.[0]?.properties?.id;
-        if (id) onSelect?.(String(id));
+        if (id) selectRef.current?.(String(id));
+        pointRef.current?.([e.lngLat.lng, e.lngLat.lat]);
       });
     });
     return () => {
@@ -87,7 +96,7 @@ export default function RouteMap({
       m.remove();
       map.current = null;
     };
-  }, [routes, onSelect]);
+  }, [routes]);
   useEffect(() => {
     if (!map.current || !cursor) return;
     if (!marker.current)

@@ -87,6 +87,13 @@ export default function ImportPage() {
                   {(j.bytes / 1024).toFixed(0)} KiB · Attempt {j.attempts}
                 </p>
                 {j.error && <p>{j.error}</p>}
+                {j.childIds && (
+                  <p>
+                    {j.completedChildren ?? 0} of {j.childIds.length} files
+                    ready · {j.failedChildren ?? 0} failed. Review individual
+                    files below.
+                  </p>
+                )}
                 {j.activityId && (
                   <Link href={`/activities/${j.activityId}`}>
                     Open activity

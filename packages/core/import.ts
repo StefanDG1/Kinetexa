@@ -1,6 +1,7 @@
 import FitParser from "fit-file-parser";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 import { unzipSync, gunzipSync } from "fflate";
+import { parse as parseCsv } from "csv-parse/sync";
 import {
   activitySchema,
   clean,
@@ -134,6 +135,80 @@ export function normalize(input: Activity): Activity {
 }
 // Untrusted parser objects stop at this boundary and are validated into Activity.
 type Xml = Record<string, any>;
+async function decodeFit(bytes: Uint8Array): Promise<Xml> {
+  if (bytes.length > LIMITS.fileBytes)
+    throw new Error("Activity exceeds the 32 MiB file limit.");
+  const parser = new FitParser({
+    force: false,
+    mode: "list",
+    speedUnit: "m/s",
+    lengthUnit: "m",
+    temperatureUnit: "celsius",
+  });
+  return new Promise((resolve, reject) =>
+    parser.parse(
+      bytes.buffer.slice(
+        bytes.byteOffset,
+        bytes.byteOffset + bytes.byteLength,
+      ) as ArrayBuffer,
+      (err, data) =>
+        err || !data
+          ? reject(new Error("FIT file is invalid or its checksum failed."))
+          : resolve(data),
+    ),
+  );
+}
+export type HealthSample = {
+  at: number;
+  kind: string;
+  value: number;
+  unit: string;
+};
+export async function parseFitHealth(
+  bytes: Uint8Array,
+): Promise<HealthSample[]> {
+  const fit = await decodeFit(bytes),
+    messages = fit.messages ?? {},
+    out: HealthSample[] = [];
+  const add = (
+    rows: Xml[],
+    kind: string,
+    field: string,
+    unit: string,
+    min: number,
+    max: number,
+  ) => {
+    for (const row of rows) {
+      const at = timestamp(row.timestamp),
+        value = num(row[field]);
+      if (
+        Number.isFinite(at) &&
+        value !== undefined &&
+        value >= min &&
+        value <= max
+      )
+        out.push({ at, kind, value, unit });
+    }
+  };
+  add(
+    list(messages.monitoring_hr_data),
+    "restingHr",
+    "resting_heart_rate",
+    "bpm",
+    20,
+    260,
+  );
+  add(
+    list(messages.hrv_status_summary),
+    "hrv",
+    "last_night_average",
+    "ms",
+    0,
+    500,
+  );
+  add(list(messages.weight_scale), "weight", "weight", "kg", 1, 700);
+  return out;
+}
 export async function parseActivity(
   name: string,
   bytes: Uint8Array,
@@ -142,25 +217,7 @@ export async function parseActivity(
     throw new Error("Activity exceeds the 32 MiB file limit.");
   const ext = name.split(".").at(-1)?.toLowerCase();
   if (ext === "fit") {
-    const parser = new FitParser({
-      force: false,
-      mode: "list",
-      speedUnit: "m/s",
-      lengthUnit: "m",
-      temperatureUnit: "celsius",
-    });
-    const fit = await new Promise<Xml>((resolve, reject) =>
-      parser.parse(
-        bytes.buffer.slice(
-          bytes.byteOffset,
-          bytes.byteOffset + bytes.byteLength,
-        ) as ArrayBuffer,
-        (err, data) =>
-          err || !data
-            ? reject(new Error("FIT file is invalid or its checksum failed."))
-            : resolve(data),
-      ),
-    );
+    const fit = await decodeFit(bytes);
     const session = list(fit.sessions)[0] ?? {},
       records: Xml[] = list(fit.records);
     const start = timestamp(session.start_time ?? records[0]?.timestamp);
@@ -287,7 +344,7 @@ export async function parseActivity(
 }
 export function unpackArchive(
   bytes: Uint8Array,
-): { name: string; bytes: Uint8Array }[] {
+): { name: string; bytes: Uint8Array; metadata?: MigrationMetadata }[] {
   if (bytes.length > LIMITS.archiveBytes)
     throw new Error(
       "Archive exceeds 128 MiB. Split the archive into smaller uploads.",
@@ -321,9 +378,45 @@ export function unpackArchive(
       );
     },
   });
-  const out: { name: string; bytes: Uint8Array }[] = [];
+  const metadata = new Map<string, MigrationMetadata>();
+  for (const [name, data] of Object.entries(files))
+    if (/(^|\/)activities\.csv$/i.test(name)) {
+      const rows = parseCsv(data, {
+        columns: true,
+        bom: true,
+        skip_empty_lines: true,
+        max_record_size: 100000,
+        relax_column_count: true,
+      }) as Record<string, string>[];
+      for (const row of rows) {
+        const filename = row.Filename?.replaceAll("\\", "/").replace(
+          /\.gz$/i,
+          "",
+        );
+        if (!filename) continue;
+        metadata.set(
+          filename,
+          clean({
+            title: row["Activity Name"]?.slice(0, 240),
+            notes: row["Activity Description"]?.slice(0, 10000),
+            gear: row["Activity Gear"]?.slice(0, 100),
+            sourceRecordId: row["Activity ID"]?.slice(0, 100),
+            commute: row.Commute === "true" || row.Commute === "1",
+          }),
+        );
+      }
+    }
+  const out: {
+    name: string;
+    bytes: Uint8Array;
+    metadata?: MigrationMetadata;
+  }[] = [];
   for (const [name, data] of Object.entries(files)) {
-    if (name.endsWith(".csv")) continue;
+    if (/\.csv$/i.test(name)) continue;
+    const normalizedName = name.replace(/\.gz$/i, "");
+    const row =
+      metadata.get(normalizedName) ??
+      [...metadata].find(([path]) => normalizedName.endsWith("/" + path))?.[1];
     if (/\.gz$/i.test(name)) {
       if (data.length < 4) throw new Error("Invalid compressed activity.");
       const size = new DataView(
@@ -337,23 +430,18 @@ export function unpackArchive(
       total += inflated.length;
       if (total > LIMITS.expandedBytes)
         throw new Error("Archive expansion limit exceeded.");
-      out.push({ name: name.slice(0, -3), bytes: inflated });
-    } else out.push({ name, bytes: data });
+      out.push({ name: name.slice(0, -3), bytes: inflated, metadata: row });
+    } else out.push({ name, bytes: data, metadata: row });
   }
   if (!out.length)
     throw new Error("Archive contains no supported activity files.");
   return out;
 }
-export function duplicateConfidence(
-  a: Pick<Activity, "sport" | "start" | "duration" | "distance">,
-  b: Pick<Activity, "sport" | "start" | "duration" | "distance">,
-) {
-  if (a.sport !== b.sport || Math.abs(a.start - b.start) > 60000) return 0;
-  const duration =
-    Math.abs(a.duration - b.duration) / Math.max(1, a.duration, b.duration);
-  const distance =
-    a.distance !== undefined && b.distance !== undefined
-      ? Math.abs(a.distance - b.distance) / Math.max(1, a.distance, b.distance)
-      : 1;
-  return duration < 0.02 && distance < 0.02 ? 0.95 : duration < 0.1 ? 0.7 : 0;
-}
+export type MigrationMetadata = {
+  title?: string;
+  notes?: string;
+  gear?: string;
+  sourceRecordId?: string;
+  commute?: boolean;
+};
+export { duplicateConfidence } from "./dedup";

@@ -37,6 +37,32 @@ export const get = query({
   args: { id: v.id("activities") },
   handler: (ctx, { id }) => ownedActivity(ctx, id),
 });
+export const provenance = query({
+  args: { id: v.id("activities") },
+  handler: async (ctx, { id }) => {
+    const row = await ownedActivity(ctx, id),
+      source = await ctx.db.get(row.sourceId);
+    const history = await ctx.db
+      .query("metricHistory")
+      .withIndex("by_activity", (q) => q.eq("activityId", id))
+      .order("desc")
+      .take(25);
+    return {
+      source: source
+        ? {
+            name: source.name,
+            hash: source.hash,
+            bytes: source.bytes,
+            parserVersion: source.parserVersion,
+            createdAt: source.createdAt,
+            parentId: source.parentId,
+            importMetadata: source.importMetadata,
+          }
+        : null,
+      history,
+    };
+  },
+});
 export const update = mutation({
   args: {
     id: v.id("activities"),

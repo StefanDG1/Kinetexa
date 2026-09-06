@@ -18,6 +18,7 @@ export default function ActivityPage({
   const { id } = use(params),
     activityId = id as Id<"activities">,
     a = useQuery(api.activities.get, { id: activityId }),
+    provenance = useQuery(api.activities.provenance, { id: activityId }),
     workspace = useQuery(api.workspace.overview),
     all = useQuery(api.activities.list, {}),
     getStream = useAction(api.processing.stream),
@@ -32,17 +33,26 @@ export default function ActivityPage({
     [comparison, setComparison] = useState("");
   useEffect(() => {
     let active = true;
-    getStream({ id: activityId })
-      .then((s) => {
-        if (active) setStream(s);
-      })
-      .catch(() =>
-        setError("Sensor data could not be loaded. Reload to retry."),
-      );
+    const timer = setTimeout(
+      () =>
+        getStream({
+          id: activityId,
+          from: a ? (a.duration * from) / 100 : undefined,
+          to: a ? (a.duration * to) / 100 : undefined,
+        })
+          .then((s) => {
+            if (active) setStream(s);
+          })
+          .catch(() =>
+            setError("Sensor data could not be loaded. Reload to retry."),
+          ),
+      250,
+    );
     return () => {
       active = false;
+      clearTimeout(timer);
     };
-  }, [activityId, getStream]);
+  }, [activityId, getStream, from, to, a?.duration]);
   const routes = useMemo(
     () => (a ? [{ id: a._id, title: a.title, points: a.route }] : []),
     [a],
@@ -110,6 +120,19 @@ export default function ActivityPage({
           {a.route.length ? (
             <RouteMap
               routes={routes}
+              onPointSelect={(point) => {
+                let nearest = 0,
+                  best = Infinity;
+                points.forEach((s, i) => {
+                  if (s.lon === undefined || s.lat === undefined) return;
+                  const d = (s.lon - point[0]) ** 2 + (s.lat - point[1]) ** 2;
+                  if (d < best) {
+                    best = d;
+                    nearest = i;
+                  }
+                });
+                setCursor(nearest);
+              }}
               cursor={
                 selected?.lon !== undefined && selected?.lat !== undefined
                   ? [selected.lon, selected.lat]
@@ -472,6 +495,35 @@ export default function ActivityPage({
           Thresholds: {JSON.stringify(a.metrics.thresholds)}.
         </p>
         <Link href="/import">Download the original from import history</Link>
+        {provenance?.source && (
+          <dl>
+            <dt>Original filename</dt>
+            <dd>{provenance.source.name}</dd>
+            <dt>SHA-256 checksum</dt>
+            <dd className="checksum">{provenance.source.hash}</dd>
+            <dt>Original bytes</dt>
+            <dd>{provenance.source.bytes}</dd>
+            <dt>Source record</dt>
+            <dd>
+              {provenance.source.importMetadata?.sourceRecordId ??
+                "Uploaded file"}
+            </dd>
+            <dt>Parser</dt>
+            <dd>{provenance.source.parserVersion}</dd>
+          </dl>
+        )}
+        {provenance?.history.map((h) => (
+          <details key={h._id}>
+            <summary>
+              Previous calculation · {new Date(h.at).toLocaleString()}
+            </summary>
+            <p>
+              Version {h.metrics.version}. Thresholds{" "}
+              {JSON.stringify(h.metrics.thresholds)}.
+            </p>
+            <p>Load {number(h.metrics.metrics?.load?.value)} points</p>
+          </details>
+        ))}
       </details>
       <Link href="/ask">Ask about this workout</Link> ·{" "}
       <Link href={`/sharing?activity=${id}`}>Share selected fields</Link>

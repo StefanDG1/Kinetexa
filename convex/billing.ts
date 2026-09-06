@@ -7,6 +7,7 @@ import {
 } from "./_generated/server";
 import { requireAthlete } from "./athletes";
 import { rateLimit } from "./limits";
+import { internal } from "./_generated/api";
 export const current = query({
   args: {},
   handler: async (ctx) => {
@@ -87,6 +88,12 @@ export const apply = internalMutation({
         action: "subscription_changed",
         at: Date.now(),
       });
+      if (row.status !== args.status)
+        await ctx.scheduler.runAfter(0, internal.email.enqueue, {
+          athleteId: row.athleteId,
+          template: "billing",
+          dedupeKey: `billing-${args.eventId}`,
+        });
     }
     await ctx.db.insert("webhookEvents", {
       eventId: args.eventId,

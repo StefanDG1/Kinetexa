@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { zipSync, strToU8 } from "fflate";
-import { parseActivity, unpackArchive, duplicateConfidence } from "./import";
+import {
+  parseActivity,
+  unpackArchive,
+  duplicateConfidence,
+  parseFitHealth,
+} from "./import";
+import { FitEncoder, FitBaseType } from "fit-file-parser";
 import {
   analyze,
   bestDistances,
@@ -25,7 +31,86 @@ const ride: Activity = {
     distance: t * 10,
   })),
 };
+describe("retained source metadata", () => {
+  it("reads quoted migration descriptions and matches filenames without changing bytes", () => {
+    const bytes = strToU8("original activity bytes");
+    const result = unpackArchive(
+      zipSync({
+        "activities/1.fit": bytes,
+        "activities.csv": strToU8(
+          'Activity ID,Activity Name,Activity Description,Filename,Activity Gear,Commute\n1,"Morning, ride","Two lines\nkept together",activities/1.fit,Road bike,true\n',
+        ),
+      }),
+    );
+    expect(result[0].bytes).toEqual(bytes);
+    expect(result[0].metadata).toEqual({
+      sourceRecordId: "1",
+      title: "Morning, ride",
+      notes: "Two lines\nkept together",
+      gear: "Road bike",
+      commute: true,
+    });
+  });
+  it("extracts dated FIT resting heart rate without inventing an activity", async () => {
+    const encoder = new FitEncoder();
+    encoder.writeMessage(211, [
+      {
+        number: 253,
+        size: 4,
+        baseType: FitBaseType.Uint32,
+        value: FitEncoder.toFitTimestamp(new Date("2026-09-01T07:00:00Z")),
+      },
+      { number: 0, size: 1, baseType: FitBaseType.Uint8, value: 48 },
+    ]);
+    const bytes = encoder.close();
+    expect(await parseFitHealth(bytes)).toEqual([
+      {
+        at: Date.parse("2026-09-01T07:00:00Z"),
+        kind: "restingHr",
+        value: 48,
+        unit: "bpm",
+      },
+    ]);
+    await expect(parseActivity("health.fit", bytes)).rejects.toThrow(
+      "No valid activity start",
+    );
+  });
+});
 describe("deterministic training calculations", () => {
+  it("rejects distance records crossing a recording gap or distance reset", () => {
+    for (const samples of [
+      [
+        { t: 0, distance: 0 },
+        { t: 10, distance: 100 },
+        { t: 100, distance: 900 },
+        { t: 110, distance: 1100 },
+      ],
+      [
+        { t: 0, distance: 0 },
+        { t: 10, distance: 900 },
+        { t: 20, distance: 0 },
+        { t: 30, distance: 200 },
+      ],
+    ])
+      expect(bestDistances(samples, [1000])[0].duration).toBeNull();
+  });
+  it("explains pace-derived load and enforces the full power duration minimum", () => {
+    const running = analyze(
+      { ...ride, sport: "running" },
+      { thresholdSpeed: 10 },
+    );
+    expect(running.metrics.load.value).toBeCloseTo(100);
+    expect(running.metrics.load.formula).toContain("threshold speed");
+    expect(running.metrics.load.inputs.thresholdSpeed).toBe(10);
+    expect(
+      analyze({ ...ride, duration: 59, samples: ride.samples.slice(0, 60) })
+        .metrics.weightedPower.value,
+    ).toBeNull();
+    expect(
+      analyze({ ...ride, duration: 60, samples: ride.samples.slice(0, 61) })
+        .metrics.weightedPower.value,
+    ).toBeCloseTo(200);
+  });
   it("computes one hour at FTP as 100 power-load points", () => {
     const a = analyze(ride, { ftp: 200 });
     expect(a.metrics.weightedPower.value).toBeCloseTo(200);

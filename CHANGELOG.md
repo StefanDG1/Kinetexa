@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Checkpoint exports into resumable ZIP parts with SHA-256 manifests, prior canonical versions, owned retry/download APIs and seven-day cleanup.
+
 - Persist one Stripe Checkout reservation per account, reconcile full subscription history, enforce paid-period expiry and close unfinished payments during deletion.
 
 - Recover interrupted email attempts with stable payloads and provider idempotency; retain early signed delivery events and suppress bounced or complained recipients.

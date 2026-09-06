@@ -26,6 +26,10 @@ infra           Infrastructure configuration when required
 
 Create packages as a tested boundary becomes useful. Do not add empty deployment services solely to match a diagram.
 
+## Resumable account exports
+
+Account exports stream standard ZIP files through bounded object-storage backpressure. A durable cursor advances only after a part's upload and checksum are recorded transactionally. Interrupted attempts retry their current part; previous parts remain intact. Larger histories are divided after a completed metadata page when the current part reaches the byte or time target. The manifest lists every part and its checksum. Export APIs enforce ownership and seven-day expiry; daily cleanup removes completed files and abandoned multipart uploads. Page read times describe the export window honestly instead of claiming a transactionally frozen snapshot.
+
 ## Environment separation
 
 Development, preview, staging and production must not silently share private datasets or payment modes. Production requires verified WorkOS callbacks, a production Convex deployment, scoped private storage, live Stripe prices and signed webhook delivery. Configuration errors fail closed instead of opening a demonstration account.

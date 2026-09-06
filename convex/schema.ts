@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { exportPosition } from "./exportModel";
 
 export default defineSchema({
   athletes: defineTable({
@@ -277,5 +278,24 @@ export default defineSchema({
     key: v.optional(v.string()),
     error: v.optional(v.string()),
     createdAt: v.number(),
-  }).index("by_athlete", ["athleteId"]),
+    lease: v.optional(v.number()),
+    attempts: v.optional(v.number()),
+    position: v.optional(exportPosition),
+    partCount: v.optional(v.number()),
+    expiresAt: v.optional(v.number()),
+    finishedAt: v.optional(v.number()),
+  })
+    .index("by_athlete", ["athleteId"])
+    .index("by_created", ["createdAt"]),
+  exportParts: defineTable({
+    athleteId: v.id("athletes"),
+    jobId: v.id("lifecycleJobs"),
+    index: v.number(),
+    key: v.string(),
+    bytes: v.number(),
+    sha256: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_athlete", ["athleteId"])
+    .index("by_job", ["jobId", "index"]),
 });

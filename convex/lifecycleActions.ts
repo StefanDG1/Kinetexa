@@ -1,156 +1,30 @@
 "use node";
-import { PassThrough } from "node:stream";
-import { Zip, ZipPassThrough } from "fflate";
-import { Upload } from "@aws-sdk/lib-storage";
 import { ListObjectsV2Command, DeleteObjectsCommand } from "@aws-sdk/client-s3";
 import { v, ConvexError } from "convex/values";
 import { action, internalAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
-import { client, getObject, downloadUrl } from "./storage";
+import { client, downloadUrl } from "./storage";
 import { closeCustomerBilling } from "./billingActions";
-import { tables } from "./lifecycle";
-const tableNames = tables.filter((table) => table !== "lifecycleJobs");
+import { EXPORT_RETENTION_MS } from "./exportModel";
 export const download = action({
   args: { id: v.id("lifecycleJobs") },
   handler: async (ctx, args): Promise<string> => {
     const j = await ctx.runQuery(api.lifecycle.owned, args);
-    if (j.status !== "complete" || !j.key)
+    if (
+      j.kind !== "export" ||
+      j.status !== "complete" ||
+      !j.key ||
+      (j.expiresAt ?? j.createdAt + EXPORT_RETENTION_MS) <= Date.now()
+    )
       throw new ConvexError("Export is not ready.");
     return downloadUrl(j.key);
   },
 });
+// Compatibility entry point for previously scheduled exports.
 export const exportData = internalAction({
   args: { id: v.id("lifecycleJobs") },
-  handler: async (ctx, { id }) => {
-    const context = await ctx.runQuery(internal.lifecycle.context, { id });
-    if (!context || context.athlete.status !== "active") return;
-    const { athlete } = context,
-      key = `${athlete._id}/exports/${id}.zip`;
-    await ctx.runMutation(internal.lifecycle.status, { id, status: "running" });
-    const stream = new PassThrough(),
-      upload = new Upload({
-        client: client(),
-        params: {
-          Bucket: process.env.R2_BUCKET,
-          Key: key,
-          Body: stream,
-          ContentType: "application/zip",
-        },
-        queueSize: 1,
-        partSize: 5 * 1024 * 1024,
-      });
-    const uploaded = upload.done();
-    uploaded.catch(() => {});
-    const zip = new Zip((error, data, final) => {
-      if (error) {
-        stream.destroy(error);
-        return;
-      }
-      stream.write(data);
-      if (final) stream.end();
-    });
-    const add = (name: string, bytes: Uint8Array) => {
-      const f = new ZipPassThrough(name);
-      zip.add(f);
-      f.push(bytes, true);
-    };
-    const drain = async () => {
-      if (stream.destroyed) throw new Error("Export upload interrupted.");
-      if (stream.writableNeedDrain)
-        await new Promise<void>((resolve, reject) => {
-          const cleanup = () => {
-            stream.off("drain", done);
-            stream.off("error", fail);
-            stream.off("close", closed);
-          };
-          const done = () => {
-            cleanup();
-            resolve();
-          };
-          const fail = (error: Error) => {
-            cleanup();
-            reject(error);
-          };
-          const closed = () => fail(new Error("Export stream closed."));
-          stream.once("drain", done);
-          stream.once("error", fail);
-          stream.once("close", closed);
-        });
-    };
-    try {
-      const {
-        tokenIdentifier: _token,
-        workosUserId: _user,
-        ...profile
-      } = athlete;
-      add("profile.json", Buffer.from(JSON.stringify(profile)));
-      add(
-        "README.txt",
-        Buffer.from(
-          "Kinetexa account export. Data uses SI units and UTC millisecond timestamps. Table files contain JSON arrays. Original source files are unchanged. Canonical stream files include samples and laps.",
-        ),
-      );
-      for (const table of tableNames) {
-        let cursor: string | null = null,
-          page = 0;
-        do {
-          const result: {
-            page: unknown[];
-            isDone: boolean;
-            continueCursor: string;
-          } = await ctx.runQuery(internal.lifecycle.page, {
-            athleteId: athlete._id,
-            table,
-            cursor,
-          });
-          add(
-            `data/${table}-${page++}.json`,
-            Buffer.from(JSON.stringify(result.page)),
-          );
-          if (table === "sources")
-            for (const row of result.page as any[]) {
-              if (row.status !== "awaiting-upload") {
-                add(
-                  `originals/${row._id}/${row.name.replaceAll("\\", "/").split("/").at(-1)}`,
-                  await getObject(row.key),
-                );
-                await drain();
-              }
-            }
-          if (table === "activities")
-            for (const row of result.page as any[]) {
-              add(`canonical/${row._id}.json`, await getObject(row.streamKey));
-              await drain();
-            }
-          await drain();
-          cursor = result.isDone ? null : result.continueCursor;
-        } while (cursor);
-      }
-      zip.end();
-      await uploaded;
-      await ctx.runMutation(internal.lifecycle.status, {
-        id,
-        status: "complete",
-        key,
-      });
-      await ctx.runMutation(internal.email.enqueue, {
-        athleteId: athlete._id,
-        template: "export",
-        dedupeKey: `export-${id}`,
-      });
-      console.info(JSON.stringify({ event: "export_completed", jobId: id }));
-    } catch {
-      zip.terminate();
-      stream.destroy();
-      await upload.abort();
-      await ctx.runMutation(internal.lifecycle.status, {
-        id,
-        status: "failed",
-        error:
-          "Export could not finish. Your data is retained. Contact support to retry.",
-      });
-      console.error(JSON.stringify({ event: "export_failed", jobId: id }));
-    }
+  handler: async (ctx, { id }): Promise<void> => {
+    await ctx.runAction(internal.exportActions.run, { id });
   },
 });
 export const deleteData = internalAction({

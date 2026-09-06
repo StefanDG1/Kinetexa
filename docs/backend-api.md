@@ -41,6 +41,10 @@ Share tokens must be unique. Expiring links are revoked by a durable scheduled m
 
 `email:page` provides private paginated delivery history without cached recipient bodies or idempotency keys. Bounces and complaints suppress subsequent application email. Uncertain delivery after the safe retry window is exposed as `delivery-unknown` for operator review.
 
+## Account exports
+
+`lifecycle:requestExport` starts a resumable export. `exports:retry({ id })` resumes a failed job from completed parts. `exports:list({ id, cursor })` lists owned part metadata and SHA-256 checksums; `exportActions:downloadPart({ id, index })` signs a short-lived URL after checking ownership, completion and expiry. `lifecycleActions:download({ id })` returns the single ZIP for small accounts or the part manifest for larger exports. Download every part, verify its checksum and extract all parts together. Temporary files expire seven days after the request. Metadata pages record their read times; the export is not a frozen database snapshot.
+
 ## Verification evidence
 
 `docs/verification-staging.md` records hosted outcomes. Automated tests use synthetic fixtures and independent owners. Live verification accounts, tokens, temporary source files and detailed operational artifacts remain in ignored local storage.

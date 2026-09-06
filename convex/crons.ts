@@ -8,6 +8,12 @@ crons.daily(
   {},
 );
 export default crons;
+crons.daily(
+  "expire private account exports",
+  { hourUTC: 3, minuteUTC: 30 },
+  internal.exports.expirePage,
+  {},
+);
 crons.interval(
   "reconcile subscription state",
   { hours: 1 },

@@ -48,7 +48,7 @@ This file records implemented and verified outcomes separately. Unchecked items 
 
 ### Staging milestone, 6 September 2026
 
-See [staging verification](verification-staging.md) for hosted authentication, imports, reprocessing, canonical sensor data, deterministic analytics, workspace changes, export, sandbox Checkout, AI consent and signed email delivery evidence. Seventy-three focused tests pass. Permanent deletion and an independent restore have been verified with synthetic accounts. Remaining feature acceptance, backup automation, model reliability and operational release gates remain open.
+See [staging verification](verification-staging.md) for hosted authentication, imports, reprocessing, canonical sensor data, deterministic analytics, workspace changes, export, sandbox Checkout, AI consent and signed email delivery evidence. Seventy-nine focused tests pass. Permanent deletion and an independent restore have been verified with synthetic accounts. Remaining feature acceptance, backup automation, model reliability and operational release gates remain open.
 
 ### Implementation progress, 6 September 2026
 

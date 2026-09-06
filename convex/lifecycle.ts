@@ -28,6 +28,7 @@ export const tables = [
   "aiRuns",
   "insights",
   "emailEvents",
+  "exportParts",
 ] as const;
 export const requestExport = mutation({
   args: {},
@@ -39,13 +40,14 @@ export const requestExport = mutation({
       kind: "export",
       status: "queued",
       createdAt: Date.now(),
+      expiresAt: Date.now() + 7 * 86400000,
     });
     await ctx.db.insert("auditEvents", {
       athleteId: a._id,
       action: "export_requested",
       at: Date.now(),
     });
-    await ctx.scheduler.runAfter(0, internal.lifecycleActions.exportData, {
+    await ctx.scheduler.runAfter(0, internal.exportActions.run, {
       id,
     });
     return id;

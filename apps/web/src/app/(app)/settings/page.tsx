@@ -1,9 +1,10 @@
 "use client";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import Link from "next/link";
 import { api } from "@convex/_generated/api";
 import { DashboardSettings } from "@/components/dashboard-settings";
+import { ExportJob } from "@/components/export-job";
 export default function Settings() {
   const profile = useQuery(api.athletes.current),
     data = useQuery(api.workspace.overview),
@@ -12,7 +13,6 @@ export default function Settings() {
     zone = useMutation(api.workspace.saveZone),
     exportData = useMutation(api.lifecycle.requestExport),
     deleteData = useMutation(api.lifecycle.requestDeletion),
-    download = useAction(api.lifecycleActions.download),
     [message, setMessage] = useState("");
   if (!profile) return <p>Loading settings…</p>;
   async function attempt(fn: () => Promise<unknown>) {
@@ -248,8 +248,11 @@ export default function Settings() {
       <section className="surface section">
         <h2>Export your data</h2>
         <p>
-          Create a ZIP with your canonical data, settings, goals, gear, analyses
-          and original files. Processing continues after you leave.
+          Export your canonical data, settings, goals, gear, analyses and
+          original files. Large exports contain several ZIP parts. Processing
+          continues after you leave; completed downloads remain available for
+          seven days. Avoid importing or editing during export if you need a
+          stable copy.
         </p>
         <button onClick={() => void attempt(() => exportData({}))}>
           Request full export
@@ -257,20 +260,7 @@ export default function Settings() {
         {data?.jobs
           .filter((j) => j.kind === "export")
           .map((j) => (
-            <p key={j._id}>
-              Export: {j.status}{" "}
-              {j.status === "complete" && (
-                <button
-                  className="secondary"
-                  onClick={async () =>
-                    window.location.assign(await download({ id: j._id }))
-                  }
-                >
-                  Download ZIP
-                </button>
-              )}
-              {j.error}
-            </p>
+            <ExportJob key={j._id} job={j} />
           ))}
       </section>
       <section className="surface section">

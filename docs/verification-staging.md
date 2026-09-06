@@ -83,6 +83,12 @@ Two concurrent authenticated staging requests produced one real Stripe sandbox C
 
 Seventy-seven focused tests pass. Payment cases cover concurrent reservations, stable request bodies, plan changes, stale subscription reads, paid-period expiry without a webhook, forged signatures, test/live separation, replay deduplication, all subscription pages and deletion with unfinished Checkout. Hourly reconciliation and paid-period refresh jobs repair missed events; AI entitlement checks also reject expired periods directly. Wider sandbox payment-failure/renewal verification and production payment readiness remain open.
 
+## Durable export verification
+
+Staging's new export completed as one ZIP containing 62 files: eight retained originals, two canonical activities, twelve active health rows and owned application metadata including AI runs, insights and delivery receipts. Every original and the full ZIP matched its SHA-256. A second account was denied the part URL, and R2 reported no abandoned multipart uploads for the job. The download expires seven days after the request.
+
+Seventy-nine tests pass. Export tests force multiple parts, recover interrupted work from its cursor, reject stale publication and duplicate completion, preserve previous canonical streams, enforce ownership, and remove expired archives without touching source objects. Larger exports use several standard ZIP files plus a machine-readable manifest; all parts must be extracted together. Each metadata page records its read time. This is a documented read window rather than a transactionally frozen snapshot, so concurrent edits can appear at different page times.
+
 ## Remaining release work
 
 Full requirement closure remains open, including provider approval and connector operations, large-history performance, complete comparison/AI/health criteria, policy review, backup automation and retention, operational alerts and the full UI/accessibility matrix. Production continues to serve the holding page. This evidence does not justify `v1.0.0`.

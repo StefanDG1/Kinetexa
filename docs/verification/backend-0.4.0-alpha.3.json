@@ -1,0 +1,115 @@
+{
+  "milestone": "0.4.0-alpha.3",
+  "verifiedAt": "2026-09-06T20:32:24.726Z",
+  "tests": 119,
+  "productionRegistrationClosed": true,
+  "productionHealthPassed": true,
+  "uiDesignDeferredByUser": true,
+  "activityCalculationVersion": "0.4.0-alpha.2",
+  "goalCalculationVersion": "1.1.0",
+  "checks": {
+    "archive-recovery-verification": {
+      "environment": "isolated-restore",
+      "partialArchiveRetained": true,
+      "childRetryReconciledParent": true,
+      "rootRetryReusedChildren": true,
+      "successfulActivityNotDuplicated": true,
+      "failedChildAttempts": 3
+    },
+    "restore-alpha2-verification": {
+      "verifiedAt": "2026-09-06T19:52:51.335Z",
+      "environment": "isolated-restore",
+      "restoredObjectsVerified": 45,
+      "deletedOwnersExcluded": 4,
+      "ownedTablesChecked": 25,
+      "analyticsConsentOff": true,
+      "pendingExternalDeliveriesDisabled": true,
+      "temporaryExportsExpired": true,
+      "archiveTestDataRemoved": true,
+      "owners": [
+        {
+          "activities": 4,
+          "health": 1,
+          "version": "0.4.0-alpha.2",
+          "allStreamsReadable": true
+        },
+        {
+          "activities": 3,
+          "health": 12,
+          "version": "0.4.0-alpha.2",
+          "allStreamsReadable": true
+        }
+      ]
+    },
+    "workspace-paging-verification": {
+      "verifiedAt": "2026-09-06T19:59:58.607Z",
+      "owners": [
+        {
+          "owner": 1,
+          "pagedCounts": {
+            "plans": 1,
+            "goals": 1,
+            "gear": 1,
+            "analyses": 1,
+            "privacyZones": 1,
+            "shares": 2,
+            "lifecycleJobs": 1,
+            "messages": 32
+          },
+          "calendarBoundsVerified": true,
+          "profileAndExplicitTimezonesVerified": true
+        },
+        {
+          "owner": 2,
+          "pagedCounts": {
+            "plans": 0,
+            "goals": 0,
+            "gear": 1,
+            "analyses": 0,
+            "privacyZones": 0,
+            "shares": 2,
+            "lifecycleJobs": 2,
+            "messages": 6
+          },
+          "calendarBoundsVerified": true,
+          "profileAndExplicitTimezonesVerified": true
+        }
+      ]
+    },
+    "goal-measurements-verification": {
+      "verifiedAt": "2026-09-06T20:05:31.707Z",
+      "allMissingElevationUnavailable": true,
+      "manualResultHasNoUnrelatedActivityEvidence": true,
+      "otherOwnerRejected": true,
+      "calculationVersion": "1.1.0",
+      "temporaryGoalsRemoved": true
+    },
+    "webhook-observations-staging": {
+      "environment": "staging",
+      "verifiedAt": "2026-09-06T20:22:35.856Z",
+      "logicalObservations": 5,
+      "signedUnknownBillingIgnored": true,
+      "repeatedOutcomesDeduplicated": true,
+      "forgedRequestsNotPersisted": true,
+      "privatePayloadsAbsent": true,
+      "privateOperatorBoundary": true,
+      "providerMetricsAndTraceAttributes": true,
+      "syntheticAcceptedDuplicateAndFailure": true,
+      "paymentsOrEmailsSent": 0
+    },
+    "webhook-observations-production": {
+      "environment": "production",
+      "verifiedAt": "2026-09-06T20:24:45.815Z",
+      "logicalObservations": 2,
+      "signedUnknownBillingIgnored": true,
+      "repeatedOutcomesDeduplicated": true,
+      "forgedRequestsNotPersisted": true,
+      "privatePayloadsAbsent": true,
+      "privateOperatorBoundary": true,
+      "providerMetricsAndTraceAttributes": true,
+      "syntheticAcceptedDuplicateAndFailure": false,
+      "paymentsOrEmailsSent": 0
+    }
+  },
+  "operationalV1Complete": false
+}

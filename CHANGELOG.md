@@ -2,7 +2,13 @@
 
 ## Unreleased
 
-- Review Wahoo, Suunto and COROS access paths against current primary documentation; update disabled connector reasons and draft a COROS scope clarification for approval.
+## 0.4.0-alpha.3 - 2026-09-06
+
+Backend recovery, workspace, goal and webhook verification milestone. Production remains closed; provider access and remaining PRD acceptance gates stay open.
+
+- Record private verified Stripe/Resend webhook outcomes and provider failure metrics with OTLP attributes; ignore notifications for absent billing accounts and exclude forged requests from stored observations.
+
+- Review Wahoo, Suunto and COROS access paths against current primary documentation; update disabled connector reasons and send the explicitly approved COROS scope clarification.
 
 - Distinguish missing goal measurements from recorded zero, limit supporting history to the actual calculation cutoff and remove unrelated activity attribution from manual results. Publish goal method revision 1.1.0.
 

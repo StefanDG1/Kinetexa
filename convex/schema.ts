@@ -27,6 +27,7 @@ export default defineSchema({
   operationalEvents: defineTable({
     athleteId: v.optional(v.id("athletes")),
     kind: operationKind,
+    service: v.optional(v.union(v.literal("stripe"), v.literal("resend"))),
     jobId: v.string(),
     outcome: v.string(),
     startedAt: v.optional(v.number()),

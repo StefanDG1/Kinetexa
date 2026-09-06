@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { Webhook } from "svix";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { observeWebhook } from "./webhookObservation";
 const templates: Record<string, { subject: string; text: string }> = {
   welcome: {
     subject: "Your private Kinetexa workspace",
@@ -101,37 +102,50 @@ export const send = internalAction({
 export const webhook = internalAction({
   args: { body: v.string(), headers: v.any() },
   handler: async (ctx, args) => {
+    const startedAt = Date.now();
     if (!process.env.RESEND_WEBHOOK_SECRET)
       throw new Error("Webhook unavailable");
     new Webhook(process.env.RESEND_WEBHOOK_SECRET).verify(
       args.body,
       args.headers,
     );
-    const event = JSON.parse(args.body) as {
-      type: string;
-      created_at: string;
-      data: { email_id: string };
-    };
-    const states: Record<
-      string,
-      "delivered" | "bounced" | "complained" | "failed"
-    > = {
-      "email.delivered": "delivered",
-      "email.bounced": "bounced",
-      "email.complained": "complained",
-      "email.failed": "failed",
-    };
-    if (
-      !Number.isFinite(Date.parse(event.created_at)) ||
-      Date.parse(event.created_at) > Date.now() + 300000
-    )
-      throw new Error("Invalid email event time.");
-    if (states[event.type])
-      await ctx.runMutation(internal.email.delivery, {
-        providerId: event.data.email_id,
-        status: states[event.type],
-        occurredAt: Date.parse(event.created_at),
+    await observeWebhook(
+      ctx,
+      {
+        service: "resend",
         eventId: args.headers["svix-id"],
-      });
+        startedAt,
+        bytes: Buffer.byteLength(args.body),
+      },
+      async () => {
+        const event = JSON.parse(args.body) as {
+          type: string;
+          created_at: string;
+          data: { email_id: string };
+        };
+        const states: Record<
+          string,
+          "delivered" | "bounced" | "complained" | "failed"
+        > = {
+          "email.delivered": "delivered",
+          "email.bounced": "bounced",
+          "email.complained": "complained",
+          "email.failed": "failed",
+        };
+        if (
+          !Number.isFinite(Date.parse(event.created_at)) ||
+          Date.parse(event.created_at) > Date.now() + 300000
+        )
+          throw new Error("Invalid email event time.");
+        if (states[event.type])
+          return ctx.runMutation(internal.email.delivery, {
+            providerId: event.data.email_id,
+            status: states[event.type],
+            occurredAt: Date.parse(event.created_at),
+            eventId: args.headers["svix-id"],
+          });
+        return "ignored";
+      },
+    );
   },
 });

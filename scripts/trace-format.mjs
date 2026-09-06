@@ -28,6 +28,16 @@ export function traceEnvelope(events, environment) {
                 BigInt(Math.trunc(event.at)) * 1000000n
               ).toString(),
               attributes: [
+                ...(event.service
+                  ? [
+                      {
+                        key: "kinetexa.webhook.provider",
+                        value: {
+                          stringValue: event.service,
+                        },
+                      },
+                    ]
+                  : []),
                 { key: "kinetexa.job.id", value: { stringValue: event.jobId } },
                 {
                   key: "kinetexa.outcome",

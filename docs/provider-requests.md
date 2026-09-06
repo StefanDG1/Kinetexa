@@ -1,10 +1,13 @@
 # Provider clarification request
 
-Draft only. Not sent. The user must approve external correspondence before dispatch.
+Sent on 6 September 2026 after explicit user approval. Resend accepted the message; delivery and a COROS response have not yet been verified. The connector remains disabled pending clarification.
 
-To: `api@coros.com`  
-From: `Kinetexa <notifications@kinetexa.com>`  
-Reply-to: `contact@exponentialeducation.ro`  
+To: `api@coros.com`
+
+From: `Kinetexa <notifications@kinetexa.com>`
+
+Reply-to: `contact@exponentialeducation.ro`
+
 Subject: Kinetexa: clarify MCP permission for a hosted training analytics application
 
 Hello COROS API team,

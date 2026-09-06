@@ -4,7 +4,8 @@ it("exports OTLP identifiers and exact nanosecond timestamps without athlete or 
   const result = traceEnvelope(
     [
       {
-        kind: "import",
+        kind: "webhook",
+        service: "stripe",
         traceId: "a".repeat(32),
         spanId: "b".repeat(16),
         jobId: "job",
@@ -21,6 +22,10 @@ it("exports OTLP identifiers and exact nanosecond timestamps without athlete or 
   expect(span.startTimeUnixNano).toBe("1788715200123000000");
   expect(span.endTimeUnixNano).toBe("1788715200456000000");
   expect(span.status.code).toBe(2);
+  expect(span.attributes).toContainEqual({
+    key: "kinetexa.webhook.provider",
+    value: { stringValue: "stripe" },
+  });
   expect(JSON.stringify(result)).not.toContain("private-owner");
   expect(JSON.stringify(result)).not.toContain("private-body");
 });

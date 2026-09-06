@@ -285,19 +285,24 @@ export const delivery = internalMutation({
       .query("emailEvents")
       .withIndex("by_provider", (q) => q.eq("providerId", args.providerId))
       .unique();
-    if (!event)
+    let outcome: "accepted" | "duplicate" | "ignored" =
+      event?.eventId === args.eventId ? "duplicate" : "ignored";
+    if (!event) {
       event = (await ctx.db.get(
         await ctx.db.insert("emailEvents", { ...args, createdAt: Date.now() }),
       ))!;
-    else if (newerDelivery(event, args)) {
+      outcome = "accepted";
+    } else if (newerDelivery(event, args)) {
       await ctx.db.patch(event._id, args);
       event = { ...event, ...args };
+      outcome = "accepted";
     }
     const row = await ctx.db
       .query("outbox")
       .withIndex("by_provider", (q) => q.eq("providerId", args.providerId))
       .unique();
     if (row) await applyDelivery(ctx, row, event);
+    return outcome;
   },
 });
 export const pruneEvents = internalMutation({

@@ -5,6 +5,7 @@ import { v, ConvexError } from "convex/values";
 import { action, internalAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import type { ActionCtx } from "./_generated/server";
+import { observeWebhook } from "./webhookObservation";
 export const catalog = action({
   args: {},
   handler: async (
@@ -183,6 +184,7 @@ export const portal = action({
 export const webhook = internalAction({
   args: { body: v.string(), signature: v.string() },
   handler: async (ctx, args) => {
+    const startedAt = Date.now();
     const stripe = stripeClient(),
       secret = process.env.STRIPE_WEBHOOK_SECRET;
     if (!secret) throw new Error("Webhook unavailable.");
@@ -197,21 +199,37 @@ export const webhook = internalAction({
       Boolean(process.env.STRIPE_SECRET_KEY?.includes("_live_"))
     )
       throw new Error("Payment environment mismatch.");
-    if (
-      !event.type.startsWith("customer.subscription.") &&
-      !event.type.startsWith("invoice.") &&
-      event.type !== "checkout.session.completed"
-    )
-      return;
-    const object = event.data.object as any,
-      customerId =
-        typeof object.customer === "string"
-          ? object.customer
-          : object.customer?.id;
-    if (!customerId) return;
-    if (await ctx.runQuery(internal.billing.hasEvent, { eventId: event.id }))
-      return;
-    await refreshCustomer(ctx, customerId, event.id);
+    await observeWebhook(
+      ctx,
+      {
+        service: "stripe",
+        eventId: event.id,
+        startedAt,
+        bytes: Buffer.byteLength(args.body),
+      },
+      async () => {
+        if (
+          !event.type.startsWith("customer.subscription.") &&
+          !event.type.startsWith("invoice.") &&
+          event.type !== "checkout.session.completed"
+        )
+          return "ignored";
+        const object = event.data.object as any,
+          customerId =
+            typeof object.customer === "string"
+              ? object.customer
+              : object.customer?.id;
+        if (!customerId) return "ignored";
+        if (
+          await ctx.runQuery(internal.billing.hasEvent, { eventId: event.id })
+        )
+          return "duplicate";
+        if (!(await ctx.runQuery(internal.billing.byCustomer, { customerId })))
+          return "ignored";
+        await refreshCustomer(ctx, customerId, event.id);
+        return "accepted";
+      },
+    );
   },
 });
 

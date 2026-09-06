@@ -16,6 +16,10 @@ Never copy private event responses, deployment keys or job errors into public is
 
 ## Events and traces
 
+Verified Stripe and Resend webhook handling records separate provider outcomes: accepted, ignored, duplicate or failed. Repeating the same provider event and outcome does not add another observation. These count logical outcomes, not every HTTP delivery attempt. Metrics and failure alerts use `webhook:stripe` and `webhook:resend`; five failed outcomes at or above 20% of a day's observations trigger the respective provider alert. Invalid signatures never create database observations. Payloads, signatures, customer IDs and recipient addresses are excluded. An observation failure is logged without changing the webhook's processing result.
+
+Webhook timing covers the verification/processing action, not the complete HTTP request. OTLP exports identify the provider with `kinetexa.webhook.provider`. Full distributed traces, unauthenticated traffic metrics and absence-of-delivery monitoring remain open. Stripe notifications with no Kinetexa billing record are acknowledged as ignored, including late notifications after account deletion.
+
 Import, reprocessing, export, deletion, accepted email attempts, AI outcomes and accepted billing updates record structured events. Job IDs correlate retries. Idempotent event keys avoid counting the same finalized attempt twice. Logs omit names, email addresses, prompts, geometry, file contents and response bodies.
 
 `scripts/export-traces.mjs` converts the last hour of events into OTLP JSON envelopes in an ignored local file. Set `OPS_CONFIG` privately with `environment`, `convexUrl` and `deploymentKey`. Output creation never overwrites an existing file. Trace timing is marked unknown when a job did not record a start time. These are coarse job spans; nested parser, model/tool, provider and web request spans and an external collector remain open work. No paid Vercel drain was enabled.
@@ -32,4 +36,4 @@ New alerts fail the workflow. Unchanged active alerts remain visible as `actionR
 
 Thresholds cover 30-minute import/reprocessing/export backlogs, one-hour deletion backlogs, 26-hour mail backlogs, failed exports/deletions, failed or uncertain mail, at least five failed operations constituting 20% of a day's outcomes, and estimated AI spending over USD 2/day. Inspect private job state, fix the cause, use guarded retries when appropriate, and verify the resulting state and next check. Reconcile provider acceptance before retrying an uncertain email.
 
-GitHub notification delivery depends on repository/account preferences and has not been verified. Webhook outages, provider metrics, storage/auth failure thresholds, browser vitals and full distributed tracing are outstanding acceptance items. Current monitoring does not complete OBS-001 through OBS-004.
+GitHub notification delivery depends on repository/account preferences and has not been verified. Missing webhook deliveries, activity-provider metrics, storage/auth failure thresholds, browser vitals and full distributed tracing are outstanding acceptance items. Current monitoring does not complete OBS-001 through OBS-004.

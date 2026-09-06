@@ -9,6 +9,41 @@ import { queue as queueReprocessing } from "./reprocessing";
 import { EXPORT_RETENTION_MS } from "./exportModel";
 import type { Doc } from "./_generated/dataModel";
 import { queueImport } from "./imports";
+import { recordOperation } from "./operationModel";
+
+export const webhook = internalMutation({
+  args: {
+    service: v.union(v.literal("stripe"), v.literal("resend")),
+    eventId: v.string(),
+    startedAt: v.number(),
+    bytes: v.number(),
+    outcome: v.union(
+      v.literal("accepted"),
+      v.literal("ignored"),
+      v.literal("duplicate"),
+      v.literal("failed"),
+    ),
+  },
+  handler: async (ctx, args) => {
+    if (
+      !/^[A-Za-z0-9_-]{1,256}$/.test(args.eventId) ||
+      !Number.isFinite(args.startedAt) ||
+      args.startedAt > Date.now() + 300000 ||
+      !Number.isSafeInteger(args.bytes) ||
+      args.bytes < 0 ||
+      args.bytes > 1_000_000
+    )
+      throw new Error("Invalid webhook observation.");
+    await recordOperation(ctx, {
+      kind: "webhook",
+      service: args.service,
+      jobId: `${args.service}:${args.eventId}`,
+      outcome: args.outcome,
+      startedAt: Math.min(args.startedAt, Date.now()),
+      measures: { bytes: args.bytes },
+    });
+  },
+});
 
 const jobKind = v.union(
   v.literal("import"),
@@ -233,7 +268,8 @@ export const check = internalAction({
         cursor,
       });
       for (const row of result.page) {
-        const metric = (metrics[row.kind] ??= {
+        const group = row.service ? `${row.kind}:${row.service}` : row.kind;
+        const metric = (metrics[group] ??= {
           events: 0,
           failures: 0,
           outcomes: {},
@@ -251,9 +287,7 @@ export const check = internalAction({
         if (/failed|timeout|interrupted|partial/.test(row.outcome))
           metric.failures++;
         if (row.startedAt !== undefined)
-          (latencies[row.kind] ??= []).push(
-            Math.max(0, row.at - row.startedAt),
-          );
+          (latencies[group] ??= []).push(Math.max(0, row.at - row.startedAt));
         for (const key of [
           "costMicrousd",
           "bytes",

@@ -33,6 +33,7 @@ export async function recordOperation(
   ctx: MutationCtx,
   data: {
     kind: OperationKind;
+    service?: "stripe" | "resend";
     jobId: string;
     athleteId?: Id<"athletes">;
     outcome: string;
@@ -102,6 +103,7 @@ export async function recordOperation(
     JSON.stringify({
       event: "operation",
       kind: data.kind,
+      service: data.service,
       jobId: data.jobId,
       traceId: event.traceId,
       spanId: event.spanId,

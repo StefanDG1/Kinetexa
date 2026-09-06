@@ -1,6 +1,45 @@
-import { ConvexError } from "convex/values";
-import { action } from "./_generated/server";
+"use node";
+import { ConvexError, v } from "convex/values";
+import { action, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { recordDeletion } from "./backups";
+export const cleanupUnallocated = internalAction({
+  args: { cursor: v.optional(v.union(v.string(), v.null())) },
+  handler: async (ctx, { cursor }) => {
+    if (!process.env.WORKOS_API_KEY) return;
+    const page = await ctx.runQuery(internal.sessions.unallocatedPage, {
+      cursor: cursor ?? null,
+    });
+    for (const row of page.page) {
+      if (row.hasAthlete || !row.workosUserId) continue;
+      try {
+        const user = await fetch(
+          `https://api.workos.com/user_management/users/${encodeURIComponent(row.workosUserId)}`,
+          {
+            headers: { Authorization: `Bearer ${process.env.WORKOS_API_KEY}` },
+            signal: AbortSignal.timeout(15000),
+          },
+        );
+        if (user.status !== 404) continue;
+        await recordDeletion(undefined, row.workosUserId);
+        await ctx.runMutation(internal.sessions.removeUnallocated, {
+          id: row.id,
+          workosUserId: row.workosUserId,
+        });
+      } catch {
+        console.error(
+          JSON.stringify({ event: "unallocated_session_cleanup_failed" }),
+        );
+      }
+    }
+    if (!page.isDone)
+      await ctx.scheduler.runAfter(
+        0,
+        internal.sessionActions.cleanupUnallocated,
+        { cursor: page.continueCursor },
+      );
+  },
+});
 export const logout = action({
   args: {},
   handler: async (ctx) => {

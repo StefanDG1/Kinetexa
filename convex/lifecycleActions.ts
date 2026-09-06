@@ -42,7 +42,7 @@ export const deleteData = internalAction({
     if (!context) return;
     const { athlete, job } = context;
     try {
-      await recordDeletion(athlete._id);
+      await recordDeletion(athlete._id, athlete.workosUserId);
       if (
         !(await ctx.runAction(internal.telemetryActions.erase, {
           athleteId: athlete._id,

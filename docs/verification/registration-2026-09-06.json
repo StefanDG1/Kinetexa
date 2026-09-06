@@ -1,0 +1,16 @@
+{
+  "verifiedAt": "2026-09-06T22:01:41.268Z",
+  "environment": "staging",
+  "publicRegistrationVerified": true,
+  "repeatedRegistrationSameAthlete": true,
+  "internalAllocationDenied": true,
+  "deletionImmediatelyLocksAccount": true,
+  "normalDeletionGraceCompleted": true,
+  "identityDeleted": true,
+  "unexpiredJwtCannotRecreateAccount": true,
+  "jwtRemainingSeconds": 226,
+  "ownedTablesChecked": 26,
+  "privateObjects": 0,
+  "deletionTombstoneVerified": true,
+  "temporaryDeletionNotices": 1
+}

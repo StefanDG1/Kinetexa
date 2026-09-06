@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Preserve logout denial before first registration, include identity-owned revocations in export/deletion, and exclude them from older backups using an independent hashed identity deletion marker. Clean up never-registered identities only after confirmed provider deletion.
+
 - Reject damaged ZIP entries with strict header and CRC validation, bounded actual decompression and duplicate-path checks. Preserve migration metadata and retained originals.
 
 - Verify first registration against the live WorkOS identity, preventing an unexpired token from recreating an empty athlete after account deletion. Keep record allocation internal and update the frontend to action transport.

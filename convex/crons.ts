@@ -1,6 +1,12 @@
 import { cronJobs } from "convex/server";
 import { internal } from "./_generated/api";
 const crons = cronJobs();
+crons.daily(
+  "remove revocations for deleted unregistered identities",
+  { hourUTC: 4, minuteUTC: 30 },
+  internal.sessionActions.cleanupUnallocated,
+  {},
+);
 crons.interval(
   "remove expired sealed upload copies",
   { hours: 1 },

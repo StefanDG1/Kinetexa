@@ -1,7 +1,12 @@
+import { createHash } from "node:crypto";
 export function restoreRecord(table, row, deleted) {
   if (
     (table === "athletes" && deleted.has(row._id)) ||
-    (row.athleteId && deleted.has(row.athleteId))
+    (row.athleteId && deleted.has(row.athleteId)) ||
+    (row.workosUserId &&
+      deleted.has(
+        `identity-${createHash("sha256").update(row.workosUserId).digest("hex")}`,
+      ))
   )
     return null;
   if (table === "exportParts" || table === "activityFacts") return null;

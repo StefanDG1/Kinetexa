@@ -195,7 +195,19 @@ export async function prepareRestore(config, restore) {
       throw new Error("Restore bucket cleanup failed.");
   }
   await scanSnapshot(original, (table, row) => {
-    if (table === "athletes" && row.status === "deleting") deleted.add(row._id);
+    if (
+      table === "athletes" &&
+      (row.status === "deleting" ||
+        (row.workosUserId &&
+          deleted.has(
+            `identity-${createHash("sha256").update(row.workosUserId).digest("hex")}`,
+          )))
+    )
+      deleted.add(row._id);
+    if (table === "athletes" && deleted.has(row._id) && row.workosUserId)
+      deleted.add(
+        `identity-${createHash("sha256").update(row.workosUserId).digest("hex")}`,
+      );
   });
   await scrubSnapshot(original, filtered, deleted);
   let copied = 0;
@@ -240,7 +252,8 @@ export async function prepareRestore(config, restore) {
       snapshotCreatedAt: manifest.createdAt,
       preparedAt: Date.now(),
       objectsVerified: copied,
-      deletionsApplied: deleted.size,
+      deletionsApplied: [...deleted].filter((id) => !id.startsWith("identity-"))
+        .length,
       filteredSnapshot: filtered,
       requiresImport: true,
       requiresJobAndBillingReconciliation: true,
@@ -249,7 +262,8 @@ export async function prepareRestore(config, restore) {
   return {
     event: "restore_prepared",
     objectsVerified: copied,
-    deletionsApplied: deleted.size,
+    deletionsApplied: [...deleted].filter((id) => !id.startsWith("identity-"))
+      .length,
     filteredSnapshot: filtered,
   };
 }

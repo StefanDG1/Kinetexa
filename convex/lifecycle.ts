@@ -120,6 +120,32 @@ export const page = internalQuery({
   handler: async (ctx, args) => {
     if (!tables.includes(args.table as any))
       throw new Error("Invalid export table");
+    if (args.table === "revokedSessions") {
+      const athlete = await ctx.db.get(args.athleteId);
+      if (args.cursor?.startsWith("identity:")) {
+        if (!athlete) return { page: [], isDone: true, continueCursor: "" };
+        const cursor = args.cursor.slice("identity:".length) || null;
+        const result = await ctx.db
+          .query("revokedSessions")
+          .withIndex("by_workos_user", (q) =>
+            q.eq("workosUserId", athlete.workosUserId),
+          )
+          .paginate({ cursor, numItems: 50 });
+        return {
+          ...result,
+          continueCursor: `identity:${result.continueCursor}`,
+        };
+      }
+      // Read legacy owner-only records before identity-owned records, without duplicates.
+      const result = await ctx.db
+        .query("revokedSessions")
+        .withIndex("by_athlete", (q) => q.eq("athleteId", args.athleteId))
+        .filter((q) => q.eq(q.field("workosUserId"), undefined))
+        .paginate({ cursor: args.cursor, numItems: 50 });
+      if (result.isDone && athlete)
+        return { ...result, isDone: false, continueCursor: "identity:" };
+      return result;
+    }
     return ctx.db
       .query(args.table as (typeof tables)[number])
       .withIndex("by_athlete", (q) => q.eq("athleteId", args.athleteId))
@@ -171,6 +197,16 @@ export const purgeBatch = internalMutation({
         for (const row of eligible) await ctx.db.delete(row._id);
         return false;
       }
+    }
+    const identityRevocations = await ctx.db
+      .query("revokedSessions")
+      .withIndex("by_workos_user", (q) =>
+        q.eq("workosUserId", athlete.workosUserId),
+      )
+      .take(100);
+    if (identityRevocations.length) {
+      for (const row of identityRevocations) await ctx.db.delete(row._id);
+      return false;
     }
     if (job.notificationId && (await ctx.db.get(job.notificationId))) {
       await ctx.db.patch(job.notificationId, {

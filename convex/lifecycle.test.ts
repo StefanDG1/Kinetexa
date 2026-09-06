@@ -113,6 +113,11 @@ describe("destructive lifecycle boundaries", () => {
         createdAt: Date.now(),
       });
       await ctx.db.insert("revokedSessions", {
+        workosUserId: "erase",
+        sessionHash: "c".repeat(64),
+        createdAt: Date.now(),
+      });
+      await ctx.db.insert("revokedSessions", {
         athleteId: bid,
         sessionHash: "b".repeat(64),
         createdAt: Date.now(),

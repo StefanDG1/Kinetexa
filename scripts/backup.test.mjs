@@ -5,6 +5,27 @@ import path from "node:path";
 import { zipSync, unzipSync, strToU8, strFromU8 } from "fflate";
 import { scanSnapshot } from "./backup.mjs";
 import { scrubSnapshot } from "./restore-backup.mjs";
+import { createHash } from "node:crypto";
+import { restoreRecord } from "./restore-model.mjs";
+it("excludes identity-owned revocations even from snapshots taken before athlete registration", () => {
+  const deleted = new Set([
+    `identity-${createHash("sha256").update("deleted-user").digest("hex")}`,
+  ]);
+  expect(
+    restoreRecord(
+      "revokedSessions",
+      { workosUserId: "deleted-user", sessionHash: "old" },
+      deleted,
+    ),
+  ).toBeNull();
+  expect(
+    restoreRecord(
+      "revokedSessions",
+      { workosUserId: "retained-user", sessionHash: "keep" },
+      deleted,
+    ),
+  ).toEqual({ workosUserId: "retained-user", sessionHash: "keep" });
+});
 it("filters deleted athletes and every owned table from an actual snapshot while preserving another athlete and invalidating temporary exports", async () => {
   const directory = fs.mkdtempSync(
     path.join(os.tmpdir(), "kinetexa-backup-test-"),

@@ -2,6 +2,12 @@
 
 These explicit user decisions take precedence over the original planning documents.
 
+## Full implementation authorization, 6 September 2026
+
+- The setup report has been delivered. The user explicitly authorized implementing and deploying the complete operational V1, verifying journeys, committing and pushing progress, and tagging verified SemVer milestones.
+- This supersedes the historical setup-only phase boundary. All applicable PRD requirements remain in scope. Garmin approval, Vercel plan restrictions, business policy review and other external requirements must be reported honestly, without claiming GA or tagging `v1.0.0` before its gates pass.
+- Track each normative requirement in `docs/requirements.md`. Implementation and hosted verification are separate states.
+
 ## 6 September 2026
 
 - Build the entire V1 for desktop and mobile. Complete and report the setup phase before starting full implementation.

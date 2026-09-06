@@ -1,0 +1,219 @@
+# V1 requirement ledger
+
+Every numbered requirement from the unchanged PRD is listed below. Open means implementation or verification remains. Conditional provider requirements remain open until access and compliance evidence exists. Deferred rows follow the PRD, not a scope cut. See the PRD for acceptance criteria and section 45 for aggregate release gates.
+
+| ID | Requirement | Implementation | Verification evidence |
+| --- | --- | --- | --- |
+| P-01 | — The user owns the canonical dataset | Open | Pending |
+| P-02 | — Connect once, then disappear | Open | Pending |
+| P-03 | — Evidence before explanation | Open | Pending |
+| P-04 | — Explain the number | Open | Pending |
+| P-05 | — Maps and physiology are one product | Open | Pending |
+| P-06 | — Privacy is the default | Open | Pending |
+| P-07 | — No artificial analytics paywall | Open | Pending |
+| P-08 | — Premium consumer surface, technical depth underneath | Open | Pending |
+| P-09 | — Provider failure must not become user data loss | Open | Pending |
+| P-10 | — Build portable boundaries before portable infrastructure | Open | Pending |
+| UJ-01 | — New user with Garmin | Open | Pending |
+| UJ-02 | — New user migrating from Strava | Open | Pending |
+| UJ-03 | — Manual FIT/TCX/GPX import | Open | Pending |
+| UJ-04 | — Inspect an activity | Open | Pending |
+| UJ-05 | — Understand current training state | Open | Pending |
+| UJ-06 | — Explore training geographically | Open | Pending |
+| UJ-07 | — Build a custom analysis | Open | Pending |
+| UJ-08 | — Ask Kinetexa | Open | Pending |
+| UJ-09 | — Upgrade to Premium | Open | Pending |
+| UJ-10 | — Export and leave | Open | Pending |
+| AUTH-001 | — WorkOS authentication [P0] | Open | Pending |
+| AUTH-002 | — Privacy-first onboarding [P0] | Open | Pending |
+| AUTH-003 | — Account settings [P0] | Open | Pending |
+| AUTH-004 | — Private defaults [P0] | Open | Pending |
+| PROV-001 | — Connector abstraction [P0] | Open | Pending |
+| PROV-002 | — Capability discovery [P0] | Open | Pending |
+| PROV-003 | — Connect once behavior [P0] | Open | Pending |
+| PROV-004 | — Historical backfill [P0] | Open | Pending |
+| PROV-005 | — New-activity synchronization [P0] | Open | Pending |
+| PROV-006 | — Reconciliation [P0] | Open | Pending |
+| PROV-007 | — Rate-limit control [P0] | Open | Pending |
+| PROV-008 | — Provider legal gate [P0] | Open | Pending |
+| PROV-009 | — Strava API constraint [P0] | Open | Pending |
+| IMP-001 | — Supported uploads [P0] | Open | Pending |
+| IMP-002 | — Multi-file import [P0] | Open | Pending |
+| IMP-003 | — Asynchronous import [P0] | Open | Pending |
+| IMP-004 | — Safe archive handling [P0] | Open | Pending |
+| IMP-005 | — Original preservation [P0] | Open | Pending |
+| IMP-006 | — Failed parsing [P0] | Open | Pending |
+| DATA-001 | — Canonical activity [P0] | Open | Pending |
+| DATA-002 | — Stream model [P0] | Open | Pending |
+| DATA-003 | — Health/recovery model [P1] | Open | Pending |
+| DATA-004 | — Provenance graph [P0] | Open | Pending |
+| DATA-005 | — User-visible provenance [P1] | Open | Pending |
+| DATA-006 | — Reprocessing [P0] | Open | Pending |
+| DATA-007 | — Data deletion semantics [P0] | Open | Pending |
+| DEDUP-001 | — High-confidence auto merge [P0] | Open | Pending |
+| DEDUP-002 | — Uncertain merge [P0] | Open | Pending |
+| DEDUP-003 | — Merged-source preservation [P0] | Open | Pending |
+| DEDUP-004 | — Unmerge [P1] | Open | Pending |
+| DASH-001 | — Default home dashboard [P0] | Open | Pending |
+| DASH-002 | — Global date range [P0] | Open | Pending |
+| DASH-003 | — Widget customization [P0] | Open | Pending |
+| DASH-004 | — Empty states [P0] | Open | Pending |
+| DASH-005 | — Metric explanation [P0] | Open | Pending |
+| DASH-006 | — Mobile behavior [P0] | Open | Pending |
+| ACT-001 | — Summary [P0] | Open | Pending |
+| ACT-002 | — Interactive map [P0] | Open | Pending |
+| ACT-003 | — Time-series charts [P0] | Open | Pending |
+| ACT-004 | — Synchronized chart/map cursor [P0] | Open | Pending |
+| ACT-005 | — Laps/splits [P0] | Open | Pending |
+| ACT-006 | — Zones [P0] | Open | Pending |
+| ACT-007 | — Best efforts and PRs [P0] | Open | Pending |
+| ACT-008 | — Derived performance metrics [P0] | Open | Pending |
+| ACT-009 | — Comparison [P1] | Open | Pending |
+| ACT-010 | — Notes/tags [P0] | Open | Pending |
+| ACT-011 | — Gear [P0] | Open | Pending |
+| ACT-012 | — AI analysis [P1] | Open | Pending |
+| ACT-013 | — Source/provenance [P1] | Open | Pending |
+| ANALYTICS-001 | — Zone systems [P0] | Open | Pending |
+| ANALYTICS-002 | — Training load [P0] | Open | Pending |
+| ANALYTICS-003 | — Fitness/fatigue/form [P0] | Open | Pending |
+| ANALYTICS-004 | — Aerobic decoupling [P0] | Open | Pending |
+| ANALYTICS-005 | — Efficiency [P0] | Open | Pending |
+| ANALYTICS-006 | — Cycling metrics [P0 when data exists] | Open | Pending |
+| ANALYTICS-007 | — Running metrics [P0 when data exists] | Open | Pending |
+| ANALYTICS-008 | — Monotony/strain [P1] | Open | Pending |
+| ANALYTICS-009 | — Trend engine [P0] | Open | Pending |
+| ANALYTICS-010 | — Explainability contract [P0] | Open | Pending |
+| ANALYTICS-011 | — Scientific/validation documentation [P0] | Open | Pending |
+| REC-001 | — Independent computation [P0] | Open | Pending |
+| REC-002 | — Running distances [P0] | Open | Pending |
+| REC-003 | — Cycling power durations [P0] | Open | Pending |
+| REC-004 | — Record scope [P0] | Open | Pending |
+| REC-005 | — Data quality [P0] | Open | Pending |
+| HLTH-001 | — Basic V1 health signals [P1] | Open | Pending |
+| HLTH-002 | — Context not diagnosis [P0] | Open | Pending |
+| HLTH-003 | — Sensitive privacy [P0] | Open | Pending |
+| HLTH-004 | — Missing data [P0] | Open | Pending |
+| MAP-001 | — Personal global heatmap [P0] | Open | Pending |
+| MAP-002 | — Filters [P0] | Open | Pending |
+| MAP-003 | — Intensity [P0] | Open | Pending |
+| MAP-004 | — Performance [P0] | Open | Pending |
+| MAP-005 | — MapLibre [P0 architecture direction] | Open | Pending |
+| MAP-006 | — Privacy zones [P0] | Open | Pending |
+| MAP-007 | — Private raw geometry [P0] | Open | Pending |
+| MAP-008 | — Map + training bridge [P1] | Open | Pending |
+| MAP-009 | — Deferred advanced GIS [V2] | Deferred by PRD | Pending |
+| QUERY-001 | — Visual query builder [P1] | Open | Pending |
+| QUERY-002 | — Save analysis [P1] | Open | Pending |
+| QUERY-003 | — Pin to dashboard [P1] | Open | Pending |
+| QUERY-004 | — Safe execution [P0] | Open | Pending |
+| QUERY-005 | — Future formula language [V2] | Deferred by PRD | Pending |
+| GOAL-001 | — V1 goal types [P0] | Open | Pending |
+| GOAL-002 | — Progress [P0] | Open | Pending |
+| GOAL-003 | — Multiple goals [P1] | Open | Pending |
+| GOAL-004 | — Adaptive plans [V2] | Deferred by PRD | Pending |
+| CAL-001 | — Calendar [P0] | Open | Pending |
+| CAL-002 | — Completed activities [P0] | Open | Pending |
+| CAL-003 | — Manual planned workouts [P1] | Open | Pending |
+| CAL-004 | — Drag/move [P1] | Open | Pending |
+| CAL-005 | — Adaptive planning [V2] | Deferred by PRD | Pending |
+| GEAR-001 | — Gear types [P0] | Open | Pending |
+| GEAR-002 | — Activity assignment [P0] | Open | Pending |
+| GEAR-003 | — Usage totals [P0] | Open | Pending |
+| GEAR-004 | — Maintenance reminders [P1] | Open | Pending |
+| GEAR-005 | — Archive/retire [P0] | Open | Pending |
+| SHARE-001 | — Revocable share links [P1] | Open | Pending |
+| SHARE-002 | — Explicit fields [P0] | Open | Pending |
+| SHARE-003 | — Privacy transformation [P0] | Open | Pending |
+| SHARE-004 | — Health data [P0] | Open | Pending |
+| SHARE-005 | — Revoke [P0] | Open | Pending |
+| SHARE-006 | — Optional expiry [P1] | Open | Pending |
+| SHARE-007 | — Search indexing [P1] | Open | Pending |
+| BILL-001 | — Stripe subscriptions [P0] | Open | Pending |
+| BILL-002 | — Pricing configuration [P0] | Open | Pending |
+| BILL-003 | — No destructive downgrade [P0] | Open | Pending |
+| BILL-004 | — Entitlement source of truth [P0] | Open | Pending |
+| UX-001 | — Mobile-first [P0] | Open | Pending |
+| UX-002 | — Desktop excellence [P0] | Open | Pending |
+| UX-003 | — PWA [P1] | Open | Pending |
+| UX-004 | — Browser support [P0] | Open | Pending |
+| UX-005 | — Accessibility [P0] | Open | Pending |
+| UX-006 | — Design character [P0] | Open | Pending |
+| REPO-001 | — Monorepo [P0] | Open | Pending |
+| REPO-002 | — Public from the start [P0] | Open | Pending |
+| REPO-003 | — Documentation [P0] | Open | Pending |
+| REPO-004 | — ADRs [P1] | Open | Pending |
+| SEC-001 | — Authorization [P0] | Open | Pending |
+| SEC-002 | — Least privilege [P0] | Open | Pending |
+| SEC-003 | — OAuth security [P0] | Open | Pending |
+| SEC-004 | — Provider credentials [P0] | Open | Pending |
+| SEC-005 | — Webhook authenticity [P0] | Open | Pending |
+| SEC-006 | — Raw object access [P0] | Open | Pending |
+| SEC-007 | — File validation [P0] | Open | Pending |
+| SEC-008 | — Security headers [P0] | Open | Pending |
+| SEC-009 | — Rate limiting [P0] | Open | Pending |
+| SEC-010 | — Audit events [P0] | Open | Pending |
+| SEC-011 | — Dependency/security scanning [P0] | Open | Pending |
+| SEC-012 | — Threat model [P0] | Open | Pending |
+| SEC-013 | — Incident response [P0] | Open | Pending |
+| SEC-014 | — Security disclosure [P0] | Open | Pending |
+| PRIV-001 | — Data categories [P0] | Open | Pending |
+| PRIV-002 | — Minimize collection [P0] | Open | Pending |
+| PRIV-003 | — PostHog [P0] | Open | Pending |
+| PRIV-004 | — AI privacy [P0] | Open | Pending |
+| PRIV-005 | — Export [P0] | Open | Pending |
+| PRIV-006 | — Deletion [P0] | Open | Pending |
+| PRIV-007 | — Privacy-zone test [P0] | Open | Pending |
+| REL-001 | — Idempotency [P0] | Open | Pending |
+| REL-002 | — Job state machine [P0] | Open | Pending |
+| REL-003 | — Retry policy [P0] | Open | Pending |
+| REL-004 | — Dead-letter / failed work [P0] | Open | Pending |
+| REL-005 | — User status [P0] | Open | Pending |
+| REL-006 | — Backup/restore [P0] | Open | Pending |
+| REL-007 | — Rebuildability [P1] | Open | Pending |
+| OBS-001 | — Structured logs [P0] | Open | Pending |
+| OBS-002 | — Tracing [P0] | Open | Pending |
+| OBS-003 | — Operational metrics [P0] | Open | Pending |
+| OBS-004 | — Alerts [P0] | Open | Pending |
+| PERF-001 | — Web availability | Open | Pending |
+| PERF-002 | — Core Web Vitals | Open | Pending |
+| PERF-003 | — Dashboard | Open | Pending |
+| PERF-004 | — Activity detail | Open | Pending |
+| PERF-005 | — Single activity import | Open | Pending |
+| PERF-006 | — Bulk import | Open | Pending |
+| PERF-007 | — Provider freshness | Open | Pending |
+| PERF-008 | — AI | Open | Pending |
+| KPI-01 | — Activation | Open | Pending |
+| KPI-02 | — Time to value | Open | Pending |
+| KPI-03 | — Import success | Open | Pending |
+| KPI-04 | — Sync reliability | Open | Pending |
+| KPI-05 | — Weekly engaged athletes | Open | Pending |
+| KPI-06 | — Explainability engagement | Open | Pending |
+| KPI-07 | — AI grounded-answer success | Open | Pending |
+| KPI-08 | — Premium conversion | Open | Pending |
+| KPI-09 | — Churn | Open | Pending |
+| KPI-10 | — OSS signal | Open | Pending |
+| EMAIL-001 | — Resend [P0] | Open | Pending |
+| EMAIL-002 | — Sensitive content [P0] | Open | Pending |
+| TEST-001 | — Unit tests [P0] | Open | Pending |
+| TEST-002 | — Golden activity fixtures [P0] | Open | Pending |
+| TEST-003 | — Integration tests [P0] | Open | Pending |
+| TEST-004 | — E2E [P0] | Open | Pending |
+| TEST-005 | — Security tests [P0] | Open | Pending |
+| TEST-006 | — Accessibility tests [P1] | Open | Pending |
+| TEST-007 | — Load/performance tests [P1] | Open | Pending |
+| CICD-001 | — Environments [P0] | Open | Pending |
+| CICD-002 | — Pull request checks [P0] | Open | Pending |
+| CICD-003 | — Preview deploys [P0] | Open | Pending |
+| CICD-004 | — Production deploy [P0] | Open | Pending |
+| CICD-005 | — Migration safety [P0] | Open | Pending |
+| CICD-006 | — Release artifacts [P1] | Open | Pending |
+| OSS-001 | — AGPL core [P0] | Open | Pending |
+| OSS-002 | — Public development [P0] | Open | Pending |
+| OSS-003 | — Hosted-only network functionality [P1/V2] | Deferred by PRD | Pending |
+| OSS-004 | — No fake self-host claim [P0] | Open | Pending |
+| OSS-005 | — Open Solo packaging [immediate V1.x] | Deferred by PRD | Pending |
+| LEGAL-001 | — Provider terms [P0] | Open | Pending |
+| LEGAL-002 | — Fitness vs medical [P0] | Open | Pending |
+| LEGAL-003 | — Data protection [P0] | Open | Pending |
+| LEGAL-004 | — License boundary [P0] | Open | Pending |
+| LEGAL-005 | — Brand clearance [P0 business gate] | Open | Pending |

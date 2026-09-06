@@ -1,0 +1,9 @@
+{
+  "inlineHandlerBlocked": true,
+  "violations": ["script-src-attr"],
+  "mapCanvasPresent": true,
+  "mapResourceCount": 56,
+  "mapErrorDisplayed": false,
+  "verifiedAt": "2026-09-06T22:24:40.525493+00:00",
+  "environment": "staging"
+}

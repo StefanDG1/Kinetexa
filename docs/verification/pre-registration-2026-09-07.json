@@ -1,0 +1,11 @@
+{
+  "verifiedAt": "2026-09-06T22:28:18.690Z",
+  "environment": "staging",
+  "logoutBeforeRegistrationDenied": true,
+  "revokedTokenStillDeniedAfterFreshRegistration": true,
+  "revocationsIncludedInExport": true,
+  "normalDeletionPurgedIdentityRevocations": true,
+  "neverRegisteredIdentityCleanupVerified": true,
+  "independentIdentityTombstonesVerified": true,
+  "privateObjects": 0
+}

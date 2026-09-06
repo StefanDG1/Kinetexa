@@ -1,0 +1,17 @@
+{
+  "verifiedAt": "2026-09-06T22:29:29.566Z",
+  "environment": "production",
+  "registrationClosed": true,
+  "healthHttp200": true,
+  "securityContactPublic": true,
+  "securityContactPlainText": true,
+  "perResponseNonce": true,
+  "initialScriptsNonced": true,
+  "spoofedNonceOverwritten": true,
+  "noUnsafeEval": true,
+  "productionBackendOrigin": true,
+  "privateHtmlNotCached": true,
+  "hstsAndMimeProtection": true,
+  "framingReferrerPermissionsVerified": true,
+  "additionalHeadersVerifiedAt": "2026-09-06T22:33:29.372Z"
+}

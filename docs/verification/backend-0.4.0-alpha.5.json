@@ -1,0 +1,51 @@
+{
+  "milestone": "0.4.0-alpha.5",
+  "recordedOn": "2026-09-07",
+  "status": "prerelease",
+  "productionRegistrationOpen": false,
+  "checks": {
+    "focusedTests": 136,
+    "testFiles": 41,
+    "typecheck": "passed",
+    "productionBuild": "passed",
+    "format": "passed",
+    "sourceRequirementIds": 236,
+    "secretComparison": "passed before commits",
+    "ci": "https://github.com/StefanDG1/Kinetexa/actions/runs/34063855839",
+    "codeRevisionVerified": "09f79b324ed1c4cc8b6a2075cb350f6fae852817"
+  },
+  "journeyEvidence": {
+    "logout": "logout-2026-09-06.json",
+    "deletedIdentityRegistration": "registration-2026-09-06.json",
+    "preRegistrationRevocations": "pre-registration-2026-09-07.json",
+    "zipIntegrity": "archive-integrity-2026-09-06.json",
+    "hostedMapAndCsp": "csp-2026-09-07.json",
+    "productionHeadersAndGate": "security-2026-09-07.json"
+  },
+  "deploymentEvidence": {
+    "stagingFrontend": "dpl_HxuZpWDpRYyNdjzjAg2Vumz7Xa3k",
+    "productionFrontend": "dpl_GDCubUrcLRzi1VNZESiue9WDjL4Q",
+    "stagingBackend": "insightful-duck-620",
+    "productionBackend": "dusty-bandicoot-567"
+  },
+  "cleanup": {
+    "latestRegisteredSyntheticAccountsDeleted": 2,
+    "neverRegisteredSyntheticIdentityDeleted": true,
+    "temporaryCspShareRevoked": true,
+    "isolatedArchiveFixturesRemoved": true,
+    "cleanRestoredObjects": 45,
+    "cleanRestoredActivities": 7,
+    "cleanRestoredHealthRecords": 13,
+    "ownedTablesChecked": 26,
+    "temporaryDeletionNoticesAwaitingFreeAllocation": 5
+  },
+  "limitations": [
+    "This milestone does not complete all PRD requirements or open production.",
+    "All persistent activity connectors remain disabled pending permission, implementation and verification; Garmin approval is pending and the approved COROS clarification was accepted but its delivery/reply is unverified.",
+    "Direct WorkOS revocation and backend-outage logout can rely on JWT expiry; auth-sensitive and invalid-share traffic controls remain open.",
+    "Full authenticated desktop/mobile acceptance, broader FIT/TCX/ZIP and large/concurrent workload measurements remain open.",
+    "External alert receipt, full operational metrics/traces, PostHog reauthentication, live payment/payout readiness, business/retention policies and Vercel commercial eligibility remain unresolved.",
+    "Resend allocations and plan are unchanged; temporary deletion notices retain bounded recipients until acceptance or expiry.",
+    "The production Convex deployment is not in the EU region used for staging and R2."
+  ]
+}

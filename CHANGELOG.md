@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.4.0-alpha.5 - 2026-09-07
+
+Verified authentication, archive-integrity and security-policy milestone. Production registration remains closed; this is not operational V1.
+
 - Add nonce-based script CSP through the AuthKit proxy, retain MapLibre workers and required data-service origins, and render each HTML response with a fresh nonce.
 
 - Preserve logout denial before first registration, include identity-owned revocations in export/deletion, and exclude them from older backups using an independent hashed identity deletion marker. Clean up never-registered identities only after confirmed provider deletion.

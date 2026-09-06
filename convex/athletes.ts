@@ -3,6 +3,7 @@ import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { QueryCtx } from "./_generated/server";
 import { recordProductEvent } from "./telemetryModel";
+import { sessionRevoked } from "./sessionModel";
 export function appOpen() {
   return (
     process.env.KINETEXA_ENVIRONMENT !== "production" ||
@@ -13,7 +14,8 @@ export function appOpen() {
 export async function requireAthlete(ctx: QueryCtx) {
   if (!appOpen()) throw new ConvexError("Kinetexa is not open yet.");
   const identity = await ctx.auth.getUserIdentity();
-  if (!identity) throw new ConvexError("Sign in to continue.");
+  if (!identity || (await sessionRevoked(ctx, identity)))
+    throw new ConvexError("Sign in to continue.");
   const athlete = await ctx.db
     .query("athletes")
     .withIndex("by_workos_user", (q) => q.eq("workosUserId", identity.subject))
@@ -29,7 +31,7 @@ export const current = query({
   handler: async (ctx) => {
     if (!appOpen()) return null;
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
+    if (!identity || (await sessionRevoked(ctx, identity))) return null;
     const athlete = await ctx.db
       .query("athletes")
       .withIndex("by_workos_user", (q) =>
@@ -57,7 +59,8 @@ export const ensure = mutation({
   handler: async (ctx) => {
     if (!appOpen()) throw new ConvexError("Kinetexa is not open yet.");
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError("Sign in to continue.");
+    if (!identity || (await sessionRevoked(ctx, identity)))
+      throw new ConvexError("Sign in to continue.");
     const existing = await ctx.db
       .query("athletes")
       .withIndex("by_workos_user", (q) =>

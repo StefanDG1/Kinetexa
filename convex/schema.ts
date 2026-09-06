@@ -337,6 +337,13 @@ export default defineSchema({
     window: v.string(),
     count: v.number(),
   }).index("by_athlete", ["athleteId", "kind", "window"]),
+  revokedSessions: defineTable({
+    athleteId: v.id("athletes"),
+    sessionHash: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_session", ["sessionHash"])
+    .index("by_athlete", ["athleteId"]),
   messages: defineTable({
     athleteId: v.id("athletes"),
     role: v.string(),

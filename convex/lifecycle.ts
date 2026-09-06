@@ -27,6 +27,7 @@ export const tables = [
   "health",
   "billing",
   "usage",
+  "revokedSessions",
   "messages",
   "auditEvents",
   "lifecycleJobs",

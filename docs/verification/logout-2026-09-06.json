@@ -1,0 +1,8 @@
+{
+  "verifiedAt": "2026-09-06T21:21:10.429Z",
+  "revokedJwtCannotReadOrWrite": true,
+  "athleteRecreationDenied": true,
+  "revokedRefreshTokenRejected": true,
+  "otherSessionCanRefreshAndRead": true,
+  "environment": "staging"
+}

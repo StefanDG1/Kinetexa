@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Close the existing-JWT logout window with server-side AuthKit session revocations, preserve other sessions, revoke provider refresh access and include hashed revocation records in account export/deletion.
+
 ## 0.4.0-alpha.4 - 2026-09-06
 
 Verified sharing boundaries and large XML import milestone. Production remains closed.

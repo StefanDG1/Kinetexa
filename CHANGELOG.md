@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Paginate private activity history and authorized analytics rather than relying on one large response. Load complete totals and use smaller overview geometry.
+- Add custom-date/activity map filters, aligned activity-comparison charts, editable goals and correct lower-is-better race targets.
+- Preview the exact masked public fields before publishing a share; format shared distance and time with readable units.
+- Preserve checksums even when parsing fails and retain individual archive-source provenance across exact duplicates.
+- Verify permanent account deletion and twelve-page desktop/mobile accessibility scans; expand focused coverage to 26 tests.
+
 ## 0.2.0-alpha.1 - 2026-09-06
 
 - Add canonical FIT/TCX/GPX parsing, bounded archive imports, private original storage, background import state, and duplicate suggestions.

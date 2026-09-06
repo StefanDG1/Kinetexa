@@ -1,4 +1,5 @@
 "use client";
+import { useActivityHistory } from "@/components/activity-history";
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { useState } from "react";
@@ -11,7 +12,7 @@ import {
   ranges,
 } from "@/components/data-ui";
 export default function Records() {
-  const items = useQuery(api.activities.list, {}),
+  const items = useActivityHistory({}),
     [range, setRange] = useState("all"),
     [from, setFrom] = useState(""),
     [to, setTo] = useState("");

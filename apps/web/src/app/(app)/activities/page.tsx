@@ -1,4 +1,5 @@
 "use client";
+import { useActivityHistory } from "@/components/activity-history";
 import { useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
@@ -6,7 +7,7 @@ import { ActivityList, Empty } from "@/components/data-ui";
 export default function ActivitiesPage() {
   const [sport, setSport] = useState(""),
     [search, setSearch] = useState("");
-  const items = useQuery(api.activities.list, { sport: sport || undefined });
+  const items = useActivityHistory({ sport: sport || undefined });
   return (
     <>
       <h1>Your activities</h1>

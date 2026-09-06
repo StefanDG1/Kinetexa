@@ -78,6 +78,7 @@ export const process = internalAction({
         );
       const bytes = await getObject(s.key),
         hash = createHash("sha256").update(bytes).digest("hex");
+      await ctx.runMutation(internal.imports.received, { id, hash });
       if (/\.zip$/i.test(s.name)) {
         const files = unpackArchive(bytes);
         const childIds: import("./_generated/dataModel").Id<"sources">[] = [];

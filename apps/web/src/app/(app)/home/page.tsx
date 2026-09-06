@@ -1,4 +1,5 @@
 "use client";
+import { useActivityHistory } from "@/components/activity-history";
 import { useQuery } from "convex/react";
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -14,6 +15,7 @@ import {
   rangeStart,
 } from "@/components/data-ui";
 import { dashboardData, WIDGETS } from "@core/dashboard";
+import { goalProgress } from "@core/goals";
 import { runQuery } from "@core/query";
 const RouteMap = dynamic(() => import("@/components/route-map"), {
   ssr: false,
@@ -23,7 +25,7 @@ export default function Home() {
     [sport, setSport] = useState(""),
     [customFrom, setCustomFrom] = useState(""),
     [customTo, setCustomTo] = useState("");
-  const items = useQuery(api.activities.list, { sport: sport || undefined }),
+  const items = useActivityHistory({ sport: sport || undefined }),
     profile = useQuery(api.athletes.current),
     workspace = useQuery(api.workspace.overview);
   const [from, to] = useMemo(
@@ -220,34 +222,18 @@ export default function Home() {
       case "goals":
         return workspace?.goals.length ? (
           workspace.goals.map((g) => {
-            const rows = (items ?? []).filter(
-                (a) => a.start >= g.start && a.start <= g.end,
-              ),
-              current =
-                g.kind === "custom" ||
-                g.kind === "event" ||
-                g.kind === "raceTime"
-                  ? (g.manualProgress ?? 0)
-                  : rows.reduce(
-                      (n, a) =>
-                        n +
-                        (g.kind === "distance"
-                          ? (a.distance ?? 0) / 1000
-                          : g.kind === "duration"
-                            ? a.duration / 3600
-                            : g.kind === "elevation"
-                              ? Number(a.summary.elevationGain ?? 0)
-                              : 1),
-                      0,
-                    );
+            const { current, percent } = goalProgress(g, items ?? []);
             return (
               <div key={g._id}>
                 <Link href="/goals">{g.title}</Link>
                 <p>
-                  {number(current)} / {number(g.target)} ·{" "}
-                  {number((current / g.target) * 100, 0)}%
+                  {number(current)} / {number(g.target)} · {number(percent, 0)}%
                 </p>
-                <progress value={current} max={g.target} />
+                <progress
+                  aria-label={`${g.title} progress`}
+                  value={Math.min(percent, 100)}
+                  max={100}
+                />
               </div>
             );
           })

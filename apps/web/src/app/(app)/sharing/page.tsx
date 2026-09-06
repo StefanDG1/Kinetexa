@@ -1,14 +1,32 @@
 "use client";
+import { useActivityHistory } from "@/components/activity-history";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
+import { SharedView } from "@/components/shared-view";
 export default function Sharing() {
   const data = useQuery(api.workspace.overview),
-    activities = useQuery(api.activities.list, {}),
+    activities = useActivityHistory({}),
     create = useMutation(api.sharing.create),
     revoke = useMutation(api.sharing.revoke),
     [message, setMessage] = useState("");
+  const [draft, setDraft] = useState<{
+    kind: string;
+    activityIds: Id<"activities">[];
+    fields: string[];
+    expires?: number;
+  } | null>(null);
+  const preview = useQuery(
+    api.sharing.preview,
+    draft
+      ? {
+          kind: draft.kind,
+          activityIds: draft.activityIds,
+          fields: draft.fields,
+        }
+      : "skip",
+  );
   return (
     <>
       <h1>Share only what you choose.</h1>
@@ -18,16 +36,14 @@ export default function Sharing() {
       </p>
       <section className="surface section">
         <form
+          onChange={() => setDraft(null)}
           onSubmit={async (e) => {
             e.preventDefault();
-            const f = new FormData(e.currentTarget),
-              bytes = crypto.getRandomValues(new Uint8Array(32)),
-              token = Array.from(bytes, (x) =>
-                x.toString(16).padStart(2, "0"),
-              ).join("");
+            const f = new FormData(e.currentTarget);
             try {
-              await create({
-                token,
+              if (!f.getAll("activities").length || !f.getAll("fields").length)
+                throw new Error("Select fields");
+              setDraft({
                 kind: String(f.get("kind")),
                 activityIds: f.getAll("activities") as Id<"activities">[],
                 fields: f.getAll("fields").map(String),
@@ -35,7 +51,9 @@ export default function Sharing() {
                   ? Date.parse(String(f.get("expiry"))) + 86399999
                   : undefined,
               });
-              setMessage(`${location.origin}/share/${token}`);
+              setMessage(
+                "Preview the exact public fields below, then publish your link.",
+              );
             } catch {
               setMessage("Check the selected activities and fields.");
             }
@@ -80,9 +98,36 @@ export default function Sharing() {
             Optional expiry
             <input type="date" name="expiry" />
           </label>
-          <button>Create public link</button>
+          <button>Preview selected fields</button>
         </form>
       </section>
+      {draft && preview && (
+        <section className="surface section">
+          <p className="privacy-note">
+            Private preview. This link has not been published.
+          </p>
+          <SharedView data={preview} embedded />
+          <button
+            onClick={async () => {
+              try {
+                const bytes = crypto.getRandomValues(new Uint8Array(32)),
+                  token = Array.from(bytes, (x) =>
+                    x.toString(16).padStart(2, "0"),
+                  ).join("");
+                await create({ ...draft, token });
+                setDraft(null);
+                setMessage(`${location.origin}/share/${token}`);
+              } catch {
+                setMessage(
+                  "The link could not be created. Check the expiry and try again.",
+                );
+              }
+            }}
+          >
+            Publish this public link
+          </button>
+        </section>
+      )}
       {message && (
         <p role="status" className="privacy-note">
           {message.startsWith("http") ? (

@@ -2,6 +2,7 @@
 import { v, ConvexError } from "convex/values";
 import { action } from "./_generated/server";
 import { api, internal } from "./_generated/api";
+import { collectActivities } from "./activityData";
 import {
   planSchema,
   medicalQuestion,
@@ -65,7 +66,7 @@ export const ask = action({
         to = Date.parse(plan.to) + 86399999;
       if (!Number.isFinite(from) || !Number.isFinite(to) || from > to)
         throw new Error("Invalid period");
-      const rows = await ctx.runQuery(api.activities.list, {
+      const rows = await collectActivities(ctx, {
           from,
           to,
           sport: plan.sport,

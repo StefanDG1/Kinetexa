@@ -5,6 +5,67 @@ import schema from "./schema";
 import { api } from "./_generated/api";
 const modules = import.meta.glob("./**/*.ts");
 describe("athlete ownership and consent", () => {
+  it("paginates the complete history and aggregates every page without crossing owners", async () => {
+    const t = convexTest(schema, modules),
+      a = t.withIdentity({ subject: "paged" }),
+      b = t.withIdentity({ subject: "separate" });
+    const athleteId = await a.mutation(api.athletes.ensure);
+    await b.mutation(api.athletes.ensure);
+    await t.run(async (ctx) => {
+      const sourceId = await ctx.db.insert("sources", {
+        athleteId,
+        name: "fixture.fit",
+        key: "fixture",
+        bytes: 1,
+        status: "complete",
+        attempts: 1,
+        createdAt: 0,
+      });
+      for (let i = 0; i < 205; i++)
+        await ctx.db.insert("activities", {
+          athleteId,
+          title: "Synthetic",
+          sport: "running",
+          start: i + 1,
+          duration: 60,
+          distance: 1000,
+          summary: {},
+          metrics: { metrics: { load: { value: null } } },
+          route: Array.from({ length: 1201 }, (_, j) => [j / 1000, 0]),
+          streamKey: "fixture",
+          sourceId,
+          notes: "",
+          tags: [],
+          gearIds: [],
+          excludedRecords: false,
+          version: "test",
+          createdAt: 0,
+        });
+    });
+    const first = await a.query(api.activities.page, {
+      paginationOpts: { numItems: 1000, cursor: null },
+    });
+    expect(first.page).toHaveLength(100);
+    expect(first.page[0].route.length).toBeLessThanOrEqual(121);
+    expect(first.isDone).toBe(false);
+    expect(
+      (
+        await b.query(api.activities.page, {
+          paginationOpts: { numItems: 100, cursor: null },
+        })
+      ).page,
+    ).toEqual([]);
+    const result = await a.action(api.queryActions.preview, {
+      query: {
+        filters: [],
+        metric: "distance",
+        aggregate: "sum",
+        group: "sport",
+        visual: "bar",
+      },
+    });
+    expect(result[0].value).toBe(205000);
+  });
   it("starts private and prevents one athlete from reading or retrying another upload", async () => {
     const t = convexTest(schema, modules),
       alice = t.withIdentity({

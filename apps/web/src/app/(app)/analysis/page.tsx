@@ -1,5 +1,5 @@
 "use client";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useAction } from "convex/react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
 import type { AnalysisQuery } from "@core/query";
@@ -13,7 +13,7 @@ const initial: AnalysisQuery = {
 };
 export default function AnalysisPage() {
   const data = useQuery(api.workspace.overview),
-    preview = useMutation(api.workspace.preview),
+    preview = useAction(api.queryActions.preview),
     save = useMutation(api.workspace.saveAnalysis),
     [q, setQ] = useState(initial),
     [name, setName] = useState(""),

@@ -1,4 +1,5 @@
 "use client";
+import { useActivityHistory } from "@/components/activity-history";
 import { use, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -20,7 +21,7 @@ export default function ActivityPage({
     a = useQuery(api.activities.get, { id: activityId }),
     provenance = useQuery(api.activities.provenance, { id: activityId }),
     workspace = useQuery(api.workspace.overview),
-    all = useQuery(api.activities.list, {}),
+    all = useActivityHistory({}),
     getStream = useAction(api.processing.stream),
     update = useMutation(api.activities.update),
     merge = useMutation(api.activities.merge);
@@ -31,6 +32,20 @@ export default function ActivityPage({
     [from, setFrom] = useState(0),
     [to, setTo] = useState(100),
     [comparison, setComparison] = useState("");
+  const [otherStream, setOtherStream] = useState<Activity | null>(null);
+  useEffect(() => {
+    let active = true;
+    setOtherStream(null);
+    if (comparison)
+      getStream({ id: comparison as Id<"activities"> })
+        .then((s) => {
+          if (active) setOtherStream(s);
+        })
+        .catch(() => setError("Comparison recording could not be loaded."));
+    return () => {
+      active = false;
+    };
+  }, [comparison, getStream]);
   useEffect(() => {
     let active = true;
     const timer = setTimeout(
@@ -41,7 +56,10 @@ export default function ActivityPage({
           to: a ? (a.duration * to) / 100 : undefined,
         })
           .then((s) => {
-            if (active) setStream(s);
+            if (active) {
+              setStream(s);
+              setCursor(0);
+            }
           })
           .catch(() =>
             setError("Sensor data could not be loaded. Reload to retry."),
@@ -73,6 +91,27 @@ export default function ActivityPage({
           value: s[series] ?? null,
         }));
     }, [points, series, from, to, stream]);
+  const comparisonChart = useMemo(() => {
+    if (!stream || !otherStream) return [];
+    const lookup = (samples: Sample[], t: number) => {
+      let lo = 0,
+        hi = samples.length - 1;
+      while (lo < hi) {
+        const mid = Math.ceil((lo + hi) / 2);
+        if (samples[mid].t <= t) lo = mid;
+        else hi = mid - 1;
+      }
+      const s = samples[lo];
+      return s && Math.abs(s.t - t) <= 30 ? (s[series] ?? null) : null;
+    };
+    const end = Math.max(stream.duration, otherStream.duration),
+      step = Math.max(1, Math.ceil(end / 600));
+    return Array.from({ length: Math.floor(end / step) + 1 }, (_, i) => ({
+      label: Math.round(((i * step) / 60) * 100) / 100,
+      current: lookup(stream.samples, i * step),
+      comparison: lookup(otherStream.samples, i * step),
+    }));
+  }, [stream, otherStream, series]);
   if (!a) return <p>Loading activity…</p>;
   const other = all?.find((x) => x._id === comparison),
     metrics = a.metrics.metrics as Record<string, Metric>;
@@ -376,32 +415,44 @@ export default function ActivityPage({
           </select>
         </label>
         {other && (
-          <table>
-            <thead>
-              <tr>
-                <th>Metric</th>
-                <th>{a.title}</th>
-                <th>{other.title}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Duration</td>
-                <td>{duration(a.duration)}</td>
-                <td>{duration(other.duration)}</td>
-              </tr>
-              <tr>
-                <td>Distance · km</td>
-                <td>{number((a.distance ?? 0) / 1000)}</td>
-                <td>{number((other.distance ?? 0) / 1000)}</td>
-              </tr>
-              <tr>
-                <td>Mean heart rate · bpm</td>
-                <td>{number(a.summary.avgHr)}</td>
-                <td>{number(other.summary.avgHr)}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>{a.title}</th>
+                  <th>{other.title}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Duration</td>
+                  <td>{duration(a.duration)}</td>
+                  <td>{duration(other.duration)}</td>
+                </tr>
+                <tr>
+                  <td>Distance · km</td>
+                  <td>{number((a.distance ?? 0) / 1000)}</td>
+                  <td>{number((other.distance ?? 0) / 1000)}</td>
+                </tr>
+                <tr>
+                  <td>Mean heart rate · bpm</td>
+                  <td>{number(a.summary.avgHr)}</td>
+                  <td>{number(other.summary.avgHr)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+        {other && (
+          <>
+            <p>
+              Recordings aligned by elapsed minutes. Measurement follows the
+              sensor selector above. Missing samples remain gaps; the current
+              activity reflects its selected interval.
+            </p>
+            <Chart data={comparisonChart} keys={["current", "comparison"]} />
+          </>
         )}
       </section>
       <section className="section surface">
@@ -503,6 +554,8 @@ export default function ActivityPage({
             <dd className="checksum">{provenance.source.hash}</dd>
             <dt>Original bytes</dt>
             <dd>{provenance.source.bytes}</dd>
+            <dt>Format</dt>
+            <dd>{provenance.source.format ?? "Original source format"}</dd>
             <dt>Source record</dt>
             <dd>
               {provenance.source.importMetadata?.sourceRecordId ??
@@ -511,6 +564,21 @@ export default function ActivityPage({
             <dt>Parser</dt>
             <dd>{provenance.source.parserVersion}</dd>
           </dl>
+        )}
+        {provenance?.sources && provenance.sources.length > 1 && (
+          <details>
+            <summary>
+              All contributing source files · {provenance.sources.length}
+            </summary>
+            {provenance.sources.map((s) => (
+              <p key={s.id}>
+                {s.name} · {s.status} · Source record{" "}
+                {s.importMetadata?.sourceRecordId ?? "uploaded file"}
+                <br />
+                <span className="checksum">{s.hash}</span>
+              </p>
+            ))}
+          </details>
         )}
         {provenance?.history.map((h) => (
           <details key={h._id}>

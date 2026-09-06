@@ -31,6 +31,7 @@ export const reserve = mutation({
     if (
       !/\.(fit|tcx|gpx|zip)$/i.test(args.name) ||
       args.name.length > 240 ||
+      !Number.isSafeInteger(args.bytes) ||
       args.bytes < 1 ||
       args.bytes > (/\.zip$/i.test(args.name) ? 128 : 32) * 1024 * 1024 ||
       !/^[a-f0-9-]{36}$/.test(args.nonce)
@@ -71,6 +72,23 @@ export const enqueue = mutation({
 export const get = internalQuery({
   args: { id: v.id("sources") },
   handler: (ctx, { id }) => ctx.db.get(id),
+});
+export const received = internalMutation({
+  args: { id: v.id("sources"), hash: v.string() },
+  handler: async (ctx, { id, hash }) => {
+    const s = await ctx.db.get(id);
+    if (!s) return;
+    await ctx.db.patch(id, {
+      hash,
+      receivedAt: Date.now(),
+      format: s.name.split(".").at(-1)?.toLowerCase(),
+      mime: /\.zip$/i.test(s.name)
+        ? "application/zip"
+        : /\.(gpx|tcx)$/i.test(s.name)
+          ? "application/xml"
+          : "application/octet-stream",
+    });
+  },
 });
 export const claim = internalMutation({
   args: { id: v.id("sources") },
@@ -129,27 +147,6 @@ export const complete = internalMutation({
       )
       .filter((q) => q.eq(q.field("status"), "complete"))
       .first();
-    if (exact?.activityId) {
-      await ctx.db.patch(s._id, {
-        status: "duplicate",
-        hash: args.hash,
-        activityId: exact.activityId,
-        parserVersion: VERSION,
-      });
-      return;
-    }
-    const near = await ctx.db
-      .query("activities")
-      .withIndex("by_athlete", (q) =>
-        q
-          .eq("athleteId", s.athleteId)
-          .gte("start", args.summary.start - 60000)
-          .lte("start", args.summary.start + 60000),
-      )
-      .collect();
-    const duplicate = near.find(
-      (n) => duplicateConfidence(n.summary, args.summary) >= 0.7,
-    );
     const meta = s.importMetadata as
       import("../packages/core/import").MigrationMetadata | undefined;
     const gearIds: import("./_generated/dataModel").Id<"gear">[] = [];
@@ -170,6 +167,42 @@ export const complete = internalMutation({
           })),
       );
     }
+    if (exact?.activityId) {
+      const original = await ctx.db.get(exact.activityId);
+      if (original && meta)
+        await ctx.db.patch(original._id, {
+          title:
+            original.title === original.summary.title && meta.title
+              ? meta.title
+              : original.title,
+          notes: original.notes || meta.notes || "",
+          tags: original.tags.length
+            ? original.tags
+            : meta.commute
+              ? ["commute"]
+              : [],
+          gearIds: original.gearIds.length ? original.gearIds : gearIds,
+        });
+      await ctx.db.patch(s._id, {
+        status: "duplicate",
+        hash: args.hash,
+        activityId: exact.activityId,
+        parserVersion: VERSION,
+      });
+      return;
+    }
+    const near = await ctx.db
+      .query("activities")
+      .withIndex("by_athlete", (q) =>
+        q
+          .eq("athleteId", s.athleteId)
+          .gte("start", args.summary.start - 60000)
+          .lte("start", args.summary.start + 60000),
+      )
+      .collect();
+    const duplicate = near.find(
+      (n) => duplicateConfidence(n.summary, args.summary) >= 0.7,
+    );
     const id = await ctx.db.insert("activities", {
       athleteId: s.athleteId,
       title: meta?.title || args.summary.title,
@@ -218,8 +251,8 @@ export const child = internalMutation({
     if (!p) throw new ConvexError("Archive unavailable.");
     const old = await ctx.db
       .query("sources")
-      .withIndex("by_hash", (q) =>
-        q.eq("athleteId", p.athleteId).eq("hash", args.hash),
+      .withIndex("by_parent", (q) =>
+        q.eq("parentId", p._id).eq("name", args.name).eq("hash", args.hash),
       )
       .first();
     if (old) return old._id;

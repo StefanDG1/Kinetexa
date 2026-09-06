@@ -1,11 +1,12 @@
 "use client";
+import { useActivityHistory } from "@/components/activity-history";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
 import { number, duration } from "@/components/data-ui";
 export default function GearPage() {
   const data = useQuery(api.workspace.overview),
-    activities = useQuery(api.activities.list, {}),
+    activities = useActivityHistory({}),
     save = useMutation(api.workspace.saveGear),
     [error, setError] = useState("");
   return (

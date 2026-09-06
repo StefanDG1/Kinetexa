@@ -4,6 +4,8 @@ import { requireAthlete } from "./athletes";
 import { ownedActivity } from "./activities";
 import { maskedRoute, type Point } from "../packages/core/geo";
 import { rateLimit } from "./limits";
+import type { QueryCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 const allowed = [
   "title",
   "sport",
@@ -73,26 +75,57 @@ export const publicView = query({
       return null;
     const owner = await ctx.db.get(s.athleteId);
     if (!owner || owner.status !== "active") return null;
-    const zones = await ctx.db
-      .query("privacyZones")
-      .withIndex("by_athlete", (q) => q.eq("athleteId", s.athleteId))
-      .collect();
-    const activities = [];
-    for (const id of s.activityIds) {
-      const a = await ctx.db.get(id);
-      if (!a || a.athleteId !== s.athleteId) continue;
-      const fields: Record<string, unknown> = {};
-      for (const f of s.fields) {
-        if (f === "route")
-          fields.route = maskedRoute(a.route as Point[], zones);
-        else if (f === "date")
-          fields.date = new Date(a.start).toISOString().slice(0, 10);
-        else if (f === "elevation")
-          fields.elevation = a.summary.elevationGain ?? null;
-        else fields[f] = (a as any)[f] ?? null;
-      }
-      activities.push(fields);
+    return projectShare(ctx, s.athleteId, s);
+  },
+});
+
+async function projectShare(
+  ctx: QueryCtx,
+  athleteId: Id<"athletes">,
+  selection: {
+    activityIds: Id<"activities">[];
+    fields: string[];
+    kind: string;
+  },
+) {
+  const zones = await ctx.db
+    .query("privacyZones")
+    .withIndex("by_athlete", (q) => q.eq("athleteId", athleteId))
+    .collect();
+  const activities = [];
+  for (const id of selection.activityIds) {
+    const a = await ctx.db.get(id);
+    if (!a || a.athleteId !== athleteId) continue;
+    const fields: Record<string, unknown> = {};
+    for (const f of selection.fields) {
+      if (f === "route") fields.route = maskedRoute(a.route as Point[], zones);
+      else if (f === "date")
+        fields.date = new Date(a.start).toISOString().slice(0, 10);
+      else if (f === "elevation")
+        fields.elevation = a.summary.elevationGain ?? null;
+      else fields[f] = (a as any)[f] ?? null;
     }
-    return { kind: s.kind, activities };
+    activities.push(fields);
+  }
+  return { kind: selection.kind, activities };
+}
+
+export const preview = query({
+  args: {
+    kind: v.string(),
+    activityIds: v.array(v.id("activities")),
+    fields: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const a = await requireAthlete(ctx);
+    if (
+      !args.activityIds.length ||
+      args.activityIds.length > 100 ||
+      !args.fields.length ||
+      args.fields.some((f) => !allowed.includes(f))
+    )
+      throw new ConvexError("Select activities and fields to preview.");
+    for (const id of args.activityIds) await ownedActivity(ctx, id);
+    return projectShare(ctx, a._id, args);
   },
 });

@@ -16,6 +16,8 @@ import {
 } from "./analytics";
 import { maskedRoute } from "./geo";
 import type { Activity } from "./model";
+import { goalProgress } from "./goals";
+import { dashboardData } from "./dashboard";
 const ride: Activity = {
   title: "Synthetic constant power ride",
   sport: "cycling",
@@ -77,6 +79,38 @@ describe("retained source metadata", () => {
   });
 });
 describe("deterministic training calculations", () => {
+  it("assigns late-UTC Sunday training to the athlete's Monday and handles lower-is-better race targets", () => {
+    const row = {
+      ...ride,
+      _id: "fixture",
+      start: Date.parse("2026-09-06T22:30:00Z"),
+      gearIds: [],
+      tags: [],
+      summary: { ...ride },
+      metrics: analyze(ride, { ftp: 200 }),
+    };
+    const d = dashboardData(
+      [row],
+      Date.parse("2026-09-01"),
+      Date.parse("2026-09-07T12:00:00Z"),
+      "Europe/Berlin",
+    );
+    expect(d.currentWeek.count).toBe(1);
+    expect(d.previousWeek.count).toBe(0);
+    expect(d.curve.at(-1)?.date).toBe("2026-09-07");
+    const goal = {
+      kind: "raceTime",
+      target: 240,
+      start: 0,
+      end: 1000,
+      manualProgress: 300,
+    };
+    expect(goalProgress(goal, [], 500).percent).toBe(80);
+    expect(
+      goalProgress({ ...goal, manualProgress: 230 }, [], 500).percent,
+    ).toBe(100);
+    expect(goalProgress(goal, [], 500).projected).toBeNull();
+  });
   it("rejects distance records crossing a recording gap or distance reset", () => {
     for (const samples of [
       [

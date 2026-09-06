@@ -64,9 +64,14 @@ export default defineSchema({
     completedChildren: v.optional(v.number()),
     failedChildren: v.optional(v.number()),
     importMetadata: v.optional(v.any()),
+    receivedAt: v.optional(v.number()),
+    format: v.optional(v.string()),
+    mime: v.optional(v.string()),
   })
     .index("by_athlete", ["athleteId", "createdAt"])
-    .index("by_hash", ["athleteId", "hash"]),
+    .index("by_hash", ["athleteId", "hash"])
+    .index("by_parent", ["parentId", "name", "hash"])
+    .index("by_activity", ["activityId"]),
   metricHistory: defineTable({
     athleteId: v.id("athletes"),
     activityId: v.id("activities"),

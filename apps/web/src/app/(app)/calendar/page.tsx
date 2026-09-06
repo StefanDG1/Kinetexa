@@ -1,4 +1,5 @@
 "use client";
+import { useActivityHistory } from "@/components/activity-history";
 import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
@@ -6,7 +7,7 @@ import { api } from "@convex/_generated/api";
 import { date, duration, number } from "@/components/data-ui";
 export default function CalendarPage() {
   const data = useQuery(api.workspace.overview),
-    activities = useQuery(api.activities.list, {}),
+    activities = useActivityHistory({}),
     save = useMutation(api.workspace.savePlan),
     [view, setView] = useState("month"),
     [anchor, setAnchor] = useState(new Date().toISOString().slice(0, 10)),

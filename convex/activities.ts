@@ -3,6 +3,7 @@ import { query, mutation } from "./_generated/server";
 import { requireAthlete } from "./athletes";
 import type { QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { paginationOptsValidator } from "convex/server";
 export async function ownedActivity(ctx: QueryCtx, id: Id<"activities">) {
   const a = await requireAthlete(ctx),
     row = await ctx.db.get(id);
@@ -27,10 +28,54 @@ export const list = query({
           .lte("start", args.to ?? Date.now() + 86400000),
       )
       .order("desc")
-      .take(10000);
+      .take(10001);
+    if (rows.length > 10000)
+      throw new ConvexError(
+        "Use paginated activity history for this date range.",
+      );
     return rows.filter(
       (r) => !r.mergedInto && (!args.sport || r.sport === args.sport),
     );
+  },
+});
+export const page = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    from: v.optional(v.number()),
+    to: v.optional(v.number()),
+    sport: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const a = await requireAthlete(ctx);
+    const result = await ctx.db
+      .query("activities")
+      .withIndex("by_athlete", (q) =>
+        q
+          .eq("athleteId", a._id)
+          .gte("start", args.from ?? 0)
+          .lte("start", args.to ?? Date.now() + 86400000),
+      )
+      .order("desc")
+      .paginate({
+        ...args.paginationOpts,
+        numItems: Math.min(100, Math.max(1, args.paginationOpts.numItems)),
+      });
+    return {
+      ...result,
+      page: result.page
+        .filter((r) => !r.mergedInto && (!args.sport || r.sport === args.sport))
+        .map((r) => {
+          const step = Math.max(1, Math.ceil(r.route.length / 120));
+          const { laps: _laps, ...summary } = r.summary;
+          return {
+            ...r,
+            summary,
+            route: r.route.filter(
+              (_, i) => i % step === 0 || i === r.route.length - 1,
+            ),
+          };
+        }),
+    };
   },
 });
 export const get = query({
@@ -56,9 +101,29 @@ export const provenance = query({
             parserVersion: source.parserVersion,
             createdAt: source.createdAt,
             parentId: source.parentId,
+            format: source.format,
+            mime: source.mime,
+            receivedAt: source.receivedAt,
             importMetadata: source.importMetadata,
           }
         : null,
+      sources: (
+        await ctx.db
+          .query("sources")
+          .withIndex("by_activity", (q) => q.eq("activityId", id))
+          .filter((q) => q.eq(q.field("athleteId"), row.athleteId))
+          .take(100)
+      ).map((s) => ({
+        id: s._id,
+        name: s.name,
+        hash: s.hash,
+        parserVersion: s.parserVersion,
+        importMetadata: s.importMetadata,
+        parentId: s.parentId,
+        status: s.status,
+        bytes: s.bytes,
+        format: s.format,
+      })),
       history,
     };
   },

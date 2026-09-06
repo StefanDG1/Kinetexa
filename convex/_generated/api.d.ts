@@ -9,6 +9,7 @@
  */
 
 import type * as activities from "../activities.js";
+import type * as activityData from "../activityData.js";
 import type * as ai from "../ai.js";
 import type * as aiActions from "../aiActions.js";
 import type * as athletes from "../athletes.js";
@@ -22,6 +23,7 @@ import type * as lifecycle from "../lifecycle.js";
 import type * as lifecycleActions from "../lifecycleActions.js";
 import type * as limits from "../limits.js";
 import type * as processing from "../processing.js";
+import type * as queryActions from "../queryActions.js";
 import type * as reprocessing from "../reprocessing.js";
 import type * as reprocessingActions from "../reprocessingActions.js";
 import type * as sharing from "../sharing.js";
@@ -36,6 +38,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   activities: typeof activities;
+  activityData: typeof activityData;
   ai: typeof ai;
   aiActions: typeof aiActions;
   athletes: typeof athletes;
@@ -49,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   lifecycleActions: typeof lifecycleActions;
   limits: typeof limits;
   processing: typeof processing;
+  queryActions: typeof queryActions;
   reprocessing: typeof reprocessing;
   reprocessingActions: typeof reprocessingActions;
   sharing: typeof sharing;

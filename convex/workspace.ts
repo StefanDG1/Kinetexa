@@ -116,6 +116,11 @@ export const saveGear = mutation({
       !args.name.trim() ||
       args.name.length > 100 ||
       !["bicycle", "running shoe", "equipment"].includes(args.kind) ||
+      ![
+        args.servicedAt,
+        args.maintenanceKm ?? 0,
+        args.maintenanceHours ?? 0,
+      ].every(Number.isFinite) ||
       (args.maintenanceKm ?? 0) < 0 ||
       (args.maintenanceHours ?? 0) < 0
     )
@@ -146,6 +151,10 @@ export const saveGoal = mutation({
       !args.title.trim() ||
       args.title.length > 120 ||
       args.target <= 0 ||
+      ![args.target, args.start, args.end, args.manualProgress ?? 0].every(
+        Number.isFinite,
+      ) ||
+      (args.manualProgress ?? 0) < 0 ||
       args.end <= args.start ||
       ![
         "distance",
@@ -229,11 +238,20 @@ export const preview = mutation({
     const rows = await ctx.db
       .query("activities")
       .withIndex("by_athlete", (q) => q.eq("athleteId", a._id))
-      .take(10000);
+      .take(10001);
+    if (rows.length > 10000)
+      throw new ConvexError("Use paginated query execution for this history.");
     return runQuery(
       rows.filter((r) => !r.mergedInto),
       args.query,
     );
+  },
+});
+export const authorizeQuery = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const a = await requireAthlete(ctx);
+    await rateLimit(ctx, a._id, "query", 100);
   },
 });
 export const saveZone = mutation({
@@ -250,6 +268,7 @@ export const saveZone = mutation({
       !args.name.trim() ||
       args.name.length > 100 ||
       Math.abs(args.lat) > 90 ||
+      ![args.lat, args.lon, args.radius].every(Number.isFinite) ||
       Math.abs(args.lon) > 180 ||
       args.radius < 100 ||
       args.radius > 10000

@@ -18,6 +18,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { api } from "@convex/_generated/api";
+import { ActivityHistory } from "./activity-history";
 const links = [
   ["/home", "Home", Home],
   ["/activities", "Activities", Activity],
@@ -112,7 +113,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         ) : !profile.onboarded ? (
           <Onboarding />
         ) : (
-          children
+          <ActivityHistory>{children}</ActivityHistory>
         )}
       </main>
       <nav className="mobile-nav" aria-label="Mobile navigation">

@@ -71,6 +71,12 @@ The selected cycling interval requested 100.5–600.5 seconds, used recorded bou
 
 Staging API checks edited and removed a synthetic privacy zone, deleted a planned workout, rejected another account's deletion attempt, rejected a duplicate share token and confirmed that a three-second share expired into a persisted revoked state. The second synthetic account's export contained 29 files, including both canonical activities, AI-run data and insight data. Seventy focused tests pass. The synthetic zone and planned workout used for this check were removed.
 
+## Email reliability verification
+
+Staging sent one transactional message to Resend's delivery simulator. The signature-validated webhook recorded delivery after one attempt, and duplicate enqueueing produced no second job. Public outbox history excludes the cached recipient and body. The sender key cannot retrieve provider records; delivery evidence comes from the signed webhook. No customer was emailed and the Resend plan remains Free.
+
+Seventy-three focused tests pass. Email cases cover interrupted attempts, stale completions, identical retry bodies and keys, an event arriving before its send response, forged signatures, replay ordering and bounce suppression. Uncertain retries stop before Resend's 24-hour idempotency retention expires. A daily job removes webhook receipts after 30 days; owned receipts follow account export and deletion. Legacy uncertain sends are marked for operator review rather than resent automatically. Production webhook setup remains open.
+
 ## Remaining release work
 
 Full requirement closure remains open, including provider approval and connector operations, large-history performance, complete comparison/AI/health criteria, policy review, backup automation and retention, operational alerts and the full UI/accessibility matrix. Production continues to serve the holding page. This evidence does not justify `v1.0.0`.

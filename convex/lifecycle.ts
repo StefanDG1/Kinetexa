@@ -27,6 +27,7 @@ export const tables = [
   "outbox",
   "aiRuns",
   "insights",
+  "emailEvents",
 ] as const;
 export const requestExport = mutation({
   args: {},

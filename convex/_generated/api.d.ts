@@ -18,6 +18,7 @@ import type * as analytics from "../analytics.js";
 import type * as athletes from "../athletes.js";
 import type * as billing from "../billing.js";
 import type * as billingActions from "../billingActions.js";
+import type * as crons from "../crons.js";
 import type * as email from "../email.js";
 import type * as emailActions from "../emailActions.js";
 import type * as health from "../health.js";
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   athletes: typeof athletes;
   billing: typeof billing;
   billingActions: typeof billingActions;
+  crons: typeof crons;
   email: typeof email;
   emailActions: typeof emailActions;
   health: typeof health;

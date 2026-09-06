@@ -26,17 +26,43 @@ export const send = internalAction({
   handler: async (ctx, { id }) => {
     const claimed = await ctx.runMutation(internal.email.claim, { id });
     if (!claimed) return;
+    let retryable = true;
     try {
-      if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL)
+      if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
+        retryable = false;
         throw new Error("Mail unavailable");
-      const r = await fetch(
-        `https://api.workos.com/user_management/users/${claimed.userId}`,
-        { headers: { Authorization: `Bearer ${process.env.WORKOS_API_KEY}` } },
-      );
-      if (!r.ok) throw new Error("Recipient unavailable");
-      const user = await r.json(),
-        template = templates[claimed.row.template];
-      if (!template) throw new Error("Template unavailable");
+      }
+      let payload = claimed.row.payload;
+      if (!payload) {
+        const r = await fetch(
+          `https://api.workos.com/user_management/users/${claimed.userId}`,
+          {
+            headers: { Authorization: `Bearer ${process.env.WORKOS_API_KEY}` },
+            signal: AbortSignal.timeout(15000),
+          },
+        );
+        if (!r.ok) {
+          retryable = r.status >= 500 || r.status === 429;
+          throw new Error("Recipient unavailable");
+        }
+        const user = await r.json(),
+          template = templates[claimed.row.template];
+        if (!template) {
+          retryable = false;
+          throw new Error("Template unavailable");
+        }
+        payload = {
+          from: process.env.RESEND_FROM_EMAIL,
+          to: process.env.KINETEXA_TEST_EMAIL || user.email,
+          subject: template.subject,
+          text: `${template.text}\n\n${process.env.NEXT_PUBLIC_APP_URL}\n\nSupport: contact@exponentialeducation.ro`,
+        };
+      }
+      payload = await ctx.runMutation(internal.email.rememberPayload, {
+        id,
+        attempt: claimed.attempt,
+        payload,
+      });
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -44,23 +70,30 @@ export const send = internalAction({
           "Content-Type": "application/json",
           "Idempotency-Key": claimed.row.dedupeKey,
         },
-        body: JSON.stringify({
-          from: process.env.RESEND_FROM_EMAIL,
-          to: process.env.KINETEXA_TEST_EMAIL || user.email,
-          subject: template.subject,
-          text: `${template.text}\n\n${process.env.NEXT_PUBLIC_APP_URL}\n\nSupport: contact@exponentialeducation.ro`,
-        }),
+        body: JSON.stringify(payload),
         signal: AbortSignal.timeout(15000),
       });
-      if (!response.ok) throw new Error("Email delivery unavailable");
+      if (!response.ok) {
+        retryable =
+          response.status >= 500 || [409, 429].includes(response.status);
+        throw new Error("Email delivery unavailable");
+      }
       const body = await response.json();
+      if (typeof body.id !== "string" || !body.id)
+        throw new Error("Email acceptance was not confirmed.");
       await ctx.runMutation(internal.email.result, {
         id,
+        attempt: claimed.attempt,
         providerId: body.id,
         failed: false,
       });
     } catch {
-      await ctx.runMutation(internal.email.result, { id, failed: true });
+      await ctx.runMutation(internal.email.result, {
+        id,
+        attempt: claimed.attempt,
+        failed: true,
+        retryable,
+      });
       console.error(JSON.stringify({ event: "email_failed", jobId: id }));
     }
   },
@@ -76,18 +109,29 @@ export const webhook = internalAction({
     );
     const event = JSON.parse(args.body) as {
       type: string;
+      created_at: string;
       data: { email_id: string };
     };
-    const states: Record<string, string> = {
+    const states: Record<
+      string,
+      "delivered" | "bounced" | "complained" | "failed"
+    > = {
       "email.delivered": "delivered",
       "email.bounced": "bounced",
       "email.complained": "complained",
       "email.failed": "failed",
     };
+    if (
+      !Number.isFinite(Date.parse(event.created_at)) ||
+      Date.parse(event.created_at) > Date.now() + 300000
+    )
+      throw new Error("Invalid email event time.");
     if (states[event.type])
       await ctx.runMutation(internal.email.delivery, {
         providerId: event.data.email_id,
         status: states[event.type],
+        occurredAt: Date.parse(event.created_at),
+        eventId: args.headers["svix-id"],
       });
   },
 });

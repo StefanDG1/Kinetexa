@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Recover interrupted email attempts with stable payloads and provider idempotency; retain early signed delivery events and suppress bounced or complained recipients.
+
 - Complete workspace edit/delete APIs, validate planned workouts and goal results, and rebuild local dates after timezone changes.
 - Enforce unique share tokens and durable expiry; include AI runs and insights in the shared export/deletion registry.
 

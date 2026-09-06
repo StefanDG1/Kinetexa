@@ -12,6 +12,7 @@ export default defineSchema({
     aiConsentRevision: v.optional(v.number()),
     healthProcessing: v.optional(v.boolean()),
     healthProcessingRevision: v.optional(v.number()),
+    emailSuppressed: v.optional(v.string()),
     analyticsConsent: v.boolean(),
     consentUpdatedAt: v.number(),
     onboarded: v.boolean(),
@@ -187,10 +188,31 @@ export default defineSchema({
     providerId: v.optional(v.string()),
     attempts: v.number(),
     createdAt: v.number(),
+    firstAttemptAt: v.optional(v.number()),
+    deliveryAt: v.optional(v.number()),
+    payload: v.optional(
+      v.object({
+        from: v.string(),
+        to: v.string(),
+        subject: v.string(),
+        text: v.string(),
+      }),
+    ),
   })
     .index("by_athlete", ["athleteId"])
     .index("by_key", ["dedupeKey"])
     .index("by_provider", ["providerId"]),
+  emailEvents: defineTable({
+    athleteId: v.optional(v.id("athletes")),
+    providerId: v.string(),
+    eventId: v.string(),
+    status: v.string(),
+    occurredAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_provider", ["providerId"])
+    .index("by_athlete", ["athleteId"])
+    .index("by_created", ["createdAt"]),
   systemCounters: defineTable({ key: v.string(), count: v.number() }).index(
     "by_key",
     ["key"],

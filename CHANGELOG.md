@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.4.0-alpha.2 - 2026-09-06
+
+Verified backend corrections and private measurement APIs. Production remains closed; this is not operational V1 completion.
+
 - Correct best-distance efforts when the fastest interval starts between recorded samples; version the calculation change and retain previous results during reprocessing.
 
 - Bound webhook bodies while streaming and count UTF-8 bytes before signature verification.

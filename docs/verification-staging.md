@@ -2,6 +2,10 @@
 
 This records prerelease evidence, not completion of all V1 acceptance criteria. The unchanged PRD and requirement ledger remain authoritative.
 
+## Latest backend checkpoint
+
+`0.4.0-alpha.2` has 113 passing focused tests. The later sections record private KPI/feedback APIs, upload integrity and cleanup, complete provenance paging, webhook byte limits and corrected best-distance calculations. All seven retained staging activities were reprocessed and preserved their originals, edits and historical calculations. Production registration remains closed and the public health endpoint passes. This milestone does not close all PRD requirements.
+
 ## Hosted journeys
 
 Hosted AI acceptance: all six documented scenarios passed, including exact period comparison, missing-health results, goal progress, saved analysis and medical/privacy boundaries. The four model-backed answers took 2.28–3.25 seconds and cost an estimated USD 0.013065 combined. Boundary requests made no model calls. [Machine-readable results](verification/ai-2026-09-06.json). A separate four-TCX fixture with complete HR coverage generated the expected 100% weekly load comparison as an automatic insight; another owner could not dismiss it, and dismissal prevented regeneration. Temporary sandbox Premium was canceled without resetting usage counters. These small samples do not establish population-level reliability.
@@ -12,7 +16,7 @@ Billing fixture cleanup: WorkOS identity removed, private objects empty, all 25 
 
 Stripe sandbox clock: an isolated synthetic customer completed initial monthly payment, renewal, a failed renewal that removed Premium, payment recovery that restored Premium, and cancellation. A test refund succeeded and left the subscription active until separately canceled, matching Stripe's subscription state. The customer portal URL was created and the same canonical activity survived every transition. Concurrent refresh verification exposed and fixed a race: a completed result now publishes unless a newer result has already applied. Immediate cancellation after refresh passed after that change. The synthetic account completed deletion after its normal grace period; cleanup evidence is recorded above. No live payment was made. The focused suite has 102 passing tests.
 
-Product telemetry backend: a synthetic account with consent off recorded nothing; consent on recorded an allowed dashboard event as `local-only`; attempted payment-event spoofing and an extra arbitrary payload were rejected. Withdrawal stopped further recording. The original consent preference was restored. External PostHog ingestion and erasure are still gated on key setup. The focused suite now has 101 passing tests, including withdrawal/re-consent races, payload privacy, event isolation, erasure fencing and backup replay prevention.
+Product telemetry backend: a synthetic account with consent off recorded nothing; consent on recorded an allowed dashboard event as `local-only`; attempted payment-event spoofing and an extra arbitrary payload were rejected. Withdrawal stopped further recording. The original consent preference was restored. External PostHog ingestion and erasure are still gated on key setup. At that checkpoint the focused suite had 101 passing tests, including withdrawal/re-consent races, payload privacy, event isolation, erasure fencing and backup replay prevention.
 
 The first hosted operational workflow passed for staging and production: [run 34049786270](https://github.com/StefanDG1/Kinetexa/actions/runs/34049786270). The workflow is active on the default branch. This proves scheduled-check execution; delivery of an incident notification has not been tested.
 

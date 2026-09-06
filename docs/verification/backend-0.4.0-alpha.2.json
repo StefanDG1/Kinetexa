@@ -1,0 +1,83 @@
+{
+  "milestone": "0.4.0-alpha.2",
+  "tests": 113,
+  "productionRegistrationClosed": true,
+  "uiDesignDeferredByUser": true,
+  "checks": {
+    "kpi-live-verification": {
+      "successfulQueriesOnly": true,
+      "consentingCohort": 1,
+      "withdrawalExcluded": true,
+      "operatorAccessProtected": true,
+      "pendingActivationReported": true,
+      "aggregateIdentityAbsent": true
+    },
+    "ai-feedback-live-verification": {
+      "ownerCanRateChangeAndRemove": true,
+      "crossOwnerAndAnonymousDenied": true,
+      "aggregateMatchesEdits": true,
+      "modelCalls": 0,
+      "quotaUnchanged": true
+    },
+    "upload-integrity-verification": {
+      "uploadReplayIsolated": true,
+      "retainedChecksumVerified": true,
+      "reprocessingSucceeded": true,
+      "archiveAndMultiSessionSucceeded": true,
+      "malformedOriginalPreserved": true,
+      "canonicalActivities": 6,
+      "fixtureDeletionQueued": true
+    },
+    "upload-cleanup-verification": {
+      "temporaryUploadRemoved": true,
+      "retainedOriginalPreserved": true
+    },
+    "provenance-live-verification": {
+      "allProvenancePagesRead": true,
+      "counts": {
+        "sources": 1,
+        "history": 6
+      },
+      "otherOwnerDenied": true,
+      "invalidHealthCalendarRejected": true
+    },
+    "webhook-bounds-staging": {
+      "environment": "staging",
+      "oversizedUtf8Rejected": true,
+      "forgedSignaturesRejected": true,
+      "signedUtf8Unchanged": true,
+      "providerPaymentsOrEmailsSent": 0
+    },
+    "webhook-bounds-production": {
+      "environment": "production",
+      "oversizedUtf8Rejected": true,
+      "forgedSignaturesRejected": true,
+      "signedUtf8Unchanged": true,
+      "providerPaymentsOrEmailsSent": 0
+    },
+    "record-reprocessing-verification": [
+      {
+        "account": 1,
+        "activities": 4,
+        "version": "0.4.0-alpha.2",
+        "originalChecksumsAndEditsPreserved": true,
+        "previousCalculationVersionsRetained": true
+      },
+      {
+        "account": 2,
+        "activities": 3,
+        "version": "0.4.0-alpha.2",
+        "originalChecksumsAndEditsPreserved": true,
+        "previousCalculationVersionsRetained": true
+      }
+    ]
+  },
+  "fixtureDeletion": {
+    "identityDeleted": true,
+    "privateObjects": 0,
+    "ownedTablesChecked": 25,
+    "tombstoneVerified": true,
+    "temporaryNoticeAwaitingFreeQuota": 1
+  },
+  "operationalV1Complete": false
+}

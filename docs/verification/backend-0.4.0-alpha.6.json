@@ -77,10 +77,32 @@
     "dependabotAlertsAndSecurityUpdatesEnabled": true
   },
   "limits": [
-    "Frontend deployment and release commit checks are recorded separately.",
     "Record calendar scopes require frontend adoption; visual polish remains deferred to the user.",
     "Six persistent provider connectors remain disabled pending access/terms and implementation.",
     "Device golden fixtures, broader performance/security journeys, alert receipt, external analytics erasure and business gates remain open."
   ],
-  "operationalV1Complete": false
+  "operationalV1Complete": false,
+  "frontendDeploymentVerification": {
+    "verifiedAt": "2026-09-06T23:17:59.800Z",
+    "releaseCommit": "20da8d787cfabd96595b55aeef10ac07232eecf0",
+    "staging": {
+      "id": "dpl_74FL26MD1Ev3BRnqUGmzwYaX8JpP",
+      "url": "https://kinetexa-lc9m9woq0-stefandg1s-projects.vercel.app"
+    },
+    "production": {
+      "id": "dpl_8dvcAwJtFd2eYGPWA8457dBU6Rkj",
+      "url": "https://kinetexa-kc5g7f4ge-stefandg1s-projects.vercel.app"
+    },
+    "health": [
+      {
+        "origin": "https://staging.kinetexa.com",
+        "status": 200
+      },
+      {
+        "origin": "https://kinetexa.com",
+        "status": 200
+      }
+    ],
+    "productionSecurityChecksPassed": true
+  }
 }

@@ -86,6 +86,8 @@ export const updateProfile = mutation({
   },
   handler: async (ctx, args) => {
     const athlete = await requireAthlete(ctx);
+    if (args.units !== "metric")
+      throw new ConvexError("V1 currently supports metric units.");
     const displayName = args.displayName.trim();
     if (!displayName || displayName.length > 80)
       throw new ConvexError("Use a name between 1 and 80 characters.");
@@ -112,6 +114,11 @@ export const updateProfile = mutation({
     if (args.aiConsent && !athlete.aiConsent && athlete.insightConsent)
       await ctx.scheduler.runAfter(1000, internal.aiActions.refreshInsight, {
         athleteId: athlete._id,
+      });
+    if (args.timezone !== athlete.timezone)
+      await ctx.scheduler.runAfter(0, internal.reprocessing.page, {
+        athleteId: athlete._id,
+        cursor: null,
       });
   },
 });

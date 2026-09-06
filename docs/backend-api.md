@@ -29,6 +29,12 @@ Results carry units, date ranges, contributing activity IDs, reproducible querie
 
 History endpoints `activities:page`, `imports:page` and `health:page` use Convex pagination cursors. Continue until `isDone`; an empty filtered page can still have a continuation cursor. Legacy list endpoints explicitly reject oversized history rather than returning silently truncated totals.
 
+## Workspace maintenance
+
+`workspace:saveZone` accepts an optional existing zone ID for edits. `workspace:remove` deletes an owned goal, planned workout, saved analysis or privacy zone. Other account data is preserved. Plans validate sport, dates and intensity size; race results must be positive and event completion uses zero/one. Changing the profile timezone schedules retained-source reprocessing.
+
+Share tokens must be unique. Expiring links are revoked by a durable scheduled mutation as well as checked on access. Account export and deletion share one owned-table registry, including AI runs and insights.
+
 ## Verification evidence
 
 `docs/verification-staging.md` records hosted outcomes. Automated tests use synthetic fixtures and independent owners. Live verification accounts, tokens, temporary source files and detailed operational artifacts remain in ignored local storage.

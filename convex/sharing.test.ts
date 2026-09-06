@@ -58,6 +58,14 @@ it("projects only selected public fields, masks geometry and revokes immediately
       fields: ["sport", "route"],
     });
   const payload = await t.query(api.sharing.publicView, { token });
+  await expect(
+    a.mutation(api.sharing.create, {
+      token,
+      kind: "activity",
+      activityIds: [id],
+      fields: ["sport"],
+    }),
+  ).rejects.toThrow("already in use");
   const json = JSON.stringify(payload);
   expect(json).not.toContain("secret");
   expect(json).not.toContain("Private title");

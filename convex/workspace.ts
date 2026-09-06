@@ -2,7 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { requireAthlete } from "./athletes";
 import { querySchema, runQuery } from "../packages/core/query";
-import { thresholdsSchema, clean } from "../packages/core/model";
+import { thresholdsSchema, sportSchema, clean } from "../packages/core/model";
 import { rateLimit } from "./limits";
 import { internal } from "./_generated/api";
 
@@ -152,6 +152,13 @@ export const saveGoal = mutation({
         Number.isFinite,
       ) ||
       (args.manualProgress ?? 0) < 0 ||
+      (args.kind === "raceTime" &&
+        args.manualProgress !== undefined &&
+        args.manualProgress <= 0) ||
+      (args.kind === "event" &&
+        (args.target !== 1 ||
+          (args.manualProgress !== undefined &&
+            ![0, 1].includes(args.manualProgress)))) ||
       args.end <= args.start ||
       ![
         "distance",
@@ -191,7 +198,11 @@ export const savePlan = mutation({
       args.title.length > 120 ||
       args.duration < 0 ||
       args.duration > 172800 ||
-      args.description.length > 5000
+      args.description.length > 5000 ||
+      ![args.start, args.duration].every(Number.isFinite) ||
+      Number.isNaN(new Date(args.start).getTime()) ||
+      !sportSchema.safeParse(args.sport).success ||
+      (args.intensity?.length ?? 0) > 80
     )
       throw new ConvexError("Check the workout title and duration.");
     if (id) {
@@ -253,12 +264,13 @@ export const authorizeQuery = mutation({
 });
 export const saveZone = mutation({
   args: {
+    id: v.optional(v.id("privacyZones")),
     name: v.string(),
     lat: v.number(),
     lon: v.number(),
     radius: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, { id, ...args }) => {
     const a = await requireAthlete(ctx);
     await rateLimit(ctx, a._id, "edit", 500);
     if (
@@ -275,9 +287,47 @@ export const saveZone = mutation({
       );
     await ctx.db.insert("auditEvents", {
       athleteId: a._id,
-      action: "privacy_zone_added",
+      action: id ? "privacy_zone_updated" : "privacy_zone_added",
       at: Date.now(),
     });
+    if (id) {
+      const old = await ctx.db.get(id);
+      if (!old || old.athleteId !== a._id)
+        throw new ConvexError("Privacy zone unavailable.");
+      await ctx.db.patch(id, args);
+      return id;
+    }
     return ctx.db.insert("privacyZones", { ...args, athleteId: a._id });
+  },
+});
+
+export const remove = mutation({
+  args: {
+    id: v.union(
+      v.id("goals"),
+      v.id("plans"),
+      v.id("analyses"),
+      v.id("privacyZones"),
+    ),
+  },
+  handler: async (ctx, { id }) => {
+    const a = await requireAthlete(ctx),
+      row = await ctx.db.get(id);
+    if (!row || row.athleteId !== a._id)
+      throw new ConvexError("Item unavailable.");
+    await rateLimit(ctx, a._id, "edit", 500);
+    await ctx.db.delete(id);
+    const kind = ctx.db.normalizeId("goals", id)
+      ? "goal"
+      : ctx.db.normalizeId("plans", id)
+        ? "planned_workout"
+        : ctx.db.normalizeId("analyses", id)
+          ? "analysis"
+          : "privacy_zone";
+    await ctx.db.insert("auditEvents", {
+      athleteId: a._id,
+      action: `${kind}_deleted`,
+      at: Date.now(),
+    });
   },
 });

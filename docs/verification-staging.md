@@ -67,6 +67,10 @@ All thirteen deterministic calculation requests completed against staging throug
 
 The selected cycling interval requested 100.5–600.5 seconds, used recorded boundaries 101–600, and returned 499 seconds, mean power 205.6933867735471 W and load 10.24673214788439. Another account was denied that interval. Health analytics returned recorded sleep while AI consent was off, without invoking a model. Sixty-nine tests pass, including source-policy separation between private deterministic analytics and AI, coverage constraints, sport-specific thresholds, unknown race results and missing-load propagation.
 
+## Workspace and export registry verification
+
+Staging API checks edited and removed a synthetic privacy zone, deleted a planned workout, rejected another account's deletion attempt, rejected a duplicate share token and confirmed that a three-second share expired into a persisted revoked state. The second synthetic account's export contained 29 files, including both canonical activities, AI-run data and insight data. Seventy focused tests pass. The synthetic zone and planned workout used for this check were removed.
+
 ## Remaining release work
 
 Full requirement closure remains open, including provider approval and connector operations, large-history performance, complete comparison/AI/health criteria, policy review, backup automation and retention, operational alerts and the full UI/accessibility matrix. Production continues to serve the holding page. This evidence does not justify `v1.0.0`.

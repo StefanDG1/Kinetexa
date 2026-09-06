@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Complete workspace edit/delete APIs, validate planned workouts and goal results, and rebuild local dates after timezone changes.
+- Enforce unique share tokens and durable expiry; include AI runs and insights in the shared export/deletion registry.
+
 - Expose all thirteen deterministic analytics operations and complete dashboard summaries through authenticated APIs, without an AI call.
 - Add recorded-interval analysis; reject sparse load extrapolation, unpaired efficiency and cycling FTP applied to running.
 - Keep missing load distinct from rest days and leave unrecorded race results unavailable.

@@ -8,23 +8,8 @@ import { action, internalAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { client, getObject, downloadUrl } from "./storage";
 import { stripeClient } from "./billingActions";
-const tableNames = [
-  "activities",
-  "sources",
-  "metricHistory",
-  "gear",
-  "goals",
-  "plans",
-  "analyses",
-  "privacyZones",
-  "shares",
-  "health",
-  "billing",
-  "usage",
-  "messages",
-  "auditEvents",
-  "outbox",
-] as const;
+import { tables } from "./lifecycle";
+const tableNames = tables.filter((table) => table !== "lifecycleJobs");
 export const download = action({
   args: { id: v.id("lifecycleJobs") },
   handler: async (ctx, args): Promise<string> => {

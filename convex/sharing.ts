@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { requireAthlete } from "./athletes";
 import { ownedActivity } from "./activities";
 import { maskedRoute, type Point } from "../packages/core/geo";
@@ -31,22 +32,44 @@ export const create = mutation({
       !["activity", "dashboard", "statistics", "map"].includes(args.kind) ||
       !args.activityIds.length ||
       args.activityIds.length > 100 ||
+      args.fields.length > allowed.length ||
       args.fields.some((f) => !allowed.includes(f)) ||
-      (args.expires !== undefined && args.expires < Date.now())
+      (args.expires !== undefined &&
+        (!Number.isFinite(args.expires) || args.expires <= Date.now()))
     )
       throw new ConvexError("Check the shared fields and expiry.");
+    if (
+      await ctx.db
+        .query("shares")
+        .withIndex("by_token", (q) => q.eq("token", args.token))
+        .first()
+    )
+      throw new ConvexError(
+        "This share token is already in use. Create a new link.",
+      );
     for (const id of args.activityIds) await ownedActivity(ctx, id);
     await ctx.db.insert("auditEvents", {
       athleteId: a._id,
       action: "share_created",
       at: Date.now(),
     });
-    return ctx.db.insert("shares", {
+    const id = await ctx.db.insert("shares", {
       ...args,
       athleteId: a._id,
       revoked: false,
       createdAt: Date.now(),
     });
+    if (args.expires !== undefined)
+      await ctx.scheduler.runAt(args.expires, internal.sharing.expire, { id });
+    return id;
+  },
+});
+export const expire = internalMutation({
+  args: { id: v.id("shares") },
+  handler: async (ctx, { id }) => {
+    const share = await ctx.db.get(id);
+    if (share && share.expires !== undefined && share.expires <= Date.now())
+      await ctx.db.patch(id, { revoked: true });
   },
 });
 export const revoke = mutation({

@@ -1,6 +1,6 @@
 "use node";
 import { createHash, randomUUID } from "node:crypto";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { action, internalAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import {
@@ -18,7 +18,7 @@ import {
 } from "../packages/core/import";
 import { analyze } from "../packages/core/analytics";
 import { clean } from "../packages/core/model";
-import { route } from "../packages/core/geo";
+import { route, routeSegments } from "../packages/core/geo";
 import { aggregateHealthFile } from "../packages/core/health";
 import { withTimeContext } from "../packages/core/time-context";
 import { analyzeInterval } from "../packages/core/interval";
@@ -34,6 +34,13 @@ export const stream = action({
     args,
   ): Promise<import("../packages/core/model").Activity> => {
     const a = await ctx.runQuery(api.activities.get, { id: args.id });
+    if (
+      [args.from, args.to].some(
+        (n) => n !== undefined && (!Number.isFinite(n) || n < 0 || n > 172800),
+      ) ||
+      (args.from !== undefined && args.to !== undefined && args.from > args.to)
+    )
+      throw new ConvexError("Choose valid stream bounds within the recording.");
     const activity: import("../packages/core/model").Activity = JSON.parse(
       new TextDecoder().decode(await getObject(a.streamKey)),
     );
@@ -210,6 +217,7 @@ export const process = internalAction({
             summary,
             metrics,
             route: route(activity.samples),
+            routeSegments: routeSegments(activity.samples),
             streamKey,
           }),
         );

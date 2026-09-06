@@ -152,6 +152,7 @@ export const complete = internalMutation({
     summary: v.any(),
     metrics: v.any(),
     route: v.array(v.array(v.number())),
+    routeSegments: v.optional(v.array(v.array(v.array(v.number())))),
     streamKey: v.string(),
   },
   handler: async (ctx, args) => {
@@ -235,6 +236,7 @@ export const complete = internalMutation({
       summary: args.summary,
       metrics: args.metrics,
       route: args.route,
+      routeSegments: args.routeSegments,
       streamKey: args.streamKey,
       sourceId: s._id,
       notes: meta?.notes || "",

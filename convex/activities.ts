@@ -4,6 +4,7 @@ import { requireAthlete } from "./athletes";
 import type { QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { paginationOptsValidator } from "convex/server";
+import { simplifySegments, type Point } from "../packages/core/geo";
 export async function ownedActivity(ctx: QueryCtx, id: Id<"activities">) {
   const a = await requireAthlete(ctx),
     row = await ctx.db.get(id);
@@ -79,6 +80,14 @@ export const page = query({
               route: r.route.filter(
                 (_, i) => i % step === 0 || i === r.route.length - 1,
               ),
+              ...(r.routeSegments
+                ? {
+                    routeSegments: simplifySegments(
+                      r.routeSegments as Point[][],
+                      120,
+                    ),
+                  }
+                : {}),
             };
           }),
       ),
@@ -173,6 +182,15 @@ export const merge = mutation({
       const target = await ownedActivity(ctx, into);
       if (id === into || target.mergedInto)
         throw new ConvexError("Choose a separate unmerged activity.");
+      if (
+        await ctx.db
+          .query("activities")
+          .withIndex("by_merged", (q) => q.eq("mergedInto", id))
+          .first()
+      )
+        throw new ConvexError(
+          "Unmerge this activity's duplicates before merging it into another activity.",
+        );
     }
     await ctx.db.patch(id, { mergedInto: into });
     await ctx.db.insert("auditEvents", {

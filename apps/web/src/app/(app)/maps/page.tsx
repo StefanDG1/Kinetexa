@@ -33,7 +33,12 @@ export default function MapsPage() {
             (!selection.length || selection.includes(a._id)) &&
             a.route.length,
         )
-        .map((a) => ({ id: a._id, title: a.title, points: a.route })) ?? [],
+        .map((a) => ({
+          id: a._id,
+          title: a.title,
+          points: a.route,
+          segments: a.routeSegments,
+        })) ?? [],
     [items, range, from, to, selection],
   );
   const select = useCallback(

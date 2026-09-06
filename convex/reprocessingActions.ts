@@ -12,7 +12,7 @@ import {
 import { aggregateHealthFile } from "../packages/core/health";
 import { analyze } from "../packages/core/analytics";
 import { clean } from "../packages/core/model";
-import { route } from "../packages/core/geo";
+import { route, routeSegments } from "../packages/core/geo";
 import { withTimeContext } from "../packages/core/time-context";
 export const source = internalAction({
   args: { id: v.id("sources") },
@@ -108,6 +108,7 @@ export const source = internalAction({
           metrics,
           summary,
           route: route(activity.samples),
+          routeSegments: routeSegments(activity.samples),
           streamKey,
         };
       }

@@ -15,7 +15,7 @@ export function weighted(samples: Sample[], key: NumericSampleKey) {
   for (let i = 1; i < samples.length; i++) {
     const dt = samples[i].t - samples[i - 1].t,
       value = samples[i - 1][key];
-    if (dt > 0 && dt <= 30 && value !== undefined) {
+    if (!samples[i].breakBefore && dt > 0 && dt <= 30 && value !== undefined) {
       sum += value * dt;
       seconds += dt;
     }
@@ -32,7 +32,8 @@ export function zones(
   for (let i = 1; i < samples.length; i++) {
     const dt = samples[i].t - samples[i - 1].t,
       v = samples[i - 1][key];
-    if (dt <= 0 || dt > 30 || v === undefined) continue;
+    if (samples[i].breakBefore || dt <= 0 || dt > 30 || v === undefined)
+      continue;
     const index = bounds.findIndex((b) => v < b);
     seconds[index < 0 ? bounds.length : index] += dt;
   }
@@ -67,7 +68,7 @@ export function seconds(
   for (let i = 1; i < samples.length; i++) {
     const a = samples[i - 1],
       b = samples[i];
-    if (b.t - a.t > 30 || a[key] === undefined) continue;
+    if (b.breakBefore || b.t - a.t > 30 || a[key] === undefined) continue;
     for (let t = Math.ceil(a.t); t < Math.min(b.t, out.length); t++)
       out[t] = a[key]!;
   }
@@ -115,7 +116,8 @@ export function bestDistances(
     segment[i] =
       segment[i - 1] +
       Number(
-        a.distance === undefined ||
+        b.breakBefore ||
+          a.distance === undefined ||
           b.distance === undefined ||
           b.distance < a.distance ||
           b.t <= a.t ||
@@ -190,6 +192,7 @@ export function analyze(activity: Activity, thresholds: Thresholds = {}) {
       return (
         total +
         (previous &&
+        !s.breakBefore &&
         previous[key] !== undefined &&
         s.t > previous.t &&
         s.t - previous.t <= 30
@@ -247,6 +250,7 @@ export function analyze(activity: Activity, thresholds: Thresholds = {}) {
         b = samples[i],
         value = a[outputKey];
       if (
+        b.breakBefore ||
         b.t <= a.t ||
         b.t - a.t > 30 ||
         a.hr === undefined ||

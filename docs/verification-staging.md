@@ -89,6 +89,12 @@ Staging's new export completed as one ZIP containing 62 files: eight retained or
 
 Seventy-nine tests pass. Export tests force multiple parts, recover interrupted work from its cursor, reject stale publication and duplicate completion, preserve previous canonical streams, enforce ownership, and remove expired archives without touching source objects. Larger exports use several standard ZIP files plus a machine-readable manifest; all parts must be extracted together. Each metadata page records its read time. This is a documented read window rather than a transactionally frozen snapshot, so concurrent edits can appear at different page times.
 
+## Recording gaps and merge verification
+
+An imported staging GPX retained two recording segments and a canonical break marker. Its distance was 2,223.8985328911745 metres, excluding the gap between segments. The masked public projection preserved two separate lines. A nested duplicate merge and a cross-owner merge were rejected; the valid merge was reversed and the temporary share revoked. The second QA account now has three activities. Eighty-two tests pass.
+
+The first QA account's retained sources were rebuilt under calculation version `0.3.0-alpha.2`. All thirteen deterministic APIs still passed; four activities totalled 27,060.470230766892 metres and the selected cycling interval retained its independently checked mean power and load. Recording breaks now exclude cross-boundary sensor time and best-effort windows. Geometry simplification preserves segment boundaries; complete samples remain in canonical downloads.
+
 ## Remaining release work
 
 Full requirement closure remains open, including provider approval and connector operations, large-history performance, complete comparison/AI/health criteria, policy review, backup automation and retention, operational alerts and the full UI/accessibility matrix. Production continues to serve the holding page. This evidence does not justify `v1.0.0`.

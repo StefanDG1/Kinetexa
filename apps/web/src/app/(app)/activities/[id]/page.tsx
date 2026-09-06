@@ -72,7 +72,17 @@ export default function ActivityPage({
     };
   }, [activityId, getStream, from, to, a?.duration]);
   const routes = useMemo(
-    () => (a ? [{ id: a._id, title: a.title, points: a.route }] : []),
+    () =>
+      a
+        ? [
+            {
+              id: a._id,
+              title: a.title,
+              points: a.route,
+              segments: a.routeSegments,
+            },
+          ]
+        : [],
     [a],
   );
   const points = stream?.samples ?? [],

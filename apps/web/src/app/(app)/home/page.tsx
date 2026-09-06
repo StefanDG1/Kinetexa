@@ -52,6 +52,7 @@ export default function Home() {
           id: a._id,
           title: String(a.summary.title),
           points: (a as any).route,
+          segments: (a as any).routeSegments,
         })),
     [d.selected],
   );

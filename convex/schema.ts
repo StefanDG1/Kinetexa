@@ -41,6 +41,7 @@ export default defineSchema({
     summary: v.any(),
     metrics: v.any(),
     route: v.array(v.array(v.number())),
+    routeSegments: v.optional(v.array(v.array(v.array(v.number())))),
     streamKey: v.string(),
     sourceId: v.id("sources"),
     notes: v.string(),
@@ -51,7 +52,9 @@ export default defineSchema({
     createdAt: v.number(),
     duplicateOf: v.optional(v.id("activities")),
     mergedInto: v.optional(v.id("activities")),
-  }).index("by_athlete", ["athleteId", "start"]),
+  })
+    .index("by_athlete", ["athleteId", "start"])
+    .index("by_merged", ["mergedInto"]),
   sources: defineTable({
     athleteId: v.id("athletes"),
     name: v.string(),

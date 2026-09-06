@@ -2,7 +2,12 @@
 import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-type Route = { id: string; title: string; points: number[][] };
+type Route = {
+  id: string;
+  title: string;
+  points: number[][];
+  segments?: number[][][];
+};
 export default function RouteMap({
   routes,
   cursor,
@@ -54,7 +59,10 @@ export default function RouteMap({
             .map((r) => ({
               type: "Feature",
               properties: { id: r.id, title: r.title },
-              geometry: { type: "LineString", coordinates: r.points },
+              geometry: {
+                type: "MultiLineString",
+                coordinates: r.segments ?? [r.points],
+              },
             })),
         },
       });

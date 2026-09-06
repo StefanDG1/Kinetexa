@@ -11,11 +11,66 @@ export function meters(a: Point, b: Point) {
   return 12742000 * Math.asin(Math.sqrt(Math.min(1, d)));
 }
 export function route(samples: Sample[], limit = 1200): Point[] {
-  const points = samples
-    .filter((s) => s.lat !== undefined && s.lon !== undefined)
-    .map((s) => [s.lon!, s.lat!] as Point);
-  const step = Math.max(1, Math.ceil(points.length / limit));
-  return points.filter((_, i) => i % step === 0 || i === points.length - 1);
+  return routeSegments(samples, limit).flat();
+}
+export function simplifySegments(segments: Point[][], limit = 1200): Point[][] {
+  const nonempty = segments.filter((s) => s.length > 1);
+  const maxSegments = Math.max(1, Math.floor(limit / 2));
+  const selected =
+    nonempty.length <= maxSegments
+      ? nonempty
+      : Array.from(
+          { length: maxSegments },
+          (_, i) =>
+            nonempty[
+              Math.floor(
+                (i * (nonempty.length - 1)) / Math.max(1, maxSegments - 1),
+              )
+            ],
+        );
+  const total = selected.reduce((n, s) => n + s.length, 0),
+    spare = Math.max(0, limit - selected.length * 2);
+  return selected.map((points) => {
+    const count = Math.min(
+      points.length,
+      2 + Math.floor((spare * points.length) / Math.max(1, total)),
+    );
+    return count >= points.length
+      ? points
+      : Array.from(
+          { length: count },
+          (_, i) => points[Math.round((i * (points.length - 1)) / (count - 1))],
+        );
+  });
+}
+export function routeSegments(samples: Sample[], limit = 1200): Point[][] {
+  const segments: Point[][] = [];
+  let current: Point[] = [];
+  let previous: Sample | undefined;
+  for (const sample of samples) {
+    const located = sample.lat !== undefined && sample.lon !== undefined;
+    const point: Point | undefined = located
+      ? [sample.lon!, sample.lat!]
+      : undefined;
+    const dt = previous ? sample.t - previous.t : 0;
+    const disconnected =
+      sample.breakBefore ||
+      !point ||
+      !previous ||
+      previous.lat === undefined ||
+      previous.lon === undefined ||
+      dt <= 0 ||
+      dt > 30 ||
+      meters([previous.lon, previous.lat], point) / dt > 60;
+    if (disconnected) {
+      if (current.length > 1) segments.push(current);
+      current = [];
+    }
+    if (point) current.push(point);
+    previous = sample;
+  }
+  if (current.length > 1) segments.push(current);
+  return simplifySegments(segments, limit);
 }
 // Split at every hidden point. Never connect visible points across a private zone.
 // A safety buffer reduces precision at the zone boundary; public endpoints are trimmed too.

@@ -31,7 +31,13 @@ export function date(n: number) {
     year: "numeric",
   });
 }
-export function RouteThumb({ points }: { points: number[][] }) {
+export function RouteThumb({
+  points,
+  segments,
+}: {
+  points: number[][];
+  segments?: number[][][];
+}) {
   if (points.length < 2)
     return <div className="route-thumb" aria-label="No recorded route" />;
   const xs = points.map((p) => p[0]),
@@ -46,17 +52,20 @@ export function RouteThumb({ points }: { points: number[][] }) {
       viewBox="0 0 90 60"
       aria-label="Recorded route"
     >
-      <polyline
-        points={points
-          .map(
-            (p) =>
-              `${8 + ((p[0] - minX) / sx) * 74},${52 - ((p[1] - minY) / sy) * 44}`,
-          )
-          .join(" ")}
-        fill="none"
-        stroke="#147d92"
-        strokeWidth="2"
-      />
+      {(segments ?? [points]).map((segment, index) => (
+        <polyline
+          key={index}
+          points={segment
+            .map(
+              (p) =>
+                `${8 + ((p[0] - minX) / sx) * 74},${52 - ((p[1] - minY) / sy) * 44}`,
+            )
+            .join(" ")}
+          fill="none"
+          stroke="#147d92"
+          strokeWidth="2"
+        />
+      ))}
     </svg>
   );
 }
@@ -69,7 +78,7 @@ export function ActivityList({ items }: { items: ActivityDoc[] }) {
           href={`/activities/${a._id}`}
           key={a._id}
         >
-          <RouteThumb points={a.route} />
+          <RouteThumb points={a.route} segments={a.routeSegments} />
           <div>
             <h3>{a.title}</h3>
             <p>

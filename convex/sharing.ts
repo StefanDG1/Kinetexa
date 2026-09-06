@@ -121,7 +121,10 @@ async function projectShare(
     if (!a || a.athleteId !== athleteId) continue;
     const fields: Record<string, unknown> = {};
     for (const f of selection.fields) {
-      if (f === "route") fields.route = maskedRoute(a.route as Point[], zones);
+      if (f === "route")
+        fields.route = (a.routeSegments ?? [a.route]).flatMap((segment) =>
+          maskedRoute(segment as Point[], zones),
+        );
       else if (f === "date")
         fields.date = new Date(a.start).toISOString().slice(0, 10);
       else if (f === "elevation")

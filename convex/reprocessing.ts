@@ -215,6 +215,7 @@ export const finish = internalMutation({
         metrics: v.any(),
         summary: v.any(),
         route: v.array(v.array(v.number())),
+        routeSegments: v.optional(v.array(v.array(v.array(v.number())))),
         streamKey: v.string(),
       }),
     ),

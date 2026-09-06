@@ -58,7 +58,7 @@ export function normalize(input: Activity): Activity {
       p = samples[i - 1];
     if (s.lat !== undefined && Math.abs(s.lat) > 90) delete s.lat;
     if (s.lon !== undefined && Math.abs(s.lon) > 180) delete s.lon;
-    if (p) {
+    if (p && !s.breakBefore) {
       const dt = s.t - p.t;
       if (
         s.distance === undefined &&
@@ -95,6 +95,7 @@ export function normalize(input: Activity): Activity {
         }
       }
     }
+    if (s.distance !== undefined) distance = Math.max(distance, s.distance);
     if (s.distance === undefined && s.lat !== undefined) s.distance = distance;
     if (s.hr !== undefined && (s.hr < 20 || s.hr > 260)) delete s.hr;
     if (s.power !== undefined && (s.power < 0 || s.power > 3500))
@@ -446,7 +447,9 @@ export async function parseActivity(
     title = tracks[0]?.name ?? name;
     s = sport(tracks[0]?.type);
     points = tracks.flatMap((t) =>
-      list<Xml>(t.trkseg).flatMap((seg) => list<Xml>(seg.trkpt)),
+      list<Xml>(t.trkseg).flatMap((seg) =>
+        list<Xml>(seg.trkpt).map((p, i) => ({ ...p, breakBefore: i === 0 })),
+      ),
     );
     start = timestamp(points[0]?.time);
     const utcOffsetMinutes = explicitOffset(points[0]?.time);
@@ -462,6 +465,7 @@ export async function parseActivity(
         const e = p.extensions?.TrackPointExtension ?? p.extensions ?? {};
         return {
           t: (timestamp(p.time) - start) / 1000,
+          breakBefore: p.breakBefore || undefined,
           lat: num(p["@_lat"]),
           lon: num(p["@_lon"]),
           altitude: num(p.ele),
@@ -487,7 +491,12 @@ export async function parseActivity(
   s = sport(a["@_Sport"]);
   const ls = list<Xml>(a.Lap);
   points = ls.flatMap((l) =>
-    list<Xml>(l.Track).flatMap((t) => list<Xml>(t.Trackpoint)),
+    list<Xml>(l.Track).flatMap((t, trackIndex) =>
+      list<Xml>(t.Trackpoint).map((p, i) => ({
+        ...p,
+        breakBefore: trackIndex > 0 && i === 0,
+      })),
+    ),
   );
   start = timestamp(a.Id ?? ls[0]?.["@_StartTime"] ?? points[0]?.Time);
   const utcOffsetMinutes = explicitOffset(
@@ -514,6 +523,7 @@ export async function parseActivity(
     laps,
     samples: points.map((p) => ({
       t: (timestamp(p.Time) - start) / 1000,
+      breakBefore: p.breakBefore || undefined,
       lat: num(p.Position?.LatitudeDegrees),
       lon: num(p.Position?.LongitudeDegrees),
       altitude: num(p.AltitudeMeters),

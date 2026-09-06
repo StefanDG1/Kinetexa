@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.3.0-alpha.2 - 2026-09-06
+
+- Preserve recording breaks through distance, sensor coverage, records and private/public route geometry; prevent nested duplicate merges.
+
 - Checkpoint exports into resumable ZIP parts with SHA-256 manifests, prior canonical versions, owned retry/download APIs and seven-day cleanup.
 
 - Persist one Stripe Checkout reservation per account, reconcile full subscription history, enforce paid-period expiry and close unfinished payments during deletion.

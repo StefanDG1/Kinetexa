@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const VERSION = "0.3.0-alpha.1";
+export const VERSION = "0.3.0-alpha.2";
 export const sportSchema = z.enum([
   "running",
   "cycling",
@@ -11,6 +11,7 @@ export const sportSchema = z.enum([
 export type Sport = z.infer<typeof sportSchema>;
 export const sampleSchema = z.object({
   t: z.number().nonnegative(),
+  breakBefore: z.boolean().optional(),
   lat: z.number().min(-90).max(90).optional(),
   lon: z.number().min(-180).max(180).optional(),
   altitude: z.number().optional(),

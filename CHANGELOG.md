@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Record private job outcomes, cost and latency; add guarded operator retries, queue alerts, OTLP trace export and scheduled checks. Keep production athlete APIs closed until release.
+
 - Retain verified calculations with an explicit notice when AI explanation fails, while preserving consent withdrawal.
 
 - Keep a transactional numerical activity index for large-history analytics, preserve pagination cursors and rebuild derived caches after recovery.

@@ -8,6 +8,7 @@ import {
 import type { Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { requireAthlete } from "./athletes";
+import { recordOperation } from "./operationModel";
 import { paginationOptsValidator } from "convex/server";
 const severity: Record<string, number> = {
   delivered: 1,
@@ -196,6 +197,14 @@ export const result = internalMutation({
     if (!row || row.attempts !== args.attempt || row.status !== "sending")
       return;
     const retry = args.failed && args.retryable !== false && row.attempts < 4;
+    await recordOperation(ctx, {
+      kind: "email",
+      jobId: row._id,
+      ...(row.template === "deletion" ? {} : { athleteId: row.athleteId }),
+      startedAt: row.firstAttemptAt ?? row.createdAt,
+      attempt: row.attempts,
+      outcome: retry ? "retrying" : args.failed ? "failed" : "sent",
+    });
     await ctx.db.patch(row._id, {
       status: retry ? "retrying" : args.failed ? "failed" : "sent",
       providerId: args.providerId,

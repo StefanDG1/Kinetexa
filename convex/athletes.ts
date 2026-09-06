@@ -2,8 +2,15 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { QueryCtx } from "./_generated/server";
+export function appOpen() {
+  return (
+    process.env.KINETEXA_ENVIRONMENT !== "production" ||
+    process.env.KINETEXA_APP_ENABLED === "true"
+  );
+}
 
 export async function requireAthlete(ctx: QueryCtx) {
+  if (!appOpen()) throw new ConvexError("Kinetexa is not open yet.");
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) throw new ConvexError("Sign in to continue.");
   const athlete = await ctx.db
@@ -19,6 +26,7 @@ export async function requireAthlete(ctx: QueryCtx) {
 export const current = query({
   args: {},
   handler: async (ctx) => {
+    if (!appOpen()) return null;
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
     const athlete = await ctx.db
@@ -42,6 +50,7 @@ export const current = query({
 export const ensure = mutation({
   args: {},
   handler: async (ctx) => {
+    if (!appOpen()) throw new ConvexError("Kinetexa is not open yet.");
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new ConvexError("Sign in to continue.");
     const existing = await ctx.db

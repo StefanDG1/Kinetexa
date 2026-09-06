@@ -1,5 +1,6 @@
 import { v, ConvexError } from "convex/values";
 import { publishFacts } from "./activityFacts";
+import { recordOperation } from "./operationModel";
 import {
   mutation,
   internalMutation,
@@ -12,7 +13,7 @@ import { rateLimit } from "./limits";
 import { VERSION } from "../packages/core/model";
 import { dayKey } from "../packages/core/dashboard";
 
-async function queue(ctx: MutationCtx, source: Doc<"sources">) {
+export async function queue(ctx: MutationCtx, source: Doc<"sources">) {
   if (
     !source.hash ||
     !["complete", "partial"].includes(source.status) ||
@@ -42,6 +43,7 @@ async function queue(ctx: MutationCtx, source: Doc<"sources">) {
   }
   await ctx.db.patch(source._id, {
     reprocessStatus: "queued",
+    reprocessQueuedAt: Date.now(),
     reprocessError: undefined,
     reprocessRetries: 0,
   });
@@ -151,6 +153,7 @@ export const claim = internalMutation({
     await ctx.db.patch(id, {
       reprocessStatus: "running",
       reprocessAttempt: attempt,
+      reprocessStartedAt: Date.now(),
     });
     await ctx.scheduler.runAfter(660000, internal.reprocessing.watchdog, {
       id,
@@ -287,6 +290,14 @@ export const finish = internalMutation({
       id,
       cursor: null,
     });
+    await recordOperation(ctx, {
+      kind: "reprocess",
+      jobId: id,
+      athleteId: run.source.athleteId,
+      startedAt: run.source.reprocessStartedAt,
+      attempt,
+      outcome: "complete",
+    });
     return true;
   },
 });
@@ -297,6 +308,14 @@ export const fail = internalMutation({
     if (!run) return;
     const retries = run.source.reprocessRetries ?? 0,
       retry = retryable && retries < 3;
+    await recordOperation(ctx, {
+      kind: "reprocess",
+      jobId: id,
+      athleteId: run.source.athleteId,
+      startedAt: run.source.reprocessStartedAt,
+      attempt,
+      outcome: retry ? "retrying" : "failed",
+    });
     await ctx.db.patch(id, {
       reprocessStatus: retry ? "queued" : "failed",
       reprocessRetries: retries + 1,

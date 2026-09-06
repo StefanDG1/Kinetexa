@@ -14,6 +14,7 @@ import { rateLimit } from "./limits";
 import { evidenceSchema } from "../packages/core/ai";
 import { dayKey } from "../packages/core/dashboard";
 import { hasPremium } from "../packages/core/entitlements";
+import { recordOperation } from "./operationModel";
 
 export async function requireRun(ctx: QueryCtx, id: Id<"aiRuns">) {
   const run = await ctx.db.get(id),
@@ -176,6 +177,19 @@ export const finish = internalMutation({
       ...stats,
       status: finalStatus,
       finishedAt: Date.now(),
+    });
+    await recordOperation(ctx, {
+      kind: "ai",
+      jobId: runId,
+      athleteId: run.athleteId,
+      startedAt: run.startedAt,
+      outcome: finalStatus,
+      measures: {
+        inputTokens: stats.inputTokens,
+        outputTokens: stats.outputTokens,
+        toolCalls: stats.toolCalls,
+        costMicrousd: stats.costMicrousd,
+      },
     });
     if (stats.modelCalls === 0) {
       const window = new Date(run.startedAt).toISOString().slice(0, 7);

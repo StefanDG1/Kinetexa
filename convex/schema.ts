@@ -1,8 +1,32 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { exportPosition } from "./exportModel";
+import { operationKind, operationMeasures } from "./operationModel";
 
 export default defineSchema({
+  operationalStatus: defineTable({
+    key: v.string(),
+    at: v.number(),
+    metrics: v.any(),
+    alerts: v.array(v.string()),
+  }).index("by_key", ["key"]),
+  operationalEvents: defineTable({
+    athleteId: v.optional(v.id("athletes")),
+    kind: operationKind,
+    jobId: v.string(),
+    outcome: v.string(),
+    startedAt: v.optional(v.number()),
+    at: v.number(),
+    attempt: v.optional(v.number()),
+    measures: v.optional(operationMeasures),
+    key: v.string(),
+    traceId: v.string(),
+    spanId: v.string(),
+  })
+    .index("by_athlete", ["athleteId"])
+    .index("by_key", ["key"])
+    .index("by_job", ["jobId"])
+    .index("by_at", ["at"]),
   athletes: defineTable({
     tokenIdentifier: v.string(),
     workosUserId: v.string(),
@@ -84,6 +108,9 @@ export default defineSchema({
     healthGeneration: v.optional(v.number()),
     reprocessStatus: v.optional(v.string()),
     reprocessAttempt: v.optional(v.number()),
+    reprocessStartedAt: v.optional(v.number()),
+    reprocessQueuedAt: v.optional(v.number()),
+    queuedAt: v.optional(v.number()),
     reprocessRetries: v.optional(v.number()),
     reprocessError: v.optional(v.string()),
     reprocessedAt: v.optional(v.number()),
@@ -100,6 +127,8 @@ export default defineSchema({
     aiPolicyVersion: v.optional(v.string()),
   })
     .index("by_athlete", ["athleteId", "createdAt"])
+    .index("by_status", ["status", "createdAt"])
+    .index("by_reprocess_status", ["reprocessStatus", "createdAt"])
     .index("by_hash", ["athleteId", "hash"])
     .index("by_parent", ["parentId", "name", "hash"])
     .index("by_activity", ["activityId"]),
@@ -247,6 +276,7 @@ export default defineSchema({
     .index("by_athlete", ["athleteId"])
     .index("by_key", ["dedupeKey"])
     .index("by_template_created", ["template", "createdAt"])
+    .index("by_status", ["status", "createdAt"])
     .index("by_provider", ["providerId"]),
   emailEvents: defineTable({
     athleteId: v.optional(v.id("athletes")),
@@ -322,7 +352,8 @@ export default defineSchema({
     finishedAt: v.optional(v.number()),
   })
     .index("by_athlete", ["athleteId"])
-    .index("by_created", ["createdAt"]),
+    .index("by_created", ["createdAt"])
+    .index("by_status", ["status", "createdAt"]),
   exportParts: defineTable({
     athleteId: v.id("athletes"),
     jobId: v.id("lifecycleJobs"),

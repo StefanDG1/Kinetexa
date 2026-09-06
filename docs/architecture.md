@@ -42,4 +42,6 @@ Development, preview, staging and production must not silently share private dat
 
 ## Release evidence
 
+Private operational events correlate job attempts and feed queue/failure/cost checks. Internal operator functions support inspection and guarded recovery. Production's backend release gate is independent of the web holding page. See [operations](operations.md) for implemented coverage and remaining tracing and alert gaps.
+
 Verify parsers and metrics with synthetic golden fixtures; use two athlete identities for authorization tests. Browser journeys cover onboarding, import, activity/map synchronization, saved analysis, privacy-safe sharing, subscription lifecycle and export/deletion. Public release also requires restore testing, privacy/retention configuration and operational alerts.

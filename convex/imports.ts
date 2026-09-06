@@ -13,6 +13,7 @@ import { rateLimit } from "./limits";
 import { dayKey } from "../packages/core/dashboard";
 import { paginationOptsValidator } from "convex/server";
 import { publishFacts } from "./activityFacts";
+import { recordOperation } from "./operationModel";
 
 export const page = query({
   args: { paginationOpts: paginationOptsValidator },
@@ -87,7 +88,11 @@ export const enqueue = mutation({
     if (!s || s.athleteId !== a._id) throw new ConvexError("File unavailable.");
     if (!["awaiting-upload", "failed"].includes(s.status)) return;
     await rateLimit(ctx, a._id, "import", 100);
-    await ctx.db.patch(id, { status: "queued", error: undefined });
+    await ctx.db.patch(id, {
+      status: "queued",
+      error: undefined,
+      queuedAt: Date.now(),
+    });
     await ctx.scheduler.runAfter(0, internal.processing.process, { id });
   },
 });
@@ -133,6 +138,15 @@ export const failed = internalMutation({
     const s = await ctx.db.get(args.id);
     if (!s) return;
     const retry = args.retryable && s.attempts < 4;
+    await recordOperation(ctx, {
+      kind: "import",
+      jobId: s._id,
+      athleteId: s.athleteId,
+      startedAt: s.receivedAt ?? s.createdAt,
+      attempt: s.attempts,
+      outcome: retry ? "retrying" : "failed",
+      measures: { bytes: s.bytes },
+    });
     await ctx.db.patch(s._id, {
       status: retry ? "retrying" : "failed",
       error: args.message,
@@ -215,6 +229,15 @@ export const complete = internalMutation({
         activityId: exact.activityId,
         parserVersion: VERSION,
       });
+      await recordOperation(ctx, {
+        kind: "import",
+        jobId: s._id,
+        athleteId: s.athleteId,
+        startedAt: s.receivedAt ?? s.createdAt,
+        attempt: s.attempts,
+        outcome: "duplicate",
+        measures: { bytes: s.bytes },
+      });
       return;
     }
     const near = await ctx.db
@@ -256,6 +279,15 @@ export const complete = internalMutation({
       hash: args.hash,
       activityId: id,
       parserVersion: VERSION,
+    });
+    await recordOperation(ctx, {
+      kind: "import",
+      jobId: s._id,
+      athleteId: s.athleteId,
+      startedAt: s.receivedAt ?? s.createdAt,
+      attempt: s.attempts,
+      outcome: "complete",
+      measures: { bytes: s.bytes },
     });
     if (!s.parentId)
       await ctx.scheduler.runAfter(0, internal.email.enqueue, {

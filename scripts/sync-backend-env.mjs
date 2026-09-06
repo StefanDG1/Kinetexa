@@ -15,6 +15,7 @@ const env = parseEnv(
 );
 const keys = [
   "KINETEXA_ENVIRONMENT",
+  "KINETEXA_APP_ENABLED",
   "BACKUP_ENDPOINT",
   "BACKUP_BUCKET",
   "BACKUP_ACCESS_KEY_ID",

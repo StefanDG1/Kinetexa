@@ -34,6 +34,8 @@ import type * as lifecycle from "../lifecycle.js";
 import type * as lifecycleActions from "../lifecycleActions.js";
 import type * as limits from "../limits.js";
 import type * as migrations from "../migrations.js";
+import type * as operationModel from "../operationModel.js";
+import type * as operations from "../operations.js";
 import type * as processing from "../processing.js";
 import type * as queryActions from "../queryActions.js";
 import type * as reprocessing from "../reprocessing.js";
@@ -75,6 +77,8 @@ declare const fullApi: ApiFromModules<{
   lifecycleActions: typeof lifecycleActions;
   limits: typeof limits;
   migrations: typeof migrations;
+  operationModel: typeof operationModel;
+  operations: typeof operations;
   processing: typeof processing;
   queryActions: typeof queryActions;
   reprocessing: typeof reprocessing;

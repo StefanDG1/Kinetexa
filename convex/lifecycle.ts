@@ -8,8 +8,10 @@ import {
 import { api, internal } from "./_generated/api";
 import { requireAthlete } from "./athletes";
 import { rateLimit } from "./limits";
+import { recordOperation } from "./operationModel";
 export const tables = [
   "activities",
+  "operationalEvents",
   "activityFacts",
   "sources",
   "metricHistory",
@@ -176,6 +178,13 @@ export const purgeBatch = internalMutation({
     }
     await ctx.db.delete(jobId);
     await ctx.db.delete(athleteId);
+    await recordOperation(ctx, {
+      kind: "deletion",
+      jobId,
+      startedAt: job.createdAt,
+      attempt: lease,
+      outcome: "complete",
+    });
     return true;
   },
 });
@@ -260,6 +269,14 @@ export const deletionFailed = internalMutation({
     )
       return;
     const retry = (job.attempts ?? 0) < 4;
+    await recordOperation(ctx, {
+      kind: "deletion",
+      jobId: id,
+      athleteId: job.athleteId,
+      startedAt: job.createdAt,
+      attempt: lease,
+      outcome: retry ? "retrying" : "failed",
+    });
     await ctx.db.patch(id, {
       status: retry ? "retrying" : "failed",
       error: retry

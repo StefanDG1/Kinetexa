@@ -9,6 +9,7 @@ import { requireAthlete } from "./athletes";
 import { rateLimit } from "./limits";
 import { internal } from "./_generated/api";
 import { hasPremium, needsBillingPortal } from "../packages/core/entitlements";
+import { recordOperation } from "./operationModel";
 export const current = query({
   args: {},
   handler: async (ctx) => {
@@ -104,6 +105,13 @@ export const apply = internalMutation({
         status: args.status,
         periodEnd: args.periodEnd,
         updatedAt: args.observedAt,
+      });
+      await recordOperation(ctx, {
+        kind: "billing",
+        jobId: args.eventId,
+        athleteId: row.athleteId,
+        startedAt: args.observedAt,
+        outcome: "complete",
       });
       if (
         args.periodEnd > Date.now() &&

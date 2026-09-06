@@ -12,6 +12,7 @@ import { tables } from "./lifecycle";
 import { visibleHealth } from "./health";
 import type { Doc } from "./_generated/dataModel";
 import { exportPosition, EXPORT_RETENTION_MS } from "./exportModel";
+import { recordOperation } from "./operationModel";
 export const exportTables = tables.filter(
   (t) => !["lifecycleJobs", "exportParts", "activityFacts"].includes(t),
 );
@@ -153,6 +154,14 @@ export const fail = internalMutation({
     const job = await ctx.db.get(id);
     if (!job || job.status !== "running" || job.lease !== lease) return;
     const retry = (job.attempts ?? 0) < 4;
+    await recordOperation(ctx, {
+      kind: "export",
+      jobId: id,
+      athleteId: job.athleteId,
+      startedAt: job.createdAt,
+      attempt: lease,
+      outcome: retry ? "retrying" : "failed",
+    });
     await ctx.db.patch(id, {
       status: retry ? "retrying" : "failed",
       error: retry
@@ -208,6 +217,14 @@ export const complete = internalMutation({
       key,
       finishedAt: Date.now(),
       error: undefined,
+    });
+    await recordOperation(ctx, {
+      kind: "export",
+      jobId: id,
+      athleteId: job.athleteId,
+      startedAt: job.createdAt,
+      attempt: job.lease,
+      outcome: "complete",
     });
     await ctx.scheduler.runAfter(0, internal.email.enqueue, {
       athleteId: job.athleteId,

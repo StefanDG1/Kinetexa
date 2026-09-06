@@ -6,6 +6,13 @@ Versions use Semantic Versioning. Setup and development milestones use prereleas
 
 Full V1 implementation has not begun. Account setup and the holding page form the first prerelease milestone.
 
+## 0.1.0-alpha.2 - 2026-09-06
+
+- Finish live Stripe key issuance after the user's identity verification.
+- Configure and verify live EUR 35 monthly and EUR 180 annual subscription prices and the customer portal, with cancellation at period end.
+- Save live billing configuration in Vercel production while retaining sandbox resources in development.
+- Record implementation-dependent billing and live payment/payout release checks separately from completed account setup. No real charge was made.
+
 ## 0.1.0-alpha.1 - 2026-09-06
 
 - Import the original PRD and strategy brief as product references.

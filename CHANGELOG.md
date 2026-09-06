@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Retain verified calculations with an explicit notice when AI explanation fails, while preserving consent withdrawal.
+
 - Keep a transactional numerical activity index for large-history analytics, preserve pagination cursors and rebuild derived caches after recovery.
 
 - Add custom distance, duration and date-based gear reminders, idempotent service history and paginated usage APIs.

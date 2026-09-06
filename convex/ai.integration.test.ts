@@ -333,3 +333,60 @@ it("keeps medical concerns out of the provider and requires both consent checks 
   expect(answer.content).toContain("consent changed");
   expect(answer.evidence).toEqual([]);
 });
+it.each(["invalid explanation", "provider failure", "withdrawn consent"])(
+  "preserves verified evidence after %s unless consent was withdrawn",
+  async (failure) => {
+    const { a, profile } = await fixture();
+    vi.stubEnv("AI_GATEWAY_API_KEY", "test-only");
+    vi.stubEnv("KINETEXA_AI_MODEL", "google/gemini-3.5-flash-lite");
+    let calls = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        calls++;
+        if (calls === 2 && failure === "provider failure")
+          return new Response("Unavailable", { status: 503 });
+        if (calls === 2 && failure === "withdrawn consent")
+          await a.mutation(api.athletes.updateProfile, {
+            ...profile,
+            aiConsent: false,
+          });
+        const content =
+          calls === 1
+            ? { calls: [{ callId: "map", tool: "getMapSummary" }] }
+            : {
+                summary: "There are 9999 activities.",
+                evidenceIds: ["map-routes"],
+              };
+        return new Response(
+          JSON.stringify({
+            choices: [{ message: { content: JSON.stringify(content) } }],
+            usage: { prompt_tokens: 100, completion_tokens: 30 },
+          }),
+        );
+      }),
+    );
+    await a.action(api.aiActions.ask, {
+      question: "Count activities with a route.",
+    });
+    const answer = (
+      await a.query(api.ai.messages, {
+        paginationOpts: { cursor: null, numItems: 2 },
+      })
+    ).page[0];
+    const run = await a.query(api.ai.runStatus, { id: answer.runId! });
+    expect(answer.content).not.toContain("9999");
+    if (failure === "withdrawn consent") {
+      expect(run.status).toBe("consent-revoked");
+      expect(answer.evidence).toEqual([]);
+    } else {
+      expect(run.status).toBe("evidence-only");
+      expect(answer.content).toContain("explanation could not be verified");
+      expect(answer.evidence).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ value: 1, unit: "activities" }),
+        ]),
+      );
+    }
+  },
+);

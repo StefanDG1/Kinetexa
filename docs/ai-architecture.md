@@ -25,6 +25,8 @@ The current limits are three tools, two provider calls, 48,000 bytes per complet
 
 Telemetry records outcome, tool names/counts, bytes, tokens, model, duration and integer microdollar estimates. It contains no prompt, answer, coordinates or health measurements. The standard Gemini rate card was read from the Gateway model catalog on 6 September 2026; estimates exclude provider cache/region adjustments and are not invoices. A model without a configured rate card reports unavailable cost instead of inventing one.
 
+If deterministic calculations succeed but the external explanation fails validation or delivery, an Ask response can finish as `evidence-only`. It retains the verified evidence and states that the explanation could not be verified. It never uses rejected model text. Consent withdrawal still removes the result. Automatic insight cards continue to require a verified explanation.
+
 ## Verification
 
 The versioned cases and thresholds live in `packages/core/ai-evals.ts`; `scripts/evaluate-ai.mjs` runs one to three cases against the documented synthetic staging fixture using a privately supplied short-lived token. Allow the product minute limit to reset between batches. Exact values, comparison values, unavailable measurements, selected tools, no-transmission boundaries and qualitative fidelity are separate checks.

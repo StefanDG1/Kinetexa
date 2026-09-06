@@ -110,13 +110,20 @@ export const ask = action({
       content = answer.summary;
       status = "completed";
     } catch (error) {
-      evidence = [];
-      status =
-        error instanceof Error && /consent/i.test(error.message)
+      const consentChanged =
+        error instanceof Error && /consent/i.test(error.message);
+      if (stage === "explaining" && evidence.length && !consentChanged) {
+        status = "evidence-only";
+        content =
+          "The calculation completed, but the AI explanation could not be verified. The results below come directly from your recorded data.";
+      } else {
+        evidence = [];
+        status = consentChanged
           ? "consent-revoked"
           : error instanceof Error && /timeout|timed out/i.test(error.message)
             ? "timeout"
             : `${stage}-failed`;
+      }
       if (error instanceof z.ZodError)
         console.info(
           JSON.stringify({

@@ -127,6 +127,12 @@ These are individual synthetic API measurements, not a production percentile or 
 
 Eighty-eight focused tests, TypeScript and the production build pass. Staging's thirteen deterministic tools and selected interval calculations passed after deployment. AI also reads the compact index with per-page consent and source-policy checks; live explanation reliability remains under verification.
 
+## AI explanation failure recovery
+
+A staged route-count question over the explicit August-to-September interval completed in 2.45 seconds using one deterministic tool and two provider calls. Its evidence matched the actual imported route count. The synthetic account's AI consent was restored to off afterward. An earlier explanation failed validation, exposing a loss of otherwise valid calculation results. Ask now retains those results with an explicit `evidence-only` outcome when explanation fails.
+
+Focused tests force rejected numerical prose, provider failure and consent withdrawal. Invalid model prose is never displayed; verified evidence survives explanation failures, and withdrawal still removes it. The latest successful hosted answer does not establish the full model evaluation threshold, which remains a release check.
+
 ## Remaining release work
 
 Full requirement closure remains open, including provider approval and connector operations, large-history performance, complete comparison/AI/health criteria, policy review, operational alerts and the full UI/accessibility matrix. Production continues to serve the holding page. This evidence does not justify `v1.0.0`.

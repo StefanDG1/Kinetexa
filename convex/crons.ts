@@ -8,3 +8,9 @@ crons.daily(
   {},
 );
 export default crons;
+crons.interval(
+  "reconcile subscription state",
+  { hours: 1 },
+  internal.billing.reconcilePage,
+  {},
+);

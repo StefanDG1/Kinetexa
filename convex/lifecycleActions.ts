@@ -7,7 +7,7 @@ import { v, ConvexError } from "convex/values";
 import { action, internalAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { client, getObject, downloadUrl } from "./storage";
-import { stripeClient } from "./billingActions";
+import { closeCustomerBilling } from "./billingActions";
 import { tables } from "./lifecycle";
 const tableNames = tables.filter((table) => table !== "lifecycleJobs");
 export const download = action({
@@ -167,12 +167,10 @@ export const deleteData = internalAction({
         cursor: null,
       });
       for (const row of billing.page as any[]) {
-        if (row.subscriptionId) {
-          try {
-            await stripeClient().subscriptions.cancel(row.subscriptionId);
-          } catch (e) {
-            if ((e as any).code !== "resource_missing") throw e;
-          }
+        try {
+          await closeCustomerBilling(row.customerId);
+        } catch (e) {
+          if ((e as any).code !== "resource_missing") throw e;
         }
       }
       const s3 = client();

@@ -1,9 +1,10 @@
 "use node";
 import Stripe from "stripe";
-import { randomBytes } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { v, ConvexError } from "convex/values";
 import { action, internalAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
+import type { ActionCtx } from "./_generated/server";
 export const catalog = action({
   args: {},
   handler: async (
@@ -35,7 +36,10 @@ export const catalog = action({
 export function stripeClient() {
   if (!process.env.STRIPE_SECRET_KEY)
     throw new Error("Billing is not configured.");
-  return new Stripe(process.env.STRIPE_SECRET_KEY);
+  return new Stripe(process.env.STRIPE_SECRET_KEY, {
+    timeout: 15000,
+    maxNetworkRetries: 2,
+  });
 }
 export const checkout = action({
   args: { interval: v.union(v.literal("monthly"), v.literal("annual")) },
@@ -43,13 +47,6 @@ export const checkout = action({
     const { id } = await ctx.runMutation(api.billing.authorize, {}),
       existing = await ctx.runQuery(api.billing.current, {}),
       stripe = stripeClient();
-    if (
-      existing &&
-      ["active", "trialing", "past_due"].includes(existing.status)
-    )
-      throw new ConvexError(
-        "Manage your existing subscription in the billing portal.",
-      );
     const customerId =
       existing?.customerId ??
       (await ctx.runMutation(internal.billing.attachCustomer, {
@@ -68,23 +65,104 @@ export const checkout = action({
           : "STRIPE_PREMIUM_ANNUAL_PRICE_ID"
       ];
     if (!price) throw new ConvexError("This plan is not configured.");
-    const session = await stripe.checkout.sessions.create(
+    if (!process.env.NEXT_PUBLIC_APP_URL)
+      throw new ConvexError("Billing is not configured.");
+    await refreshCustomer(ctx, customerId);
+    const reserved = await ctx.runMutation(internal.billing.reserveCheckout, {
+      athleteId: id,
+      key: `checkout-${randomUUID()}`,
+      interval,
+      price,
+      appUrl: process.env.NEXT_PUBLIC_APP_URL,
+    });
+    let session = await findCheckout(stripe, reserved);
+    if (!session && reserved.expiresAt - Date.now() < 31 * 60000)
+      throw new ConvexError(
+        "This checkout attempt is being reconciled. Retry after its one-hour reservation expires.",
+      );
+    session ??= await stripe.checkout.sessions.create(
       {
         mode: "subscription",
         customer: customerId,
-        line_items: [{ price, quantity: 1 }],
-        success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?checkout=success`,
-        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing`,
+        line_items: [{ price: reserved.price, quantity: 1 }],
+        success_url: `${reserved.appUrl}/billing?checkout=success`,
+        cancel_url: `${reserved.appUrl}/billing`,
         client_reference_id: id,
         subscription_data: { metadata: { athleteId: id } },
-        integration_identifier: `kinetexa-${randomBytes(4).toString("hex").replace(/[0-9]/g, "a")}`,
+        metadata: { reservation: reserved.key },
+        expires_at: reserved.expiresAt / 1000,
+        integration_identifier: "kinetexa",
       },
       {
-        idempotencyKey: `checkout-${id}-${interval}-${Math.floor(Date.now() / 300000)}`,
+        idempotencyKey: reserved.key,
       },
     );
-    if (!session.url) throw new ConvexError("Checkout is unavailable.");
+    if (session.status !== "open" || !session.url) {
+      await refreshCustomer(ctx, customerId);
+      if (session.status === "expired")
+        await ctx.runMutation(internal.billing.clearCheckout, {
+          customerId,
+          key: reserved.key,
+        });
+      throw new ConvexError(
+        session.status === "complete"
+          ? "Checkout completed. Refresh your subscription status."
+          : "Checkout expired. Choose your plan again.",
+      );
+    }
+    const attached = await ctx.runMutation(internal.billing.rememberCheckout, {
+      customerId,
+      key: reserved.key,
+      sessionId: session.id,
+    });
+    if (!attached) {
+      await stripe.checkout.sessions.expire(session.id);
+      throw new ConvexError("Checkout is no longer available.");
+    }
     return session.url;
+  },
+});
+
+async function findCheckout(
+  stripe: Stripe,
+  reservation: { customerId: string; key: string; sessionId?: string },
+) {
+  if (reservation.sessionId)
+    return stripe.checkout.sessions.retrieve(reservation.sessionId);
+  for await (const session of stripe.checkout.sessions.list({
+    customer: reservation.customerId,
+    limit: 100,
+  }))
+    if (session.metadata?.reservation === reservation.key) return session;
+  return null;
+}
+
+export const cancelCheckout = action({
+  args: {},
+  handler: async (ctx): Promise<void> => {
+    await ctx.runMutation(api.billing.authorize, {});
+    const owned = await ctx.runQuery(api.billing.current, {});
+    if (!owned) return;
+    const row = await ctx.runQuery(internal.billing.byCustomer, {
+      customerId: owned.customerId,
+    });
+    if (!row?.checkout) return;
+    const stripe = stripeClient(),
+      session = await findCheckout(stripe, {
+        customerId: row.customerId,
+        ...row.checkout,
+      });
+    if (session?.status === "open")
+      await stripe.checkout.sessions.expire(session.id);
+    if (!session && row.checkout.expiresAt > Date.now())
+      throw new ConvexError(
+        "Checkout creation has not settled. Retry shortly, or wait for its one-hour reservation to expire.",
+      );
+    await refreshCustomer(ctx, row.customerId);
+    await ctx.runMutation(internal.billing.clearCheckout, {
+      customerId: row.customerId,
+      key: row.checkout.key,
+    });
   },
 });
 export const portal = action({
@@ -131,32 +209,95 @@ export const webhook = internalAction({
           ? object.customer
           : object.customer?.id;
     if (!customerId) return;
-    const row = await ctx.runQuery(internal.billing.byCustomer, { customerId });
-    if (!row) throw new Error("Billing customer is not linked yet.");
-    const observedAt = Date.now();
-    // Read current Stripe state on every delivery; out-of-order events cannot restore stale access.
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "all",
-      limit: 100,
-    });
-    const prices = new Set([
-      process.env.STRIPE_PREMIUM_MONTHLY_PRICE_ID,
-      process.env.STRIPE_PREMIUM_ANNUAL_PRICE_ID,
-    ]);
-    const matching = subscriptions.data.filter((s) =>
-      s.items.data.some((i) => prices.has(i.price.id)),
-    );
-    const sub =
-      matching.find((s) => ["active", "trialing"].includes(s.status)) ??
-      matching.sort((a, b) => b.created - a.created)[0];
-    await ctx.runMutation(internal.billing.apply, {
-      eventId: event.id,
-      customerId,
-      subscriptionId: sub?.id ?? "",
-      status: sub?.status ?? "free",
-      periodEnd: (sub?.items.data[0]?.current_period_end ?? 0) * 1000,
-      observedAt,
-    });
+    if (await ctx.runQuery(internal.billing.hasEvent, { eventId: event.id }))
+      return;
+    await refreshCustomer(ctx, customerId, event.id);
   },
 });
+
+async function refreshCustomer(
+  ctx: ActionCtx,
+  customerId: string,
+  eventId = `reconcile-${randomUUID()}`,
+) {
+  const revision = await ctx.runMutation(internal.billing.beginRefresh, {
+    customerId,
+  });
+  const observedAt = Date.now(),
+    stripe = stripeClient();
+  const prices = new Set([
+    process.env.STRIPE_PREMIUM_MONTHLY_PRICE_ID,
+    process.env.STRIPE_PREMIUM_ANNUAL_PRICE_ID,
+  ]);
+  const matching: Stripe.Subscription[] = [];
+  for await (const subscription of stripe.subscriptions.list({
+    customer: customerId,
+    status: "all",
+    limit: 100,
+  }))
+    if (subscription.items.data.some((i) => prices.has(i.price.id)))
+      matching.push(subscription);
+  const periodEnd = (s: Stripe.Subscription) =>
+    Math.max(
+      0,
+      ...s.items.data
+        .filter((i) => prices.has(i.price.id))
+        .map((i) => i.current_period_end * 1000),
+    );
+  matching.sort((a, b) => b.created - a.created);
+  const sub =
+    matching
+      .filter((s) => ["active", "trialing"].includes(s.status))
+      .sort((a, b) => periodEnd(b) - periodEnd(a))[0] ?? matching[0];
+  await ctx.runMutation(internal.billing.apply, {
+    eventId,
+    customerId,
+    subscriptionId: sub?.id ?? "",
+    status: sub?.status ?? "free",
+    periodEnd: sub ? periodEnd(sub) : 0,
+    observedAt,
+    revision,
+  });
+}
+
+export const refresh = internalAction({
+  args: { customerId: v.string() },
+  handler: async (ctx, { customerId }) => {
+    if (!(await ctx.runQuery(internal.billing.byCustomer, { customerId })))
+      return;
+    await refreshCustomer(ctx, customerId);
+  },
+});
+
+export const refreshCurrent = action({
+  args: {},
+  handler: async (ctx): Promise<void> => {
+    await ctx.runMutation(api.billing.authorize, {});
+    const row = await ctx.runQuery(api.billing.current, {});
+    if (row) await refreshCustomer(ctx, row.customerId);
+  },
+});
+
+export async function closeCustomerBilling(customerId: string) {
+  const stripe = stripeClient();
+  for await (const session of stripe.checkout.sessions.list({
+    customer: customerId,
+    status: "open",
+    limit: 100,
+  }))
+    await stripe.checkout.sessions.expire(session.id);
+  const prices = new Set([
+    process.env.STRIPE_PREMIUM_MONTHLY_PRICE_ID,
+    process.env.STRIPE_PREMIUM_ANNUAL_PRICE_ID,
+  ]);
+  for await (const sub of stripe.subscriptions.list({
+    customer: customerId,
+    status: "all",
+    limit: 100,
+  }))
+    if (
+      !["canceled", "incomplete_expired"].includes(sub.status) &&
+      sub.items.data.some((i) => prices.has(i.price.id))
+    )
+      await stripe.subscriptions.cancel(sub.id);
+}

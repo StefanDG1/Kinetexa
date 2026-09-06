@@ -13,6 +13,7 @@ import { requireAthlete } from "./athletes";
 import { rateLimit } from "./limits";
 import { evidenceSchema } from "../packages/core/ai";
 import { dayKey } from "../packages/core/dashboard";
+import { hasPremium } from "../packages/core/entitlements";
 
 export async function requireRun(ctx: QueryCtx, id: Id<"aiRuns">) {
   const run = await ctx.db.get(id),
@@ -74,7 +75,7 @@ export const begin = internalMutation({
       .query("billing")
       .withIndex("by_athlete", (q) => q.eq("athleteId", a._id))
       .unique();
-    const limit = b && ["active", "trialing"].includes(b.status) ? 200 : 10,
+    const limit = hasPremium(b) ? 200 : 10,
       window = new Date().toISOString().slice(0, 7);
     const u = await ctx.db
       .query("usage")
@@ -276,7 +277,7 @@ export const usage = query({
         .unique();
     return {
       used: u?.count ?? 0,
-      limit: b && ["active", "trialing"].includes(b.status) ? 200 : 10,
+      limit: hasPremium(b) ? 200 : 10,
       window,
     };
   },

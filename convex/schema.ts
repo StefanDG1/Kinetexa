@@ -172,6 +172,17 @@ export default defineSchema({
     subscriptionId: v.optional(v.string()),
     status: v.string(),
     periodEnd: v.optional(v.number()),
+    refreshRevision: v.optional(v.number()),
+    checkout: v.optional(
+      v.object({
+        key: v.string(),
+        interval: v.union(v.literal("monthly"), v.literal("annual")),
+        price: v.string(),
+        appUrl: v.string(),
+        expiresAt: v.number(),
+        sessionId: v.optional(v.string()),
+      }),
+    ),
     updatedAt: v.number(),
   })
     .index("by_athlete", ["athleteId"])

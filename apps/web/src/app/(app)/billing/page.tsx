@@ -6,6 +6,8 @@ export default function Billing() {
   const billing = useQuery(api.billing.current),
     checkout = useAction(api.billingActions.checkout),
     portal = useAction(api.billingActions.portal),
+    cancelCheckout = useAction(api.billingActions.cancelCheckout),
+    refresh = useAction(api.billingActions.refreshCurrent),
     catalog = useAction(api.billingActions.catalog),
     [prices, setPrices] = useState<
       { interval: string; amount: number; currency: string }[]
@@ -52,12 +54,7 @@ export default function Billing() {
         preserves your activity history.
       </p>
       <p>
-        Current plan:{" "}
-        <strong>
-          {billing && ["active", "trialing"].includes(billing.status)
-            ? "Premium"
-            : "Free"}
-        </strong>
+        Current plan: <strong>{billing?.premium ? "Premium" : "Free"}</strong>
         {billing && ` · ${billing.status}`}
       </p>
       {error && (
@@ -120,6 +117,42 @@ export default function Billing() {
           onClick={() => void go(() => portal({}))}
         >
           Manage payment and cancellation
+        </button>
+      )}
+      {billing?.checkoutPending && (
+        <button
+          className="secondary"
+          disabled={busy}
+          onClick={() => {
+            setBusy(true);
+            void cancelCheckout({})
+              .catch((e) =>
+                setError(
+                  e instanceof Error ? e.message : "Could not close checkout.",
+                ),
+              )
+              .finally(() => setBusy(false));
+          }}
+        >
+          Close pending checkout
+        </button>
+      )}
+      {billing && (
+        <button
+          className="secondary"
+          disabled={busy}
+          onClick={() => {
+            setBusy(true);
+            void refresh({})
+              .catch((e) =>
+                setError(
+                  e instanceof Error ? e.message : "Could not refresh billing.",
+                ),
+              )
+              .finally(() => setBusy(false));
+          }}
+        >
+          Refresh subscription status
         </button>
       )}
       <p className="muted">

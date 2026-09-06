@@ -77,6 +77,12 @@ Staging sent one transactional message to Resend's delivery simulator. The signa
 
 Seventy-three focused tests pass. Email cases cover interrupted attempts, stale completions, identical retry bodies and keys, an event arriving before its send response, forged signatures, replay ordering and bounce suppression. Uncertain retries stop before Resend's 24-hour idempotency retention expires. A daily job removes webhook receipts after 30 days; owned receipts follow account export and deletion. Legacy uncertain sends are marked for operator review rather than resent automatically. Production webhook setup remains open.
 
+## Payment reliability verification
+
+Two concurrent authenticated staging requests produced one real Stripe sandbox Checkout session. A repeated request returned the same URL. A conflicting annual request was rejected until the monthly session was expired, then the annual session used the configured annual price. Another account could not cancel the owner's session. All sessions created by this check were expired, with four canonical activities preserved. No live payment was made.
+
+Seventy-seven focused tests pass. Payment cases cover concurrent reservations, stable request bodies, plan changes, stale subscription reads, paid-period expiry without a webhook, forged signatures, test/live separation, replay deduplication, all subscription pages and deletion with unfinished Checkout. Hourly reconciliation and paid-period refresh jobs repair missed events; AI entitlement checks also reject expired periods directly. Wider sandbox payment-failure/renewal verification and production payment readiness remain open.
+
 ## Remaining release work
 
 Full requirement closure remains open, including provider approval and connector operations, large-history performance, complete comparison/AI/health criteria, policy review, backup automation and retention, operational alerts and the full UI/accessibility matrix. Production continues to serve the holding page. This evidence does not justify `v1.0.0`.

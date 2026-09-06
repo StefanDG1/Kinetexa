@@ -35,6 +35,12 @@ History endpoints `activities:page`, `imports:page` and `health:page` use Convex
 
 Share tokens must be unique. Expiring links are revoked by a durable scheduled mutation as well as checked on access. Account export and deletion share one owned-table registry, including AI runs and insights.
 
+## Billing and delivery
+
+`billingActions:checkout({ interval })` reuses the account's pending Stripe session. `billingActions:cancelCheckout({})` expires that session before a plan change. `billingActions:refreshCurrent({})` reconciles current Stripe subscriptions; `billing:current` returns server-calculated `premium` and `checkoutPending` flags. Paid-period expiry is enforced even when a webhook is missing. Reconciliation also runs hourly and at the paid-period boundary.
+
+`email:page` provides private paginated delivery history without cached recipient bodies or idempotency keys. Bounces and complaints suppress subsequent application email. Uncertain delivery after the safe retry window is exposed as `delivery-unknown` for operator review.
+
 ## Verification evidence
 
 `docs/verification-staging.md` records hosted outcomes. Automated tests use synthetic fixtures and independent owners. Live verification accounts, tokens, temporary source files and detailed operational artifacts remain in ignored local storage.

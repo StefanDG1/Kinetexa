@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Persist one Stripe Checkout reservation per account, reconcile full subscription history, enforce paid-period expiry and close unfinished payments during deletion.
+
 - Recover interrupted email attempts with stable payloads and provider idempotency; retain early signed delivery events and suppress bounced or complained recipients.
 
 - Complete workspace edit/delete APIs, validate planned workouts and goal results, and rebuild local dates after timezone changes.

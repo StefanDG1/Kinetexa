@@ -92,6 +92,10 @@ export const settings = mutation({
     if (args.dashboard.length > 30 || args.hiddenWidgets.length > 30)
       throw new ConvexError("Too many dashboard widgets.");
     await ctx.db.patch(a._id, { ...args, thresholds: clean(thresholds) });
+    if (args.insightConsent && a.aiConsent && !a.insightConsent)
+      await ctx.scheduler.runAfter(1000, internal.aiActions.refreshInsight, {
+        athleteId: a._id,
+      });
     if (JSON.stringify(thresholds) !== JSON.stringify(a.thresholds ?? {}))
       await ctx.scheduler.runAfter(0, internal.reprocessing.page, {
         athleteId: a._id,

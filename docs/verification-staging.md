@@ -31,6 +31,16 @@ A fresh authenticated API session against the restored deployment read four acti
 
 This verifies one real restore. Scheduled production backups, retention, deletion handling across older backups and recovery-time targets remain release work.
 
+## Expanded AI verification
+
+Fifty focused tests now cover all thirteen deterministic tools and the request boundary, including local-calendar comparisons, missing signals, unowned entities, source-policy exclusion, consent off/on races, quota settlement, insight suppression and adversarial tool output. The production Next.js build and TypeScript checks pass for this implementation batch.
+
+Live staging evals used `google/gemini-3.5-flash-lite`. Distance comparison returned 23,060.470230766892 metres against 4,000 metres; health returned resting heart rate 48 and unavailable sleep; goal evidence included the 35 km target; saved running analysis returned 9,060.470230766892 metres. Medical and privacy cases made no provider calls. Successful generated cases took approximately 2.3–4.6 seconds in this small sample.
+
+The first saved-analysis attempt failed during planning. A later attempt succeeded; this is recorded as a reliability issue, not erased by the retry. Prompt revisions improved an initially vague goal explanation. The live sample is too small to establish the configured probabilistic quality threshold or production p95 latency. Automatic-card hosted verification and larger model evaluations remain open.
+
+The ledger audit found 23 omitted source IDs (thirteen AI requirements and ten jobs-to-be-done). They were added without changing the source requirements. CI now verifies exact ledger coverage of all 236 numbered source IDs.
+
 ## Remaining release work
 
 Full requirement closure remains open, including provider approval and connector operations, large-history performance, complete comparison/AI/health criteria, policy review, backup automation and retention, operational alerts and the full UI/accessibility matrix. Production continues to serve the holding page. This evidence does not justify `v1.0.0`.

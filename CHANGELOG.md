@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Implement thirteen grounded AI tools, local-calendar comparisons, paginated conversation history, source-policy filtering, consent revisions and request cost telemetry.
+- Add optional, dismissible training-load insights and expand safety, privacy, calculation and quota coverage to fifty tests.
+
 - Verify an independent database and object-storage restore with authenticated reads and byte checks; keep backup automation and retention as open release gates.
 - Isolate scheduled background work in authorization and sharing tests so CI workers finish without email jobs running during teardown.
 

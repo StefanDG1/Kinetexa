@@ -17,6 +17,12 @@ it("rejects arbitrary tools and invented evidence", () => {
 });
 it("keeps numerical claims in deterministic evidence and blocks medical certainty", () => {
   expect(() =>
+    validateExplanation(
+      { summary: "Your training doubled.", evidenceIds: ["x"] },
+      [{ id: "x", value: 1 }],
+    ),
+  ).toThrow();
+  expect(() =>
     validateExplanation({ summary: "You ran 400 km.", evidenceIds: [] }, []),
   ).toThrow();
   expect(() =>

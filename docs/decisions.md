@@ -32,6 +32,8 @@ The original documents contain planned requirements and external platform claims
 
 ## Staging implementation choices
 
+- AI uses a fixed, validated plan with thirteen deterministic tools. Database IDs stay server-side; missing or restricted measurements remain unavailable. Automatic insights require both AI and insight consent and can be dismissed. See `ai-architecture.md` for the implementation limits and rationale.
+
 - Staging has its own Convex deployment and private EU R2 bucket. WorkOS uses the existing non-production environment; Stripe uses sandbox resources. No production athlete dataset is used for verification.
 - Development and staging application emails go to Resend's delivery simulator. Production retains the configured domain-scoped sender. No Resend plan change.
 - V1 exposes metric units. The PRD makes alternate unit systems conditional on later support; the unfinished imperial selector was removed instead of displaying unconverted measurements.

@@ -593,7 +593,7 @@ export default function ActivityPage({
           </details>
         ))}
       </details>
-      <Link href="/ask">Ask about this workout</Link> ·{" "}
+      <Link href={`/ask?activity=${id}`}>Ask about this workout</Link> ·{" "}
       <Link href={`/sharing?activity=${id}`}>Share selected fields</Link>
     </>
   );

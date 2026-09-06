@@ -9,6 +9,7 @@ export default defineSchema({
     timezone: v.string(),
     units: v.union(v.literal("metric"), v.literal("imperial")),
     aiConsent: v.boolean(),
+    aiConsentRevision: v.optional(v.number()),
     analyticsConsent: v.boolean(),
     consentUpdatedAt: v.number(),
     onboarded: v.boolean(),
@@ -67,6 +68,10 @@ export default defineSchema({
     receivedAt: v.optional(v.number()),
     format: v.optional(v.string()),
     mime: v.optional(v.string()),
+    externalAi: v.optional(
+      v.union(v.literal("allowed"), v.literal("blocked"), v.literal("unknown")),
+    ),
+    aiPolicyVersion: v.optional(v.string()),
   })
     .index("by_athlete", ["athleteId", "createdAt"])
     .index("by_hash", ["athleteId", "hash"])
@@ -184,7 +189,36 @@ export default defineSchema({
     content: v.string(),
     evidence: v.optional(v.any()),
     at: v.number(),
+    runId: v.optional(v.id("aiRuns")),
   }).index("by_athlete", ["athleteId", "at"]),
+  aiRuns: defineTable({
+    athleteId: v.id("athletes"),
+    revision: v.number(),
+    purpose: v.union(v.literal("ask"), v.literal("insight")),
+    status: v.string(),
+    startedAt: v.number(),
+    finishedAt: v.optional(v.number()),
+    contextBytes: v.number(),
+    toolCalls: v.number(),
+    tools: v.optional(v.array(v.string())),
+    modelCalls: v.number(),
+    inputTokens: v.number(),
+    outputTokens: v.number(),
+    costMicrousd: v.optional(v.number()),
+    model: v.optional(v.string()),
+    costSource: v.optional(v.string()),
+    fingerprint: v.optional(v.string()),
+  }).index("by_athlete", ["athleteId", "startedAt"]),
+  insights: defineTable({
+    athleteId: v.id("athletes"),
+    fingerprint: v.string(),
+    content: v.string(),
+    evidence: v.any(),
+    dismissed: v.boolean(),
+    at: v.number(),
+  })
+    .index("by_athlete", ["athleteId", "at"])
+    .index("by_fingerprint", ["athleteId", "fingerprint"]),
   lifecycleJobs: defineTable({
     athleteId: v.id("athletes"),
     kind: v.string(),

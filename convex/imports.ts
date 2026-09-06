@@ -43,6 +43,8 @@ export const reserve = mutation({
       key: `${a._id}/originals/${args.nonce}`,
       bytes: args.bytes,
       status: "awaiting-upload",
+      externalAi: "allowed",
+      aiPolicyVersion: "user-file-2026-09",
       attempts: 0,
       createdAt: Date.now(),
     });
@@ -235,6 +237,10 @@ export const complete = internalMutation({
         template: "import",
         dedupeKey: `import-${s._id}`,
       });
+    if (!s.parentId)
+      await ctx.scheduler.runAfter(60000, internal.aiActions.refreshInsight, {
+        athleteId: s.athleteId,
+      });
   },
 });
 export const child = internalMutation({
@@ -259,6 +265,8 @@ export const child = internalMutation({
     const id = await ctx.db.insert("sources", {
       ...args,
       athleteId: p.athleteId,
+      externalAi: p.externalAi ?? "unknown",
+      aiPolicyVersion: p.aiPolicyVersion,
       status: "queued",
       attempts: 0,
       createdAt: Date.now(),
@@ -330,6 +338,10 @@ export const archiveProgress = internalMutation({
         athleteId: s.athleteId,
         template: "import",
         dedupeKey: `import-${id}`,
+      });
+    if (done)
+      await ctx.scheduler.runAfter(60000, internal.aiActions.refreshInsight, {
+        athleteId: s.athleteId,
       });
   },
 });

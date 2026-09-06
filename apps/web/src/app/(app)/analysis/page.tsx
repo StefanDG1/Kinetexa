@@ -1,8 +1,8 @@
 "use client";
 import { useMutation, useQuery, useAction } from "convex/react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { api } from "@convex/_generated/api";
-import type { AnalysisQuery } from "@core/query";
+import { querySchema, type AnalysisQuery } from "@core/query";
 import { Chart, number } from "@/components/data-ui";
 const initial: AnalysisQuery = {
   filters: [],
@@ -12,6 +12,7 @@ const initial: AnalysisQuery = {
   visual: "bar",
 };
 export default function AnalysisPage() {
+  const initialized = useRef(false);
   const data = useQuery(api.workspace.overview),
     preview = useAction(api.queryActions.preview),
     save = useMutation(api.workspace.saveAnalysis),
@@ -19,6 +20,26 @@ export default function AnalysisPage() {
     [name, setName] = useState(""),
     [rows, setRows] = useState<any[]>([]),
     [error, setError] = useState("");
+  useEffect(() => {
+    if (initialized.current) return;
+    const params = new URLSearchParams(window.location.search),
+      raw = params.get("query");
+    if (raw) {
+      initialized.current = true;
+      try {
+        setQ(querySchema.parse(JSON.parse(raw)));
+      } catch {
+        setError("The linked query is invalid.");
+      }
+    } else if (data) {
+      initialized.current = true;
+      const saved = data.analyses.find((a) => a._id === params.get("selected"));
+      if (saved) {
+        setQ(querySchema.parse(saved.query));
+        setName(saved.name);
+      }
+    }
+  }, [data]);
   const fields = [
     "duration",
     "distance",
@@ -97,9 +118,11 @@ export default function AnalysisPage() {
                 })
               }
             >
-              {["count", ...fields, "load"].map((s) => (
-                <option key={s}>{s}</option>
-              ))}
+              {["count", ...fields, "load", "efficiency", "decoupling"].map(
+                (s) => (
+                  <option key={s}>{s}</option>
+                ),
+              )}
             </select>
           </label>
           <label>

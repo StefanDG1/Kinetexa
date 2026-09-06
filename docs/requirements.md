@@ -217,3 +217,27 @@ Every numbered requirement from the unchanged PRD is listed below. Open means im
 | LEGAL-003     | — Data protection [P0]                                     | Open            | Pending                                                                                        |
 | LEGAL-004     | — License boundary [P0]                                    | Open            | Pending                                                                                        |
 | LEGAL-005     | — Brand clearance [P0 business gate]                       | Open            | Pending                                                                                        |
+
+| JTBD-01 | Connect/import my training history once and keep a durable copy. Partial | Implemented journeys; full acceptance remains open. [Record](verification-staging.md) |
+| JTBD-02 | Understand whether my fitness and performance are improving and why. Partial | Implemented journeys; full acceptance remains open. [Record](verification-staging.md) |
+| JTBD-03 | Deeply inspect any workout and its sensor streams. Partial | Implemented journeys; full acceptance remains open. [Record](verification-staging.md) |
+| JTBD-04 | Explore where I have trained and how geography relates to performance. Partial | Implemented journeys; full acceptance remains open. [Record](verification-staging.md) |
+| JTBD-05 | Ask custom questions instead of accepting a fixed dashboard. Partial | Implemented journeys; full acceptance remains open. [Record](verification-staging.md) |
+| JTBD-06 | Understand records, goals, load and consistency. Partial | Implemented journeys; full acceptance remains open. [Record](verification-staging.md) |
+| JTBD-07 | Use health/recovery context to interpret training without turning the product into a medical diagnostic tool. Partial | Implemented journeys; full acceptance remains open. [Record](verification-staging.md) |
+| JTBD-08 | Share selected outcomes without exposing private raw data. Partial | Implemented journeys; full acceptance remains open. [Record](verification-staging.md) |
+| JTBD-09 | Export or delete everything and leave cleanly. Partial | Implemented journeys; full acceptance remains open. [Record](verification-staging.md) |
+| JTBD-10 | Pay for managed hosting/convenience if I do not want to operate the software myself. Partial | Implemented journeys; full acceptance remains open. [Record](verification-staging.md) |
+| AI-001 | Ask Kinetexa [P1] | Partial | Thirteen tools and focused tests implemented; live/UI/operational gates remain. [Design](ai-architecture.md) |
+| AI-002 | Automatic insight cards [P1] | Partial | Thirteen tools and focused tests implemented; live/UI/operational gates remain. [Design](ai-architecture.md) |
+| AI-003 | Tool-grounded operation [P0] | Partial | Thirteen tools and focused tests implemented; live/UI/operational gates remain. [Design](ai-architecture.md) |
+| AI-004 | V1 deterministic tools [P1] | Partial | Thirteen tools and focused tests implemented; live/UI/operational gates remain. [Design](ai-architecture.md) |
+| AI-005 | Evidence [P0] | Partial | Thirteen tools and focused tests implemented; live/UI/operational gates remain. [Design](ai-architecture.md) |
+| AI-006 | No invented data [P0] | Partial | Thirteen tools and focused tests implemented; live/UI/operational gates remain. [Design](ai-architecture.md) |
+| AI-007 | Consent [P0] | Partial | Thirteen tools and focused tests implemented; live/UI/operational gates remain. [Design](ai-architecture.md) |
+| AI-008 | Data minimization [P0] | Partial | Thirteen tools and focused tests implemented; live/UI/operational gates remain. [Design](ai-architecture.md) |
+| AI-009 | Provider restrictions [P0] | Partial | Thirteen tools and focused tests implemented; live/UI/operational gates remain. [Design](ai-architecture.md) |
+| AI-010 | Medical boundary [P0] | Partial | Thirteen tools and focused tests implemented; live/UI/operational gates remain. [Design](ai-architecture.md) |
+| AI-011 | Model abstraction [P1] | Partial | Thirteen tools and focused tests implemented; live/UI/operational gates remain. [Design](ai-architecture.md) |
+| AI-012 | Cost controls [P0] | Partial | Thirteen tools and focused tests implemented; live/UI/operational gates remain. [Design](ai-architecture.md) |
+| AI-013 | Evaluation suite [P0] | Partial | Thirteen tools and focused tests implemented; live/UI/operational gates remain. [Design](ai-architecture.md) |

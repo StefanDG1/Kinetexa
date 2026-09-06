@@ -1,6 +1,6 @@
 "use client";
 import { useActivityHistory } from "@/components/activity-history";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -17,10 +17,13 @@ import {
 import { dashboardData, WIDGETS } from "@core/dashboard";
 import { goalProgress } from "@core/goals";
 import { runQuery } from "@core/query";
+import { AiEvidence } from "@/components/ai-evidence";
 const RouteMap = dynamic(() => import("@/components/route-map"), {
   ssr: false,
 });
 export default function Home() {
+  const insights = useQuery(api.ai.insights),
+    dismiss = useMutation(api.ai.dismiss);
   const [range, setRange] = useState("28"),
     [sport, setSport] = useState(""),
     [customFrom, setCustomFrom] = useState(""),
@@ -262,11 +265,26 @@ export default function Home() {
           <p>No recorded GPS routes in this period.</p>
         );
       case "insight":
+        if (insights?.length)
+          return insights.map((i) => (
+            <article key={i._id}>
+              <p>{i.content}</p>
+              <AiEvidence evidence={i.evidence} />
+              <button
+                className="secondary"
+                onClick={() => void dismiss({ id: i._id })}
+              >
+                Dismiss this insight
+              </button>
+            </article>
+          ));
         return (
           <>
             <p>
               {profile?.aiConsent
-                ? "Ask about your training and inspect the measurements behind the answer."
+                ? profile.insightConsent
+                  ? "No supported automatic observation yet. Insights appear when comparable recorded training supports a meaningful change."
+                  : "Automatic insights are off. You can enable them in Settings or ask a question here."
                 : "AI is off. Your calculations work independently. You can enable optional AI explanations in Settings."}
             </p>
             <Link href={profile?.aiConsent ? "/ask" : "/settings"}>

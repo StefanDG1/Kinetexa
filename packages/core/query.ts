@@ -1,6 +1,10 @@
 import { z } from "zod";
+import { dayKey } from "./dashboard";
 export const querySchema = z.object({
   sport: z.string().optional(),
+  timezone: z.string().optional(),
+  aiEligibleOnly: z.boolean().optional(),
+  hasRoute: z.boolean().optional(),
   from: z.number().optional(),
   to: z.number().optional(),
   gear: z.string().optional(),
@@ -34,6 +38,8 @@ export const querySchema = z.object({
     "weightedPower",
     "avgSpeed",
     "load",
+    "efficiency",
+    "decoupling",
   ]),
   aggregate: z.enum(["count", "sum", "average", "min", "max", "median"]),
   group: z.enum(["day", "week", "month", "year", "sport", "gear", "none"]),
@@ -41,6 +47,8 @@ export const querySchema = z.object({
 });
 export type AnalysisQuery = z.infer<typeof querySchema>;
 export type QueryActivity = {
+  aiEligible?: boolean;
+  route?: number[][];
   _id: string;
   sport: string;
   start: number;
@@ -53,16 +61,25 @@ export type QueryActivity = {
 };
 export function runQuery(items: QueryActivity[], input: unknown) {
   const q = querySchema.parse(input);
+  if (q.metric === "efficiency" && !q.sport && q.group !== "sport")
+    throw new Error(
+      "Choose a sport or group by sport: efficiency uses different output units across sports.",
+    );
   const value = (a: QueryActivity, k: string): number | undefined =>
     k === "count"
       ? 1
       : k === "load"
         ? (a.metrics.metrics?.load?.value ?? undefined)
-        : k === "weightedPower"
-          ? (a.metrics.metrics?.weightedPower?.value ?? undefined)
-          : ((a as any)[k] ?? a.summary[k]);
+        : k === "efficiency" || k === "decoupling"
+          ? (a.metrics.metrics?.[k]?.value ?? undefined)
+          : k === "weightedPower"
+            ? (a.metrics.metrics?.weightedPower?.value ?? undefined)
+            : ((a as any)[k] ?? a.summary[k]);
   const filtered = items.filter(
     (a) =>
+      (!q.aiEligibleOnly || a.aiEligible === true) &&
+      (q.hasRoute === undefined ||
+        Boolean(a.route && a.route.length > 1) === q.hasRoute) &&
       (!q.sport || a.sport === q.sport) &&
       (q.from === undefined || a.start >= q.from) &&
       (q.to === undefined || a.start <= q.to) &&
@@ -82,7 +99,7 @@ export function runQuery(items: QueryActivity[], input: unknown) {
   );
   const groups = new Map<string, { values: number[]; ids: string[] }>();
   for (const a of filtered) {
-    const d = new Date(a.start);
+    const d = new Date(dayKey(a.start, q.timezone ?? "UTC"));
     let key = "Total";
     if (q.group === "sport") key = a.sport;
     else if (q.group === "gear") key = a.gearIds.join(", ") || "Unassigned";
@@ -120,6 +137,12 @@ export function runQuery(items: QueryActivity[], input: unknown) {
                     : v.length % 2
                       ? v[Math.floor(v.length / 2)]
                       : (v[v.length / 2 - 1] + v[v.length / 2]) / 2;
-      return { label, value: result, count: g.ids.length, activityIds: g.ids };
+      return {
+        label,
+        value: result,
+        count: g.ids.length,
+        measuredCount: g.values.length,
+        activityIds: g.ids,
+      };
     });
 }

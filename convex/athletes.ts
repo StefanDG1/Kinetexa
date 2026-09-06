@@ -100,11 +100,18 @@ export const updateProfile = mutation({
       displayName,
       onboarded: true,
       consentUpdatedAt: at,
+      aiConsentRevision:
+        (athlete.aiConsentRevision ?? 0) +
+        Number(athlete.aiConsent !== args.aiConsent),
     });
     await ctx.db.insert("auditEvents", {
       athleteId: athlete._id,
       action: "profile_and_consent_updated",
       at,
     });
+    if (args.aiConsent && !athlete.aiConsent && athlete.insightConsent)
+      await ctx.scheduler.runAfter(1000, internal.aiActions.refreshInsight, {
+        athleteId: athlete._id,
+      });
   },
 });

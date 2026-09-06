@@ -62,19 +62,26 @@ export const page = query({
       });
     return {
       ...result,
-      page: result.page
-        .filter((r) => !r.mergedInto && (!args.sport || r.sport === args.sport))
-        .map((r) => {
-          const step = Math.max(1, Math.ceil(r.route.length / 120));
-          const { laps: _laps, ...summary } = r.summary;
-          return {
-            ...r,
-            summary,
-            route: r.route.filter(
-              (_, i) => i % step === 0 || i === r.route.length - 1,
-            ),
-          };
-        }),
+      page: await Promise.all(
+        result.page
+          .filter(
+            (r) => !r.mergedInto && (!args.sport || r.sport === args.sport),
+          )
+          .map(async (r) => {
+            const source = await ctx.db.get(r.sourceId);
+            const step = Math.max(1, Math.ceil(r.route.length / 120));
+            const { laps: _laps, ...summary } = r.summary;
+            return {
+              ...r,
+              aiEligible:
+                source?.athleteId === a._id && source.externalAi === "allowed",
+              summary,
+              route: r.route.filter(
+                (_, i) => i % step === 0 || i === r.route.length - 1,
+              ),
+            };
+          }),
+      ),
     };
   },
 });

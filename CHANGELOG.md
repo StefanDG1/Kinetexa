@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add custom distance, duration and date-based gear reminders, idempotent service history and paginated usage APIs.
+
 - Preserve recording gaps in bounded chart streams and reject invalid saved-query calendar inputs.
 
 - Add private daily database/object backups, incremental retention and checksum-verified restore preparation with an independent deletion ledger.

@@ -111,6 +111,12 @@ Restoring a snapshot taken before that deletion applied the independent deletion
 
 Eighty-four focused tests and TypeScript checks pass. Deletion workers now fence destructive work by lease, retry failures, cancel billing, abort abandoned multipart uploads, remove private objects and purge records before sending confirmation. See [backup and recovery](backup-and-recovery.md) for retention, credentials and the isolated recovery procedure.
 
+## Maintenance and bounded stream verification
+
+Staging created a custom shoe-replacement reminder against the real imported 2,223.8985328911745-metre activity. The kilometre threshold became due, service completion reset its usage, a repeated completion returned the same event, and retirement preserved historical usage. Another owner could not edit the reminder. Reminder and service records are registered for exports and deletion. The existing gear page has not been redesigned; the new APIs are documented for the user's later UI work.
+
+Eighty-seven tests pass. Maintenance tests traverse 105 activities, exclude merged duplicates, avoid double-counting repeated equipment IDs, enforce ownership and preserve service history. Bounded stream tests retain omitted recording breaks and missing-time gaps, and saved-query validation rejects invalid time zones or inverted dates. Staging confirmed the route break and invalid-query rejection.
+
 ## Remaining release work
 
 Full requirement closure remains open, including provider approval and connector operations, large-history performance, complete comparison/AI/health criteria, policy review, operational alerts and the full UI/accessibility matrix. Production continues to serve the holding page. This evidence does not justify `v1.0.0`.

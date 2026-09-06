@@ -20,7 +20,7 @@ Results carry units, date ranges, contributing activity IDs, reproducible querie
 
 ## Streams and retained sources
 
-- `processing:stream({ id, from?, to? })`: an authorized chart view capped at roughly 2,000 samples. Extra decoded source fields are omitted from this bounded view.
+- `processing:stream({ id, from?, to? })`: an authorized chart view capped at 2,000 samples, preserving recording gaps through reduction. Extra decoded source fields are omitted from this bounded view.
 - `processing:canonical({ id })`: a short-lived authorized download URL for the complete canonical stream, including source fields and device/developer metadata.
 - `processing:interval({ id, from, to })`: interval summary, metrics, actual recorded boundaries and coverage caveats. Bounds are elapsed seconds.
 - `processing:original({ id })`: a short-lived download for a retained source ID; its checksum is available through activity provenance.
@@ -34,6 +34,12 @@ History endpoints `activities:page`, `imports:page` and `health:page` use Convex
 `workspace:saveZone` accepts an optional existing zone ID for edits. `workspace:remove` deletes an owned goal, planned workout, saved analysis or privacy zone. Other account data is preserved. Plans validate sport, dates and intensity size; race results must be positive and event completion uses zero/one. Changing the profile timezone schedules retained-source reprocessing.
 
 Share tokens must be unique. Expiring links are revoked by a durable scheduled mutation as well as checked on access. Account export and deletion share one owned-table registry, including AI runs and insights.
+
+## Gear maintenance
+
+`gear:status` reads usage across paginated canonical history, excluding merged duplicates, and returns each gear item's distance, duration and activity count. Distance coverage is explicit. Retired gear keeps its totals and service history but has no active due reminders. Results describe a read window; edits made during traversal can require a refresh.
+
+`gear:saveReminder` creates or edits a custom reminder with a distance interval in kilometres, duration interval in hours, a due date in UTC milliseconds, or a combination. Omitted optional thresholds clear previous values. `disabled` pauses a reminder. `gear:completeService({ id, at, note })` records service and resets its usage baseline; repeating the same reminder/date returns the same event. One-off due dates are cleared after completion. `gear:history` uses normal pagination. Reminder and service records are included in export, backup and deletion.
 
 ## Billing and delivery
 

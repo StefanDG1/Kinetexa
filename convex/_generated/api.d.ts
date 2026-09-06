@@ -25,6 +25,7 @@ import type * as emailActions from "../emailActions.js";
 import type * as exportActions from "../exportActions.js";
 import type * as exportModel from "../exportModel.js";
 import type * as exports from "../exports.js";
+import type * as gear from "../gear.js";
 import type * as health from "../health.js";
 import type * as http from "../http.js";
 import type * as imports from "../imports.js";
@@ -64,6 +65,7 @@ declare const fullApi: ApiFromModules<{
   exportActions: typeof exportActions;
   exportModel: typeof exportModel;
   exports: typeof exports;
+  gear: typeof gear;
   health: typeof health;
   http: typeof http;
   imports: typeof imports;

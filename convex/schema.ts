@@ -113,6 +113,26 @@ export default defineSchema({
     maintenanceHours: v.optional(v.number()),
     servicedAt: v.number(),
   }).index("by_athlete", ["athleteId"]),
+  gearReminders: defineTable({
+    athleteId: v.id("athletes"),
+    gearId: v.id("gear"),
+    title: v.string(),
+    distanceKm: v.optional(v.number()),
+    durationHours: v.optional(v.number()),
+    dueAt: v.optional(v.number()),
+    servicedAt: v.number(),
+    disabled: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_athlete", ["athleteId"]),
+  gearServices: defineTable({
+    athleteId: v.id("athletes"),
+    gearId: v.id("gear"),
+    reminderId: v.id("gearReminders"),
+    at: v.number(),
+    note: v.string(),
+  })
+    .index("by_athlete", ["athleteId", "at"])
+    .index("by_reminder_at", ["reminderId", "at"]),
   goals: defineTable({
     athleteId: v.id("athletes"),
     title: v.string(),

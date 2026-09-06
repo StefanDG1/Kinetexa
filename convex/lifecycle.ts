@@ -13,6 +13,8 @@ export const tables = [
   "sources",
   "metricHistory",
   "gear",
+  "gearReminders",
+  "gearServices",
   "goals",
   "plans",
   "analyses",

@@ -717,9 +717,13 @@ export function evaluateTool(
         );
       selected.forEach((g, i) => {
         const p = goalProgress(g, data.activities, data.now),
-          used = data.activities.filter(
-            (a) => a.start >= g.start && a.start <= g.end,
-          ),
+          manual = ["custom", "raceTime", "event"].includes(g.kind),
+          through = Math.min(g.end, data.now),
+          used = manual
+            ? []
+            : data.activities.filter(
+                (a) => a.start >= g.start && a.start <= through,
+              ),
           unit =
             g.kind === "distance"
               ? "km"
@@ -730,17 +734,14 @@ export function evaluateTool(
                   : g.kind === "elevation"
                     ? "metres"
                     : "units";
-        const missing = used.some((a) =>
-            g.kind === "distance"
-              ? a.distance === undefined
-              : g.kind === "elevation"
-                ? a.summary.elevationGain === undefined
-                : false,
-          ),
-          caveats =
-            p.measurementStatus === "unrecorded"
-              ? ["No manual result has been recorded for this goal."]
-              : missing
+        const caveats =
+          p.measurementStatus === "unrecorded"
+            ? ["No manual result has been recorded for this goal."]
+            : p.measurementStatus === "unavailable"
+              ? [
+                  "The contributing activities have no usable measurements for this goal.",
+                ]
+              : p.missingCount
                 ? [
                     "Some contributing activities lack measurements; progress includes recorded values only.",
                   ]
@@ -770,15 +771,39 @@ export function evaluateTool(
               from: dayKey(g.start, data.timezone),
               to: dayKey(g.end, data.timezone),
               link: "/goals",
-              query: {
-                from: g.start,
-                to: g.end,
-                filters: [],
-                metric: "count",
-                aggregate: "count",
-                group: "none",
-                visual: "table",
+              method: {
+                definition: manual
+                  ? "Athlete-entered goal result."
+                  : "Recorded goal progress through the calculation time, excluding future activity records.",
+                formula:
+                  key === "target"
+                    ? "Configured goal target."
+                    : key === "projection"
+                      ? "Current measured progress × goal duration / elapsed duration, only while the goal is active."
+                      : key === "progress"
+                        ? g.kind === "raceTime"
+                          ? "min(100, 100 × target seconds / recorded seconds)"
+                          : g.kind === "event"
+                            ? "100 if marked complete; otherwise 0."
+                            : "100 × current / target"
+                        : manual
+                          ? "Recorded manual result, unavailable until supplied."
+                          : `Sum recorded ${g.kind}; distance in km and duration in hours. No measured inputs yields unavailable when activities exist.`,
+                version: p.version,
               },
+              ...(!manual && through >= g.start
+                ? {
+                    query: {
+                      from: g.start,
+                      to: through,
+                      filters: [],
+                      metric: "count",
+                      aggregate: "count",
+                      group: "none",
+                      visual: "table",
+                    },
+                  }
+                : {}),
             },
           );
       });

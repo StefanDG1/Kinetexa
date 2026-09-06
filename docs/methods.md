@@ -32,6 +32,12 @@ Recorded sleep duration sums observed light/deep/REM intervals that close with a
 
 The daily view selects the latest physiological reading and the highest step counter. It never adds different devices together. Multiple health files may overlap; source names remain available for inspection. AI health trends use the same daily selection before calculating averages. Turning health processing off affects future imports and preserves existing history.
 
-## Calculation revision 0.4.0-alpha.2
+## Goal progress revision 1.1.0
+
+Goal progress uses only activities starting within the goal period and no later than the calculation time. Recorded distance converts to kilometres and recorded duration to hours. If activities exist but every required measurement is missing or invalid, current progress, percentage and projection are unavailable. Recorded zero remains zero; partial progress sums the measured values and reports missing coverage. With no completed activities in the period, automatic goals have zero observed progress. Manual results remain unavailable until entered. Their evidence cites the entered result and goal rather than unrelated activity records.
+
+Goal evidence uses the same time cutoff as its calculation and records method version `1.1.0`. These values are calculated on request; this correction does not require activity reprocessing. The prior implementation returned zero when all automatic measurements were absent and included future activity references in evidence.
+
+## Activity calculation revision 0.4.0-alpha.2
 
 Best-distance detection previously considered only starts on recorded samples. It could miss a faster interval whose start falls between samples and whose end is recorded. The corrected two-pass scan considers both endpoint cases while retaining the same gap exclusions. In the independent fixture with consecutive speeds of 3, 6, 10 and 3 m/s over 30-second segments, the fastest 400 m ends at 90 seconds and takes `100/6 + 300/10 = 46.6666666667` seconds. The old result was 52 seconds. Interpolation still estimates motion between recorded points; this does not establish timing accuracy beyond the underlying recording. Reprocess retained activities to publish the correction, keeping prior calculation versions in history.

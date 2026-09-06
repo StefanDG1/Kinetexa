@@ -16,13 +16,29 @@ import { clean } from "../packages/core/model";
 import { route } from "../packages/core/geo";
 
 export const stream = action({
-  args: { id: v.id("activities") },
+  args: {
+    id: v.id("activities"),
+    from: v.optional(v.number()),
+    to: v.optional(v.number()),
+  },
   handler: async (
     ctx,
     args,
   ): Promise<import("../packages/core/model").Activity> => {
-    const a = await ctx.runQuery(api.activities.get, args);
-    return JSON.parse(new TextDecoder().decode(await getObject(a.streamKey)));
+    const a = await ctx.runQuery(api.activities.get, { id: args.id });
+    const activity: import("../packages/core/model").Activity = JSON.parse(
+      new TextDecoder().decode(await getObject(a.streamKey)),
+    );
+    const selected = activity.samples.filter(
+      (s) => s.t >= (args.from ?? 0) && s.t <= (args.to ?? activity.duration),
+    );
+    const step = Math.max(1, Math.ceil(selected.length / 2000));
+    return {
+      ...activity,
+      samples: selected.filter(
+        (_, i) => i % step === 0 || i === selected.length - 1,
+      ),
+    };
   },
 });
 

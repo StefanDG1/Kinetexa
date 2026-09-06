@@ -46,7 +46,21 @@ This file records implemented and verified outcomes separately. Unchecked items 
 
 ## Verification record
 
-No application journey has been verified yet. Verification will record the environment, tested commit, fixture and outcome. Unit tests alone do not establish hosted integration success. Test payments do not establish successful live payments.
+### Implementation progress, 6 September 2026
+
+The user authorized full implementation after the setup report. Work is on `codex/operational-v1`. `docs/requirements.md` retains every numbered requirement; no GA claim or `v1.0.0` tag has been made.
+
+Verified against the development Convex deployment and local Next.js application using two synthetic WorkOS accounts:
+
+- Authentication and persisted onboarding. Cross-user activity reads fail; the second account sees no first-account activities.
+- Real R2 uploads and background FIT, GPX, TCX and ZIP processing. Four uploads produce three canonical activities, with archive repeats deduplicated.
+- Export ZIP downloaded and inspected. It contains four unchanged originals and three canonical stream files, plus application metadata.
+- AI consent off rejects model requests. Consent on completed a Gateway query and returned evidence-linked output. This is a smoke test, not the full AI evaluation gate.
+- Stripe sandbox Checkout creation, signed subscription activation, repeated delivery, forged-signature rejection and cancellation preserving canonical activities. No live charge was made.
+- Browser inspection at 1600px desktop and 390px mobile. Home and activity pages display real synthetic imports without horizontal page overflow. This is partial UI verification, not the complete browser/accessibility matrix.
+- Eighteen focused tests currently cover core calculations, malformed inputs, archive limits, privacy masking, cross-user access, quotas and AI response validation. Production build and TypeScript checks pass at the recorded implementation batch.
+
+Still open: complete dashboard/customization, all analytics and import metadata criteria, provider framework/approval, automatic insight/evaluation coverage, production billing readiness, transactional email lifecycle, deletion/restore drill, operational alerts, large-history performance, full accessibility and all remaining ledger acceptance criteria. The production domain continues to serve the holding page until release gates are met.
 
 ## Setup handoff, 6 September 2026
 

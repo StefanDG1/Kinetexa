@@ -4,7 +4,11 @@
     "allowJs": true,
     "incremental": true,
     "plugins": [{ "name": "next" }],
-    "paths": { "@/*": ["./src/*"], "@convex/*": ["../../convex/*"] }
+    "paths": {
+      "@/*": ["./src/*"],
+      "@convex/*": ["../../convex/*"],
+      "@core/*": ["../../packages/core/*"]
+    }
   },
   "include": [
     "next-env.d.ts",

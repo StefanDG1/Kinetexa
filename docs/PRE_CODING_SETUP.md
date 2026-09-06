@@ -6,20 +6,20 @@ The existing development setup is sufficient to continue coding. The remaining a
 
 ## Already done
 
-| Service | Current state | Your action |
-| --- | --- | --- |
-| Local project | `C:\Code\Kinetexa`, Git initialized; initial app and backend files exist | Keep this folder |
-| GitHub | Public repository [StefanDG1/Kinetexa](https://github.com/StefanDG1/Kinetexa), initial foundation commit pushed | Nothing to create |
-| Vercel | Project `kinetexa` exists and is linked to GitHub | Set up commercial billing below |
-| Domain | `kinetexa.com` and `www.kinetexa.com` attached to Vercel | Check domain status below |
-| Namecheap | Nameservers saved as `ns1.vercel-dns.com` and `ns2.vercel-dns.com`; public DNS now returns them | Do not change nameservers again |
-| Convex | Project `kinetexa`; development deployment `earnest-gecko-916`; initial schema and authentication configuration deployed | Nothing needed to start coding |
-| WorkOS | Kinetexa project created; staging credentials saved and localhost URLs configured | Finish production setup below |
-| Cloudflare R2 | Private EU buckets `kinetexa-dev` and `kinetexa-prod`, separate bucket-scoped credentials saved | Nothing to recreate or make public |
-| Stripe | Separate Romanian Kinetexa account created; onboarding unfinished, last seen in test mode | Finish activation and keys below |
-| Resend | `kinetexa.com` added; DNS records added in Vercel; verification was pending; no Kinetexa API key created | Optional, free tier only |
-| PostHog | Existing EU login available; no Kinetexa project created | Create a project below |
-| AI and base maps | No Kinetexa credentials configured | Set up below |
+| Service          | Current state                                                                                                            | Your action                        |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
+| Local project    | `C:\Code\Kinetexa`, Git initialized; initial app and backend files exist                                                 | Keep this folder                   |
+| GitHub           | Public repository [StefanDG1/Kinetexa](https://github.com/StefanDG1/Kinetexa), initial foundation commit pushed          | Nothing to create                  |
+| Vercel           | Project `kinetexa` exists and is linked to GitHub                                                                        | Set up commercial billing below    |
+| Domain           | `kinetexa.com` and `www.kinetexa.com` attached to Vercel                                                                 | Check domain status below          |
+| Namecheap        | Nameservers saved as `ns1.vercel-dns.com` and `ns2.vercel-dns.com`; public DNS now returns them                          | Do not change nameservers again    |
+| Convex           | Project `kinetexa`; development deployment `earnest-gecko-916`; initial schema and authentication configuration deployed | Nothing needed to start coding     |
+| WorkOS           | Kinetexa project created; staging credentials saved and localhost URLs configured                                        | Finish production setup below      |
+| Cloudflare R2    | Private EU buckets `kinetexa-dev` and `kinetexa-prod`, separate bucket-scoped credentials saved                          | Nothing to recreate or make public |
+| Stripe           | Separate Romanian Kinetexa account created; onboarding unfinished, last seen in test mode                                | Finish activation and keys below   |
+| Resend           | `kinetexa.com` added; DNS records added in Vercel; verification was pending; no Kinetexa API key created                 | Optional, free tier only           |
+| PostHog          | Existing EU login available; no Kinetexa project created                                                                 | Create a project below             |
+| AI and base maps | No Kinetexa credentials configured                                                                                       | Set up below                       |
 
 There is no working hosted application yet. The new application files have not been pushed. Automatic deployments were disabled during setup to avoid deploying an incomplete app.
 
@@ -56,13 +56,13 @@ Open the [WorkOS dashboard](https://dashboard.workos.com), select project **Kine
 1. Add billing information if WorkOS asks you to unlock production. Select only the authentication features needed for Kinetexa; enterprise SSO and Directory Sync are unnecessary here.
 2. Open **Applications**, select Kinetexa's application, and set these production values:
 
-| Setting | Value |
-| --- | --- |
-| Application name | `Kinetexa` |
-| Homepage | `https://kinetexa.com` |
-| Redirect URI | `https://kinetexa.com/callback` |
-| Initiate login URL | `https://kinetexa.com/sign-in` |
-| Sign-out redirect | `https://kinetexa.com` |
+| Setting            | Value                           |
+| ------------------ | ------------------------------- |
+| Application name   | `Kinetexa`                      |
+| Homepage           | `https://kinetexa.com`          |
+| Redirect URI       | `https://kinetexa.com/callback` |
+| Initiate login URL | `https://kinetexa.com/sign-in`  |
+| Sign-out redirect  | `https://kinetexa.com`          |
 
 3. Permit public signups and enable email/password authentication with email verification. Avoid an invitation-only or corporate-domain-only signup restriction.
 4. Copy the **production client ID**, create a production API key named `Kinetexa production`, and save both:
@@ -105,14 +105,14 @@ You do not need to create payment links or manually subscribe yourself.
 1. In the Kinetexa sandbox/test environment, open **Developers or Workbench > API keys**.
 2. Create a restricted key named `Kinetexa development setup`. Grant the following resource permissions, using the closest matching names in Stripe's editor:
 
-| Resource | Permission |
-| --- | --- |
-| Customers | Write |
-| Products and prices | Write |
-| Checkout Sessions | Write |
-| Customer portal | Write |
-| Subscriptions and invoices | Read |
-| Webhook endpoints | Write |
+| Resource                   | Permission |
+| -------------------------- | ---------- |
+| Customers                  | Write      |
+| Products and prices        | Write      |
+| Checkout Sessions          | Write      |
+| Customer portal            | Write      |
+| Subscriptions and invoices | Read       |
+| Webhook endpoints          | Write      |
 
 3. Leave unrelated resources without access. Save the key as `STRIPE_SECRET_KEY` in `.env.local`. A restricted test key begins `rk_test_`.
 4. Repeat in **live mode** with a key named `Kinetexa production setup`, saving it only in `.env.production.local`. It begins `rk_live_`.

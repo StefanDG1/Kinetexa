@@ -7,9 +7,7 @@ export async function requireAthlete(ctx: QueryCtx) {
   if (!identity) throw new ConvexError("Sign in to continue.");
   const athlete = await ctx.db
     .query("athletes")
-    .withIndex("by_identity", (q) =>
-      q.eq("tokenIdentifier", identity.tokenIdentifier),
-    )
+    .withIndex("by_workos_user", (q) => q.eq("workosUserId", identity.subject))
     .unique();
   if (!athlete || athlete.status !== "active") {
     throw new ConvexError("Your account is unavailable.");
@@ -24,8 +22,8 @@ export const current = query({
     if (!identity) return null;
     const athlete = await ctx.db
       .query("athletes")
-      .withIndex("by_identity", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      .withIndex("by_workos_user", (q) =>
+        q.eq("workosUserId", identity.subject),
       )
       .unique();
     if (!athlete || athlete.status !== "active") return null;
@@ -45,8 +43,8 @@ export const ensure = mutation({
     if (!identity) throw new ConvexError("Sign in to continue.");
     const existing = await ctx.db
       .query("athletes")
-      .withIndex("by_identity", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      .withIndex("by_workos_user", (q) =>
+        q.eq("workosUserId", identity.subject),
       )
       .unique();
     if (existing) {

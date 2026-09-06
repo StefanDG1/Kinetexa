@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@import "@fontsource/barlow/600.css";
+@import "@fontsource/barlow/700.css";
+@import "@fontsource/source-sans-3/400.css";
+@import "@fontsource/source-sans-3/600.css";
 
 :root {
   color-scheme: light;
@@ -15,7 +19,7 @@ body {
   margin: 0;
   background: var(--snow);
   color: var(--marine);
-  font-family: "Segoe UI", system-ui, sans-serif;
+  font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
   line-height: 1.6;
 }
 a {

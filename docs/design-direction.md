@@ -4,14 +4,14 @@ Kinetexa should feel like equipment an athlete wants to use every day. Its visua
 
 ## Tokens
 
-| Role | Color | Purpose |
-| --- | --- | --- |
-| Snow | `#F7FAFC` | Main background |
-| White | `#FFFFFF` | Reading and chart surfaces |
-| Marine | `#16384B` | Primary text, navigation and controls |
-| Pool | `#147D92` | Training trend and secondary emphasis |
+| Role      | Color     | Purpose                                           |
+| --------- | --------- | ------------------------------------------------- |
+| Snow      | `#F7FAFC` | Main background                                   |
+| White     | `#FFFFFF` | Reading and chart surfaces                        |
+| Marine    | `#16384B` | Primary text, navigation and controls             |
+| Pool      | `#147D92` | Training trend and secondary emphasis             |
 | Persimmon | `#D94A25` | Selected route, primary action and activity focus |
-| Mist | `#DCE7EB` | Quiet structural boundaries |
+| Mist      | `#DCE7EB` | Quiet structural boundaries                       |
 
 Use orange selectively, avoiding competition between navigation and data. Series also need labels, line styles or symbols so color never carries meaning alone. Validate every text/background pairing for contrast.
 

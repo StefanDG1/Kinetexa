@@ -12,7 +12,7 @@ function env(key: string) {
   if (!v) throw new Error(`Storage configuration missing: ${key}`);
   return v;
 }
-function client() {
+export function client() {
   return new S3Client({
     region: "auto",
     endpoint: env("R2_ENDPOINT"),

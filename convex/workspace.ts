@@ -4,6 +4,7 @@ import { requireAthlete } from "./athletes";
 import { querySchema, runQuery } from "../packages/core/query";
 import { thresholdsSchema, clean } from "../packages/core/model";
 import { rateLimit } from "./limits";
+import { internal } from "./_generated/api";
 
 export const overview = query({
   args: {},
@@ -91,6 +92,11 @@ export const settings = mutation({
     if (args.dashboard.length > 30 || args.hiddenWidgets.length > 30)
       throw new ConvexError("Too many dashboard widgets.");
     await ctx.db.patch(a._id, { ...args, thresholds: clean(thresholds) });
+    if (JSON.stringify(thresholds) !== JSON.stringify(a.thresholds ?? {}))
+      await ctx.scheduler.runAfter(0, internal.reprocessing.page, {
+        athleteId: a._id,
+        cursor: null,
+      });
   },
 });
 export const saveGear = mutation({

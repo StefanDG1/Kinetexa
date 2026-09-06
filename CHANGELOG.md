@@ -10,10 +10,6 @@
 
 Versions use Semantic Versioning. Setup and development milestones use prerelease versions. Version 1.0.0 is reserved for complete, operational V1 with recorded verification.
 
-## Unreleased
-
-Full V1 implementation has not begun. Account setup and the holding page form the first prerelease milestone.
-
 ## 0.1.0-alpha.2 - 2026-09-06
 
 - Finish live Stripe key issuance after the user's identity verification.

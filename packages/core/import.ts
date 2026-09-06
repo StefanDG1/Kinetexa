@@ -53,6 +53,8 @@ export function normalize(input: Activity): Activity {
   for (let i = 0; i < samples.length; i++) {
     const s = samples[i],
       p = samples[i - 1];
+    if (s.lat !== undefined && Math.abs(s.lat) > 90) delete s.lat;
+    if (s.lon !== undefined && Math.abs(s.lon) > 180) delete s.lon;
     if (p) {
       const dt = s.t - p.t;
       if (
@@ -67,6 +69,12 @@ export function normalize(input: Activity): Activity {
         if (d / dt < 35) distance += d;
       } else if (s.distance !== undefined)
         distance = Math.max(distance, s.distance);
+      if (
+        s.distance === undefined &&
+        s.lat !== undefined &&
+        s.lon !== undefined
+      )
+        s.distance = distance;
       if (
         s.speed === undefined &&
         s.distance !== undefined &&
@@ -113,9 +121,7 @@ export function normalize(input: Activity): Activity {
       maxHr:
         input.maxHr ??
         (samples.some((s) => s.hr !== undefined)
-          ? Math.max(
-              ...samples.filter((s) => s.hr !== undefined).map((s) => s.hr!),
-            )
+          ? samples.reduce((max, s) => Math.max(max, s.hr ?? 0), 0)
           : undefined),
       avgPower: weighted(samples, "power") ?? input.avgPower,
       avgCadence: weighted(samples, "cadence") ?? input.avgCadence,

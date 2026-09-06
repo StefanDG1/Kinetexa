@@ -4,6 +4,8 @@ This records prerelease evidence, not completion of all V1 acceptance criteria. 
 
 ## Hosted journeys
 
+The first hosted operational workflow passed for staging and production: [run 34049786270](https://github.com/StefanDG1/Kinetexa/actions/runs/34049786270). The workflow is active on the default branch. This proves scheduled-check execution; delivery of an incident notification has not been tested.
+
 Operational verification: a retained staged cycling file reprocessed successfully in 1,389 ms and produced a correlated operational event. Its OTLP JSON export passed format/content checks. Ordinary authenticated and anonymous clients were denied internal operator reads. The production backend was deployed with athlete registration closed; `athletes:ensure` returned the explicit release-gate error and `athletes:current` returned null. Both private monitors completed without active alerts before workflow activation. Nested spans and actual notification delivery remain unverified. See [operations](operations.md).
 
 Environment: `staging.kinetexa.com`, a separate European Convex deployment and private European R2 bucket. Synthetic accounts use the non-production WorkOS environment. Payments use Stripe sandbox; application email uses Resend's delivery simulator.

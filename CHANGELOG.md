@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Expose explicit provider approval/terms gates and capability status, with a checked adapter contract and current Strava/Polar compliance notes.
+
 - Divide email send reservations across production, staging and development to keep their combined allowance within Resend Free.
 
 - Record private job outcomes, cost and latency; add guarded operator retries, queue alerts, OTLP trace export and scheduled checks. Keep production athlete APIs closed until release.

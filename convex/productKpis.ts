@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internalAction, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { hasPremium } from "../packages/core/entitlements";
+import { evidenceSchema } from "../packages/core/ai";
 import {
   calculateProductKpis,
   validateKpiPeriod,
@@ -111,13 +112,77 @@ export const state = internalQuery({
     };
   },
 });
+export const feedbackPage = internalQuery({
+  args: {
+    athleteId: v.id("athletes"),
+    revision: v.number(),
+    cursor,
+    from: v.number(),
+    to: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const a = await ctx.db.get(args.athleteId);
+    if (
+      !a ||
+      a.status !== "active" ||
+      !a.analyticsConsent ||
+      (a.analyticsConsentRevision ?? 0) !== args.revision
+    )
+      return null;
+    const result = await ctx.db
+      .query("messages")
+      .withIndex("by_athlete", (q) =>
+        q.eq("athleteId", a._id).gte("at", args.from).lt("at", args.to),
+      )
+      .paginate({
+        cursor: args.cursor,
+        numItems: 50,
+        maximumBytesRead: 2_000_000,
+      });
+    let eligible = 0,
+      rated = 0,
+      helpful = 0;
+    for (const message of result.page) {
+      if (
+        message.role !== "assistant" ||
+        !message.runId ||
+        !Array.isArray(message.evidence) ||
+        !message.evidence.length ||
+        !message.evidence.every((e) => evidenceSchema.safeParse(e).success)
+      )
+        continue;
+      const run = await ctx.db.get(message.runId);
+      if (
+        !run ||
+        run.athleteId !== a._id ||
+        !["completed", "evidence-only"].includes(run.status)
+      )
+        continue;
+      eligible++;
+      if (message.feedback) {
+        rated++;
+        if (message.feedback.helpful) helpful++;
+      }
+    }
+    return {
+      isDone: result.isDone,
+      continueCursor: result.continueCursor,
+      eligible,
+      rated,
+      helpful,
+    };
+  },
+});
 export const report = internalAction({
   args: { from: v.number(), to: v.number() },
   handler: async (
     ctx,
     { from, to },
   ): Promise<
-    ReturnType<typeof calculateProductKpis> & { readStartedAt: number }
+    ReturnType<typeof calculateProductKpis> & {
+      readStartedAt: number;
+      readFinishedAt: number;
+    }
   > => {
     const readStartedAt = Date.now();
     validateKpiPeriod(from, to, readStartedAt);
@@ -158,6 +223,28 @@ export const report = internalAction({
             position = batch.isDone ? null : batch.continueCursor;
           } while (position);
         }
+        row.aiFeedback = { eligible: 0, rated: 0, helpful: 0 };
+        let feedbackCursor: string | null = null;
+        do {
+          const feedback: {
+            isDone: boolean;
+            continueCursor: string;
+            eligible: number;
+            rated: number;
+            helpful: number;
+          } | null = await ctx.runQuery(internal.productKpis.feedbackPage, {
+            athleteId: a.id,
+            revision: a.revision,
+            cursor: feedbackCursor,
+            from,
+            to,
+          });
+          if (!feedback) break;
+          row.aiFeedback.eligible += feedback.eligible;
+          row.aiFeedback.rated += feedback.rated;
+          row.aiFeedback.helpful += feedback.helpful;
+          feedbackCursor = feedback.isDone ? null : feedback.continueCursor;
+        } while (feedbackCursor);
         // Recheck after the paginated reads. Withdrawal invalidates this account's contribution.
         const state = await ctx.runQuery(internal.productKpis.state, {
           athleteId: a.id,
@@ -168,8 +255,9 @@ export const report = internalAction({
       next = page.isDone ? null : page.continueCursor;
     } while (next);
     return {
-      ...calculateProductKpis(rows, from, to, Date.now()),
+      ...calculateProductKpis(rows, from, to, readStartedAt),
       readStartedAt,
+      readFinishedAt: Date.now(),
     };
   },
 });

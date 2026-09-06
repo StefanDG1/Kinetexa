@@ -277,6 +277,37 @@ export const runStatus = query({
     return status;
   },
 });
+export const feedback = mutation({
+  args: {
+    messageId: v.id("messages"),
+    helpful: v.union(v.boolean(), v.null()),
+  },
+  handler: async (ctx, { messageId, helpful }) => {
+    const a = await requireAthlete(ctx),
+      message = await ctx.db.get(messageId);
+    if (!message || message.athleteId !== a._id || message.role !== "assistant")
+      throw new ConvexError("Answer unavailable.");
+    await rateLimit(ctx, a._id, "ai-feedback", 30, 60000);
+    if (helpful === null) {
+      await ctx.db.patch(messageId, { feedback: undefined });
+      return;
+    }
+    const run = message.runId ? await ctx.db.get(message.runId) : null;
+    if (
+      !run ||
+      run.athleteId !== a._id ||
+      !["completed", "evidence-only"].includes(run.status) ||
+      !Array.isArray(message.evidence) ||
+      !message.evidence.length ||
+      !message.evidence.every((e) => evidenceSchema.safeParse(e).success)
+    )
+      throw new ConvexError(
+        "Only completed answers with evidence can be rated.",
+      );
+    if (message.feedback?.helpful !== helpful)
+      await ctx.db.patch(messageId, { feedback: { helpful, at: Date.now() } });
+  },
+});
 export const usage = query({
   args: {},
   handler: async (ctx) => {

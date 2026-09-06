@@ -14,6 +14,7 @@ export type KpiAthlete = {
   activityCreatedAt: number[];
   sources: KpiSource[];
   events: KpiEvent[];
+  aiFeedback?: { eligible: number; rated: number; helpful: number };
 };
 const actions = new Set([
   "dashboard_viewed",
@@ -59,6 +60,14 @@ export function calculateProductKpis(
   now: number,
 ) {
   validateKpiPeriod(from, to, now);
+  const aiFeedback = athletes.reduce(
+    (total, a) => ({
+      eligible: total.eligible + (a.aiFeedback?.eligible ?? 0),
+      rated: total.rated + (a.aiFeedback?.rated ?? 0),
+      helpful: total.helpful + (a.aiFeedback?.helpful ?? 0),
+    }),
+    { eligible: 0, rated: 0, helpful: 0 },
+  );
   let matured = 0,
     pending = 0,
     activated = 0,
@@ -215,8 +224,12 @@ export function calculateProductKpis(
     },
     aiGroundedAnswerSuccess: {
       percent: null,
+      userFeedback: {
+        ...rate(aiFeedback.helpful, aiFeedback.rated),
+        eligibleAnswers: aiFeedback.eligible,
+      },
       reason:
-        "Runtime completion is not a quality score. Combine evaluation evidence and user feedback before reporting this KPI.",
+        "Feedback describes current helpfulness ratings on answers created in the period with validated evidence. It is voluntary and is not an independent correctness evaluation. Evaluation results remain separate.",
     },
     ossSignal: {
       value: null,

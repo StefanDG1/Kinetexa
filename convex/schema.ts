@@ -330,6 +330,7 @@ export default defineSchema({
     evidence: v.optional(v.any()),
     at: v.number(),
     runId: v.optional(v.id("aiRuns")),
+    feedback: v.optional(v.object({ helpful: v.boolean(), at: v.number() })),
   }).index("by_athlete", ["athleteId", "at"]),
   aiRuns: defineTable({
     athleteId: v.id("athletes"),

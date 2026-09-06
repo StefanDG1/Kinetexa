@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add private editable AI answer feedback, evidence eligibility checks and consent-limited feedback aggregates without model calls or quota charges.
+
 - Add private consent-limited KPI reports with explicit pending and missing-data counts; record successful analysis queries, source completion times and Premium cancellation transitions.
 
 ## 0.4.0-alpha.1 - 2026-09-06

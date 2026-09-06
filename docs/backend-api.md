@@ -70,3 +70,7 @@ Deletion locks the account immediately and starts after fifteen minutes. Each de
 # Internal product measurement
 
 `productKpis:report({from,to})` returns private operator aggregates for a period up to 31 days within the retained last 90 days. It reports observed activation, retained first-activity timing, terminal root-import success, weekly engagement, explainability, current Premium conversion and observed cancellation. Pending work, missing history and unavailable KPIs are explicit. This internal action is inaccessible to ordinary or anonymous clients. See [product analytics](product-analytics.md) for consent and denominator definitions.
+
+## AI answer feedback
+
+`ai:feedback({messageId,helpful})` sets a private helpful/unhelpful rating on an owned completed assistant answer with validated evidence. Set `helpful` to `null` to remove it. Repeating the same rating preserves its timestamp. Ratings appear with `ai:messages`, are included in account export and disappear with account deletion. Rating does not invoke a model or consume AI quota. It does not require renewed AI consent to manage an existing answer.

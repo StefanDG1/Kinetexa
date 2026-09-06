@@ -150,3 +150,7 @@ Focused tests force rejected numerical prose, provider failure and consent withd
 ## Remaining release work
 
 Full requirement closure remains open, including provider approval and connector operations, large-history performance, complete comparison/AI/health criteria, policy review, operational alerts and the full UI/accessibility matrix. Production continues to serve the holding page. This evidence does not justify `v1.0.0`.
+
+## AI feedback API
+
+A retained staged answer was rated helpful, changed to unhelpful and cleared. Internal aggregates changed by exactly one at each step; the original rating and analytics consent were restored. Another owner and an anonymous client were rejected. No model was called and quota was unchanged. The 108-test suite covers feedback ownership, idempotence, removal, evidence eligibility and analytics-consent exclusion. This verifies the backend API; frontend feedback controls and a larger independent quality evaluation remain open.

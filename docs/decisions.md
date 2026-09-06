@@ -4,6 +4,7 @@ These explicit user decisions take precedence over the original planning documen
 
 ## Full implementation authorization, 6 September 2026
 
+- Public support and privacy contact: `contact@exponentialeducation.ro`, explicitly supplied by the user during implementation.
 - The setup report has been delivered. The user explicitly authorized implementing and deploying the complete operational V1, verifying journeys, committing and pushing progress, and tagging verified SemVer milestones.
 - This supersedes the historical setup-only phase boundary. All applicable PRD requirements remain in scope. Garmin approval, Vercel plan restrictions, business policy review and other external requirements must be reported honestly, without claiming GA or tagging `v1.0.0` before its gates pass.
 - Track each normative requirement in `docs/requirements.md`. Implementation and hosted verification are separate states.

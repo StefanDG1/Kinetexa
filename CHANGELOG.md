@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Add canonical FIT/TCX/GPX parsing, bounded archive imports, private original storage, background import state, and duplicate suggestions.
+- Add deterministic load, zones, fitness decay and best-effort calculations with synthetic fixtures.
+- Add athlete ownership checks, mutation quotas, and two-identity backend tests.
+- Begin the authenticated responsive application, onboarding, import history, activities and training timeline. These are implementation progress, not verified hosted V1 outcomes.
+- Record all 213 numbered PRD requirements and the user's authorization to proceed beyond setup.
+
 Versions use Semantic Versioning. Setup and development milestones use prerelease versions. Version 1.0.0 is reserved for complete, operational V1 with recorded verification.
 
 ## Unreleased

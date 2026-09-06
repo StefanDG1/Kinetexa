@@ -8,7 +8,13 @@
  * @module
  */
 
+import type * as activities from "../activities.js";
 import type * as athletes from "../athletes.js";
+import type * as imports from "../imports.js";
+import type * as limits from "../limits.js";
+import type * as processing from "../processing.js";
+import type * as storage from "../storage.js";
+import type * as workspace from "../workspace.js";
 
 import type {
   ApiFromModules,
@@ -17,7 +23,13 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  activities: typeof activities;
   athletes: typeof athletes;
+  imports: typeof imports;
+  limits: typeof limits;
+  processing: typeof processing;
+  storage: typeof storage;
+  workspace: typeof workspace;
 }>;
 
 /**

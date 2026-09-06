@@ -43,7 +43,11 @@ const average = (values: (number | null)[]) => {
   const valid = values.filter((v): v is number => v !== null);
   return valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
 };
-export function evaluateTool(call: AiTool, data: ToolData): Evidence[] {
+export function evaluateTool(
+  call: AiTool,
+  data: ToolData,
+  externalAi = true,
+): Evidence[] {
   const period = resolvePeriod(
     "period" in call ? call.period : undefined,
     data.now,
@@ -61,7 +65,9 @@ export function evaluateTool(call: AiTool, data: ToolData): Evidence[] {
   const evidence: Evidence[] = [];
   data = {
     ...data,
-    activities: data.activities.map((a) => ({ ...a, aiEligible: true })),
+    activities: externalAi
+      ? data.activities.map((a) => ({ ...a, aiEligible: true }))
+      : data.activities,
   };
   const emit = (
     key: string,
@@ -92,7 +98,7 @@ export function evaluateTool(call: AiTool, data: ToolData): Evidence[] {
         sport: "sport" in call ? call.sport : undefined,
         from: used.reduce((n, a) => Math.min(n, a.start), period.start),
         to: Math.max(period.end - 1, ...used.map((a) => a.start)),
-        aiEligibleOnly: true,
+        aiEligibleOnly: externalAi,
         filters: [],
         metric: "count",
         aggregate: "count",
@@ -104,7 +110,11 @@ export function evaluateTool(call: AiTool, data: ToolData): Evidence[] {
         "This measurement is unavailable for the selected period.",
       );
     if (e.query)
-      e.query = { ...e.query, aiEligibleOnly: true, timezone: data.timezone };
+      e.query = {
+        ...e.query,
+        ...(externalAi ? { aiEligibleOnly: true } : {}),
+        timezone: data.timezone,
+      };
     if (data.excluded)
       e.caveats.push(
         "Sources without permission for external AI use were excluded before calculation.",
@@ -723,11 +733,14 @@ export function evaluateTool(call: AiTool, data: ToolData): Evidence[] {
                 ? a.summary.elevationGain === undefined
                 : false,
           ),
-          caveats = missing
-            ? [
-                "Some contributing activities lack measurements; progress includes recorded values only.",
-              ]
-            : [];
+          caveats =
+            p.measurementStatus === "unrecorded"
+              ? ["No manual result has been recorded for this goal."]
+              : missing
+                ? [
+                    "Some contributing activities lack measurements; progress includes recorded values only.",
+                  ]
+                : [];
         for (const [key, value, u] of [
           ["current", p.current, unit],
           ["target", g.target, unit],

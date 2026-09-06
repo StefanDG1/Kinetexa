@@ -14,6 +14,7 @@ import type * as ai from "../ai.js";
 import type * as aiActions from "../aiActions.js";
 import type * as aiData from "../aiData.js";
 import type * as aiProvider from "../aiProvider.js";
+import type * as analytics from "../analytics.js";
 import type * as athletes from "../athletes.js";
 import type * as billing from "../billing.js";
 import type * as billingActions from "../billingActions.js";
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   aiActions: typeof aiActions;
   aiData: typeof aiData;
   aiProvider: typeof aiProvider;
+  analytics: typeof analytics;
   athletes: typeof athletes;
   billing: typeof billing;
   billingActions: typeof billingActions;

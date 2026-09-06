@@ -61,6 +61,12 @@ A staging FIT containing a run and a ride produced two independent 20-second, 10
 
 Sixty-three tests pass. Added coverage includes DST transitions, explicit non-hour XML offsets, multi-session FIT boundaries, all GPX tracks and TCX activities, source extensions, unit conversions, duplicate handling and conversion of legacy multi-activity imports while retaining the first activity's edits and ID. Wider real-device fixture coverage remains open.
 
+## Deterministic analytics API verification
+
+All thirteen deterministic calculation requests completed against staging through `analytics:calculate`, with each returning finite or explicitly unavailable evidence. This includes activity comparison, period load/fitness, records, zones, health, both query forms, maps, goals and gear. The query and dashboard totals remained 27,060.470230766892 metres across four activities. These small-account calls took 79–125 ms; this is not a large-history benchmark or production p95 claim.
+
+The selected cycling interval requested 100.5–600.5 seconds, used recorded boundaries 101–600, and returned 499 seconds, mean power 205.6933867735471 W and load 10.24673214788439. Another account was denied that interval. Health analytics returned recorded sleep while AI consent was off, without invoking a model. Sixty-nine tests pass, including source-policy separation between private deterministic analytics and AI, coverage constraints, sport-specific thresholds, unknown race results and missing-load propagation.
+
 ## Remaining release work
 
 Full requirement closure remains open, including provider approval and connector operations, large-history performance, complete comparison/AI/health criteria, policy review, backup automation and retention, operational alerts and the full UI/accessibility matrix. Production continues to serve the holding page. This evidence does not justify `v1.0.0`.

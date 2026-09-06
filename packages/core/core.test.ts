@@ -274,7 +274,7 @@ describe("deterministic training calculations", () => {
       { date: "2026-01-02", load: 0 },
     ]);
     expect(f[0].chronic).toBeCloseTo(100 * (1 - Math.exp(-1 / 42)));
-    expect(f[1].chronic).toBeCloseTo(f[0].chronic * Math.exp(-1 / 42));
+    expect(f[1].chronic).toBeCloseTo(f[0].chronic! * Math.exp(-1 / 42));
   });
 });
 describe("untrusted imports", () => {

@@ -234,7 +234,7 @@ export default function Home() {
                 </p>
                 <progress
                   aria-label={`${g.title} progress`}
-                  value={Math.min(percent, 100)}
+                  value={Math.min(percent ?? 0, 100)}
                   max={100}
                 />
               </div>

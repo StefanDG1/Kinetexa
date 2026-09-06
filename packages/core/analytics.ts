@@ -184,7 +184,34 @@ export function analyze(activity: Activity, thresholds: Thresholds = {}) {
     }
   }
   const wp = count >= 31 ? (fourth / count) ** 0.25 : null;
-  const intensity = wp !== null && thresholds.ftp ? wp / thresholds.ftp : null;
+  const coverage = (key: "hr" | "power" | "speed") =>
+    samples.reduce((total, s, i) => {
+      const previous = samples[i - 1];
+      return (
+        total +
+        (previous &&
+        previous[key] !== undefined &&
+        s.t > previous.t &&
+        s.t - previous.t <= 30
+          ? Math.max(
+              0,
+              Math.min(s.t, activity.duration) - Math.max(0, previous.t),
+            )
+          : 0)
+      );
+    }, 0);
+  const hrSeconds = coverage("hr"),
+    powerSeconds = coverage("power"),
+    speedSeconds = coverage("speed");
+  const enough = (seconds: number) =>
+    activity.duration > 0 && seconds / activity.duration >= 0.9;
+  const powerThreshold =
+    activity.sport === "cycling"
+      ? thresholds.ftp
+      : activity.sport === "running"
+        ? thresholds.runningFtp
+        : undefined;
+  const intensity = wp !== null && powerThreshold ? wp / powerThreshold : null;
   const reserve =
     hr !== undefined &&
     thresholds.maxHr &&
@@ -199,31 +226,77 @@ export function analyze(activity: Activity, thresholds: Thresholds = {}) {
         )
       : null;
   const trimp =
-    reserve === null
+    reserve === null ||
+    (!enough(hrSeconds) &&
+      !(
+        hrSeconds === 0 &&
+        activity.avgHr !== undefined &&
+        !samples.some((s) => s.hr !== undefined)
+      ))
       ? null
       : (activity.duration / 60) * reserve * 0.64 * Math.exp(1.92 * reserve);
-  const output = activity.sport === "cycling" ? power : speed;
-  const efficiency = output !== undefined && hr ? output / hr : null;
+  const outputKey = activity.sport === "cycling" ? "power" : "speed";
+  const applicable = ["running", "cycling", "walking"].includes(activity.sport);
+  function paired(from: number, to: number) {
+    let seconds = 0,
+      heart = 0,
+      output = 0,
+      squared = 0;
+    for (let i = 1; i < samples.length; i++) {
+      const a = samples[i - 1],
+        b = samples[i],
+        value = a[outputKey];
+      if (
+        b.t <= a.t ||
+        b.t - a.t > 30 ||
+        a.hr === undefined ||
+        value === undefined
+      )
+        continue;
+      const dt = Math.max(0, Math.min(to, b.t) - Math.max(from, a.t));
+      seconds += dt;
+      heart += a.hr * dt;
+      output += value * dt;
+      squared += value * value * dt;
+    }
+    const mean = seconds ? output / seconds : 0;
+    return {
+      seconds,
+      mean,
+      heartMean: seconds ? heart / seconds : null,
+      cv:
+        mean && seconds
+          ? Math.sqrt(Math.max(0, squared / seconds - mean ** 2)) / mean
+          : null,
+      efficiency:
+        applicable && seconds >= 0.9 * (to - from) && heart > 0
+          ? output / heart
+          : null,
+    };
+  }
+  const pairedAll = paired(0, activity.duration),
+    output = pairedAll.mean,
+    efficiency = pairedAll.efficiency;
   const mid = activity.duration / 2;
-  const parts = [
-    samples.filter((s) => s.t <= mid),
-    samples.filter((s) => s.t >= mid),
+  const eff = [
+    paired(0, mid).efficiency,
+    paired(mid, activity.duration).efficiency,
   ];
-  const eff = parts.map((p) => {
-    const h = weighted(p, "hr"),
-      o = weighted(p, activity.sport === "cycling" ? "power" : "speed");
-    return h && o !== undefined ? o / h : null;
-  });
   const decoupling =
-    activity.duration >= 1200 && eff[0] && eff[1]
+    activity.duration >= 1200 &&
+    pairedAll.cv !== null &&
+    pairedAll.cv <= 0.3 &&
+    eff[0] &&
+    eff[1]
       ? (100 * (eff[0] - eff[1])) / eff[0]
       : null;
   const load =
-    intensity !== null
+    intensity !== null && enough(powerSeconds)
       ? (activity.duration / 3600) * intensity ** 2 * 100
       : (trimp ??
         (activity.sport === "running" &&
         speed !== undefined &&
+        enough(speedSeconds) &&
         thresholds.thresholdSpeed
           ? (activity.duration / 3600) *
             (speed / thresholds.thresholdSpeed) ** 2 *
@@ -234,21 +307,26 @@ export function analyze(activity: Activity, thresholds: Thresholds = {}) {
       load,
       "points",
       "Training load",
-      intensity !== null
+      intensity !== null && enough(powerSeconds)
         ? "hours × (weighted power / FTP)² × 100"
         : trimp !== null
           ? "minutes × HR reserve × 0.64 × exp(1.92 × HR reserve)"
-          : "hours × (mean running speed / threshold speed)² × 100",
+          : load !== null
+            ? "hours × (mean running speed / threshold speed)² × 100"
+            : "No eligible load model: configure a sport-appropriate threshold and provide sufficient sensor coverage.",
       {
         duration: activity.duration,
-        ftp: thresholds.ftp ?? null,
+        ftp: powerThreshold ?? null,
+        hrSeconds,
+        powerSeconds,
+        speedSeconds,
         hr: hr ?? null,
         restHr: thresholds.restHr ?? null,
         maxHr: thresholds.maxHr ?? null,
         speed: speed ?? null,
         thresholdSpeed: thresholds.thresholdSpeed ?? null,
       },
-      "Uses power first, then heart rate, then running pace when its threshold is set. These estimates are not interchangeable. HR uses a fixed Banister coefficient; pace is not adjusted for hills or weather.",
+      "Uses sport-specific power threshold first, then heart rate, then running pace. Stream-based load needs 90% elapsed-time coverage. Source-only average HR is accepted when no HR stream exists. These estimates are not interchangeable; HR uses a fixed coefficient and pace is not adjusted for terrain.",
     ),
     trimp: metric(
       trimp,
@@ -275,7 +353,7 @@ export function analyze(activity: Activity, thresholds: Thresholds = {}) {
       "ratio",
       "Power intensity",
       "weighted power / configured FTP",
-      { ftp: thresholds.ftp ?? null },
+      { ftp: powerThreshold ?? null },
       "A stale FTP changes this estimate.",
     ),
     variability: metric(
@@ -291,16 +369,27 @@ export function analyze(activity: Activity, thresholds: Thresholds = {}) {
       activity.sport === "cycling" ? "W/bpm" : "m/s/bpm",
       "Aerobic efficiency",
       "mean output / mean heart rate",
-      { output: output ?? null, hr: hr ?? null },
-      "Compare similar terrain, conditions and workout intensity.",
+      {
+        output: output ?? null,
+        hr: pairedAll.heartMean,
+        pairedSeconds: pairedAll.seconds,
+        minimumCoverage: 0.9,
+      },
+      "Requires paired output and HR for at least 90% of elapsed time. Compare the same sport, terrain, conditions and workout intensity.",
     ),
     decoupling: metric(
       decoupling,
       "%",
       "Aerobic decoupling",
       "100 × (first-half efficiency − second-half efficiency) / first-half efficiency",
-      { first: eff[0], second: eff[1] },
-      "Meaningful for steady endurance work of at least 20 minutes. Hills, stops and intervals confound the result.",
+      {
+        first: eff[0],
+        second: eff[1],
+        outputCoefficientOfVariation: pairedAll.cv,
+        maximumVariation: 0.3,
+        minimumCoverage: 0.9,
+      },
+      "Requires at least 20 minutes, 90% paired coverage in each half and output coefficient of variation no higher than 0.30. This operational steady-effort filter does not account for hills, heat or all intervals.",
     ),
   };
   return {
@@ -312,6 +401,13 @@ export function analyze(activity: Activity, thresholds: Thresholds = {}) {
     paceCurve: bestDurations(samples, "speed"),
     bestDistances: bestDistances(samples),
     thresholds,
+    coverage: {
+      hrSeconds,
+      powerSeconds,
+      speedSeconds,
+      pairedSeconds: pairedAll.seconds,
+      duration: activity.duration,
+    },
     version: VERSION,
   };
 }
@@ -321,11 +417,19 @@ export function fitness(
   acuteDays = 7,
 ) {
   let chronic = 0,
-    acute = 0;
+    acute = 0,
+    complete = true;
   return daily.map((d) => {
-    const form = chronic - acute;
+    const form = complete ? chronic - acute : null;
+    if (d.load === null) complete = false;
     chronic += ((d.load ?? 0) - chronic) * (1 - Math.exp(-1 / chronicDays));
     acute += ((d.load ?? 0) - acute) * (1 - Math.exp(-1 / acuteDays));
-    return { ...d, chronic, acute, form };
+    return {
+      ...d,
+      chronic: complete ? chronic : null,
+      acute: complete ? acute : null,
+      form,
+      complete,
+    };
   });
 }

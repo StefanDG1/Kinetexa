@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Expose all thirteen deterministic analytics operations and complete dashboard summaries through authenticated APIs, without an AI call.
+- Add recorded-interval analysis; reject sparse load extrapolation, unpaired efficiency and cycling FTP applied to running.
+- Keep missing load distinct from rest days and leave unrecorded race results unavailable.
+
 - Preserve local start/offset provenance, device metadata, sensor dynamics and decoded source fields in downloadable canonical data.
 - Import all FIT sessions, TCX activities and GPX tracks independently; retain shared originals and deduplicate by file and part.
 - Repair legacy multi-activity imports through the retained-file reprocessing workflow.

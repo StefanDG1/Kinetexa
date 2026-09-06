@@ -21,6 +21,7 @@ import { clean } from "../packages/core/model";
 import { route } from "../packages/core/geo";
 import { aggregateHealthFile } from "../packages/core/health";
 import { withTimeContext } from "../packages/core/time-context";
+import { analyzeInterval } from "../packages/core/interval";
 
 export const stream = action({
   args: {
@@ -54,6 +55,21 @@ export const canonical = action({
   handler: async (ctx, { id }): Promise<string> => {
     const activity = await ctx.runQuery(api.activities.get, { id });
     return downloadUrl(activity.streamKey);
+  },
+});
+export const interval = action({
+  args: { id: v.id("activities"), from: v.number(), to: v.number() },
+  handler: async (
+    ctx,
+    { id, from, to },
+  ): Promise<ReturnType<typeof analyzeInterval>> => {
+    const row = await ctx.runQuery(api.activities.get, { id });
+    const profile = await ctx.runQuery(api.athletes.current, {});
+    if (!profile) throw new Error("Account unavailable.");
+    const activity = JSON.parse(
+      new TextDecoder().decode(await getObject(row.streamKey)),
+    );
+    return clean(analyzeInterval(activity, from, to, profile.thresholds ?? {}));
   },
 });
 

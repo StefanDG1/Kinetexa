@@ -69,7 +69,9 @@ export function dashboardData(
       count: day?.count ?? 0,
     });
   }
-  const curve = fitness(daily)
+  const curve = fitness(
+    daily.map((d) => ({ ...d, load: d.missing ? null : d.load })),
+  )
     .filter((d) => d.date >= firstDay && d.date <= lastDay)
     .map((d) => ({
       ...d,
@@ -115,7 +117,8 @@ export function dashboardData(
   while (lastSeven.length < 7) lastSeven.unshift(0);
   const mean = lastSeven.reduce((a, b) => a + b, 0) / 7,
     sd = Math.sqrt(lastSeven.reduce((n, x) => n + (x - mean) ** 2, 0) / 7),
-    monotony = sd > 0 ? mean / sd : null,
+    monotony =
+      sd > 0 && !daily.slice(-7).some((d) => d.missing) ? mean / sd : null,
     strain = monotony === null ? null : monotony * mean * 7;
   let streak = 0;
   let day = Date.parse(dayKey(to, timezone));

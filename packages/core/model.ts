@@ -70,6 +70,7 @@ export const thresholdsSchema = z
     restHr: z.number().min(25).max(120).optional(),
     maxHr: z.number().min(100).max(250).optional(),
     ftp: z.number().min(30).max(700).optional(),
+    runningFtp: z.number().min(30).max(700).optional(),
     thresholdSpeed: z.number().min(1).max(10).optional(),
     hrZones: z.array(z.number().min(20).max(260)).max(10).optional(),
     powerZones: z.array(z.number().nonnegative()).max(10).optional(),

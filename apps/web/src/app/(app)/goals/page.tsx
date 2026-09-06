@@ -33,7 +33,7 @@ export default function GoalsPage() {
               {g.kind === "event" ? (
                 <p>
                   {date(g.end)} ·{" "}
-                  {p.current >= 1 ? "Completed" : "Upcoming event"}
+                  {(p.current ?? 0) >= 1 ? "Completed" : "Upcoming event"}
                 </p>
               ) : (
                 <p>
@@ -44,7 +44,7 @@ export default function GoalsPage() {
               )}
               <progress
                 aria-label={`${g.title} progress`}
-                value={Math.min(100, p.percent)}
+                value={Math.min(100, p.percent ?? 0)}
                 max={100}
               />
               <p>

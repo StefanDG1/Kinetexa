@@ -80,6 +80,23 @@ it("keeps health private, honors processing preferences and pages beyond the for
       ).page,
     ).toEqual([]);
     expect((await b.query(api.health.status)).hasSource).toBe(false);
+    for (const from of ["2026-02-29", "2026-02-30", "2026-13-01"])
+      await expect(
+        a.query(api.health.page, {
+          from,
+          to: "2026-12-31",
+          paginationOpts: { numItems: 100, cursor: null },
+        }),
+      ).rejects.toThrow("valid date range");
+    expect(
+      (
+        await a.query(api.health.page, {
+          from: "2024-02-29",
+          to: "2024-02-29",
+          paginationOpts: { numItems: 100, cursor: null },
+        })
+      ).page,
+    ).toEqual([]);
   } finally {
     vi.clearAllTimers();
     vi.useRealTimers();

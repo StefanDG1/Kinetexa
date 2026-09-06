@@ -74,3 +74,7 @@ Deletion locks the account immediately and starts after fifteen minutes. Each de
 ## AI answer feedback
 
 `ai:feedback({messageId,helpful})` sets a private helpful/unhelpful rating on an owned completed assistant answer with validated evidence. Set `helpful` to `null` to remove it. Repeating the same rating preserves its timestamp. Ratings appear with `ai:messages`, are included in account export and disappear with account deletion. Rating does not invoke a model or consume AI quota. It does not require renewed AI consent to manage an existing answer.
+
+## Complete provenance histories
+
+`activities:provenance` returns a bounded overview and `hasMore.sources` / `hasMore.history`. Use `activities:provenancePage({id,kind,paginationOpts})` for every retained source or calculation snapshot. `kind` is `sources` or `history`; follow the continuation cursor until `isDone`, even if a page is empty. Source pages contain at most 100 rows, history pages at most 25, with a 2 MB database read bound per page. Both APIs require ownership of the activity and exclude foreign-owner records.

@@ -2,7 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { requireAthlete } from "./athletes";
 import type { QueryCtx } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
+import type { Id, Doc } from "./_generated/dataModel";
 import { paginationOptsValidator } from "convex/server";
 import { simplifySegments, type Point } from "../packages/core/geo";
 import { publishFacts } from "./activityFacts";
@@ -107,43 +107,92 @@ export const provenance = query({
     const history = await ctx.db
       .query("metricHistory")
       .withIndex("by_activity", (q) => q.eq("activityId", id))
+      .filter((q) => q.eq(q.field("athleteId"), row.athleteId))
       .order("desc")
-      .take(25);
+      .take(26);
+    const sources = await ctx.db
+      .query("sources")
+      .withIndex("by_activity", (q) => q.eq("activityId", id))
+      .filter((q) => q.eq(q.field("athleteId"), row.athleteId))
+      .take(101);
     return {
-      source: source
-        ? {
-            name: source.name,
-            hash: source.hash,
-            bytes: source.bytes,
-            parserVersion: source.parserVersion,
-            createdAt: source.createdAt,
-            parentId: source.parentId,
-            partIndex: source.partIndex,
-            format: source.format,
-            mime: source.mime,
-            receivedAt: source.receivedAt,
-            importMetadata: source.importMetadata,
-          }
-        : null,
-      sources: (
-        await ctx.db
-          .query("sources")
-          .withIndex("by_activity", (q) => q.eq("activityId", id))
-          .filter((q) => q.eq(q.field("athleteId"), row.athleteId))
-          .take(100)
-      ).map((s) => ({
-        id: s._id,
-        name: s.name,
-        hash: s.hash,
-        parserVersion: s.parserVersion,
-        importMetadata: s.importMetadata,
-        parentId: s.parentId,
-        partIndex: s.partIndex,
-        status: s.status,
-        bytes: s.bytes,
-        format: s.format,
-      })),
-      history,
+      source:
+        source?.athleteId === row.athleteId
+          ? {
+              name: source.name,
+              hash: source.hash,
+              bytes: source.bytes,
+              parserVersion: source.parserVersion,
+              createdAt: source.createdAt,
+              parentId: source.parentId,
+              partIndex: source.partIndex,
+              format: source.format,
+              mime: source.mime,
+              receivedAt: source.receivedAt,
+              importMetadata: source.importMetadata,
+            }
+          : null,
+      sources: sources.slice(0, 100).map(provenanceSource),
+      history: history.slice(0, 25),
+      hasMore: { sources: sources.length > 100, history: history.length > 25 },
+    };
+  },
+});
+function provenanceSource(s: Doc<"sources">) {
+  return {
+    id: s._id,
+    name: s.name,
+    hash: s.hash,
+    parserVersion: s.parserVersion,
+    importMetadata: s.importMetadata,
+    parentId: s.parentId,
+    partIndex: s.partIndex,
+    status: s.status,
+    bytes: s.bytes,
+    format: s.format,
+    mime: s.mime,
+    receivedAt: s.receivedAt,
+    completedAt: s.completedAt,
+  };
+}
+export const provenancePage = query({
+  args: {
+    id: v.id("activities"),
+    kind: v.union(v.literal("sources"), v.literal("history")),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, { id, kind, paginationOpts }) => {
+    const row = await ownedActivity(ctx, id);
+    if (kind === "sources") {
+      const result = await ctx.db
+        .query("sources")
+        .withIndex("by_activity", (q) => q.eq("activityId", id))
+        .paginate({
+          ...paginationOpts,
+          numItems: Math.min(100, Math.max(1, paginationOpts.numItems)),
+          maximumBytesRead: 2_000_000,
+        });
+      return {
+        ...result,
+        kind,
+        page: result.page
+          .filter((s) => s.athleteId === row.athleteId)
+          .map(provenanceSource),
+      };
+    }
+    const result = await ctx.db
+      .query("metricHistory")
+      .withIndex("by_activity", (q) => q.eq("activityId", id))
+      .order("desc")
+      .paginate({
+        ...paginationOpts,
+        numItems: Math.min(25, Math.max(1, paginationOpts.numItems)),
+        maximumBytesRead: 2_000_000,
+      });
+    return {
+      ...result,
+      kind,
+      page: result.page.filter((h) => h.athleteId === row.athleteId),
     };
   },
 });

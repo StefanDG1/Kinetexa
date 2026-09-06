@@ -158,3 +158,7 @@ A retained staged answer was rated helpful, changed to unhelpful and cleared. In
 ## Original integrity under upload replay
 
 A fresh synthetic account reproduced an upload URL overwriting an already processed original; the original bytes were immediately restored. After the fix, replaying a new upload URL still succeeds against its temporary key, but the downloaded retained original and SHA-256 remain unchanged. Reprocessing succeeds from that original. A ZIP containing two activities and a two-session GPX each completed, and malformed XML failed while preserving its exact original and checksum. Six canonical fixture activities were verified. The fixture is in its normal deletion grace period; final cleanup is pending. The focused suite has 109 passing tests.
+
+## Complete provenance reads
+
+A focused integration case retrieves 126 sources and 35 calculation snapshots through bounded pages, checks overview truncation flags and rejects another owner. Staging retrieved a retained cycling activity's source and six calculation versions with one-row pages; cross-owner reads failed. Health history now rejects impossible dates such as 30 February while accepting valid leap days. All 110 tests and TypeScript pass.

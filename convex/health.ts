@@ -5,6 +5,8 @@ import { requireAthlete } from "./athletes";
 import { HEALTH_METRICS } from "../packages/core/health";
 import type { QueryCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
+import { z } from "zod";
+const date = z.iso.date();
 export async function currentHealth(ctx: QueryCtx, row: Doc<"health">) {
   if (!row.sourceId) return row.generation === undefined;
   const source = await ctx.db.get(row.sourceId);
@@ -52,8 +54,8 @@ export const page = query({
   handler: async (ctx, args) => {
     const a = await requireAthlete(ctx);
     if (
-      !/^\d{4}-\d{2}-\d{2}$/.test(args.from) ||
-      !/^\d{4}-\d{2}-\d{2}$/.test(args.to) ||
+      !date.safeParse(args.from).success ||
+      !date.safeParse(args.to).success ||
       args.from > args.to
     )
       throw new ConvexError("Choose a valid date range.");

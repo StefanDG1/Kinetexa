@@ -85,6 +85,64 @@ const healthRange = {
   to: "2026-09-02",
   paginationOpts: { cursor: null, numItems: 100 },
 };
+it("pages all retained provenance beyond summary limits and rejects another owner", async () => {
+  const { t, a, b, athleteId, sourceId, activityId } = await setup();
+  await t.run(async (ctx) => {
+    for (let i = 0; i < 125; i++)
+      await ctx.db.insert("sources", {
+        athleteId,
+        activityId,
+        name: `duplicate-${i}.gpx`,
+        key: `${athleteId}/originals/${i}`,
+        bytes: 1,
+        status: "duplicate",
+        attempts: 1,
+        createdAt: i,
+      });
+    for (let i = 0; i < 35; i++)
+      await ctx.db.insert("metricHistory", {
+        athleteId,
+        activityId,
+        metrics: { value: i },
+        at: i,
+      });
+  });
+  const summary = await a.query(api.activities.provenance, { id: activityId });
+  expect(summary.hasMore).toEqual({ sources: true, history: true });
+  for (const kind of ["sources", "history"] as const) {
+    let cursor: string | null = null,
+      count = 0;
+    do {
+      const result: {
+        page: unknown[];
+        isDone: boolean;
+        continueCursor: string;
+      } = await a.query(api.activities.provenancePage, {
+        id: activityId,
+        kind,
+        paginationOpts: { numItems: 1000, cursor },
+      });
+      count += result.page.length;
+      expect(result.page.length).toBeLessThanOrEqual(
+        kind === "sources" ? 100 : 25,
+      );
+      cursor = result.isDone ? null : result.continueCursor;
+    } while (cursor);
+    expect(count).toBe(kind === "sources" ? 126 : 35);
+    await expect(
+      b.query(api.activities.provenancePage, {
+        id: activityId,
+        kind,
+        paginationOpts: { numItems: 100, cursor: null },
+      }),
+    ).rejects.toThrow("unavailable");
+  }
+  expect(
+    (await a.query(api.activities.provenance, { id: activityId })).sources.some(
+      (s) => s.id === sourceId,
+    ),
+  ).toBe(true);
+});
 it("publishes a complete replacement once, preserving edits, original checksums and previous metric evidence", async () => {
   const { t, a, b, sourceId, activityId, hash } = await setup();
   await expect(

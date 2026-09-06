@@ -1,0 +1,10 @@
+{
+  "verifiedAt": "2026-09-06T21:53:57.683Z",
+  "environment": "isolated-restore",
+  "corruptZipRejected": true,
+  "corruptZipPublishedNoActivities": true,
+  "failedAndSuccessfulOriginalChecksumsPreserved": true,
+  "validDeflatedMigrationCompleted": true,
+  "migrationMetadataPreserved": true,
+  "importedActivities": 2
+}

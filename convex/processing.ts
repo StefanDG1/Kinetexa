@@ -133,7 +133,7 @@ export const process = internalAction({
         return;
       s.key = key;
       if (/\.zip$/i.test(s.name)) {
-        const files = unpackArchive(bytes);
+        const files = await unpackArchive(bytes);
         const childIds: import("./_generated/dataModel").Id<"sources">[] = [];
         for (const f of files) {
           const childHash = createHash("sha256").update(f.bytes).digest("hex"),

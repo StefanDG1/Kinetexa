@@ -1,6 +1,6 @@
 import FitParser from "fit-file-parser";
 import { scanActivityXml } from "./xml-records";
-import { unzipSync } from "fflate";
+import { readArchiveFiles } from "./archive";
 import { gunzipSync } from "node:zlib";
 import { parse as parseCsv } from "csv-parse/sync";
 import {
@@ -510,44 +510,18 @@ export async function activityPartCount(name: string, bytes: Uint8Array) {
     scanActivityXml(bytes, /\.gpx$/i.test(name) ? "gpx" : "tcx", -1).count,
   );
 }
-export function unpackArchive(
+export async function unpackArchive(
   bytes: Uint8Array,
-): { name: string; bytes: Uint8Array; metadata?: MigrationMetadata }[] {
+): Promise<
+  { name: string; bytes: Uint8Array; metadata?: MigrationMetadata }[]
+> {
   if (bytes.length > LIMITS.archiveBytes)
     throw new Error(
       "Archive exceeds 128 MiB. Split the archive into smaller uploads.",
     );
-  let count = 0,
-    total = 0;
-  const files = unzipSync(bytes, {
-    filter: (entry) => {
-      if (++count > LIMITS.entries)
-        throw new Error("Archive has too many entries.");
-      const name = entry.name;
-      if (
-        name.includes("\\") ||
-        name.startsWith("/") ||
-        /^[A-Za-z]:/.test(name) ||
-        name.split("/").includes("..")
-      )
-        throw new Error("Archive contains an unsafe path.");
-      if (/\.(zip|7z|rar|tar)$/i.test(name))
-        throw new Error("Nested archives are not supported.");
-      total += entry.originalSize;
-      if (
-        total > LIMITS.expandedBytes ||
-        entry.originalSize > LIMITS.fileBytes ||
-        entry.originalSize > Math.max(1024 * 1024, entry.size * 200)
-      )
-        throw new Error("Archive expansion limit exceeded.");
-      return (
-        /\.(fit|tcx|gpx)(\.gz)?$/i.test(name) ||
-        /(^|\/)activities\.csv$/i.test(name)
-      );
-    },
-  });
+  let { files, total } = await readArchiveFiles(bytes, LIMITS);
   const metadata = new Map<string, MigrationMetadata>();
-  for (const [name, data] of Object.entries(files))
+  for (const [name, data] of files)
     if (/(^|\/)activities\.csv$/i.test(name)) {
       const rows = parseCsv(data, {
         columns: true,
@@ -579,7 +553,7 @@ export function unpackArchive(
     bytes: Uint8Array;
     metadata?: MigrationMetadata;
   }[] = [];
-  for (const [name, data] of Object.entries(files)) {
+  for (const [name, data] of files) {
     if (/\.csv$/i.test(name)) continue;
     const normalizedName = name.replace(/\.gz$/i, "");
     const row =

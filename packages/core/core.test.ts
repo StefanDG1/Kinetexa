@@ -37,9 +37,9 @@ const ride: Activity = {
   })),
 };
 describe("retained source metadata", () => {
-  it("reads quoted migration descriptions and matches filenames without changing bytes", () => {
+  it("reads quoted migration descriptions and matches filenames without changing bytes", async () => {
     const bytes = strToU8("original activity bytes");
-    const result = unpackArchive(
+    const result = await unpackArchive(
       zipSync({
         "activities/1.fit": bytes,
         "activities.csv": strToU8(
@@ -298,35 +298,35 @@ describe("untrusted imports", () => {
       parseActivity("x.gpx", strToU8("<!DOCTYPE x><gpx/>")),
     ).rejects.toThrow("entities");
   });
-  it("rejects traversal, nested archives and expansion bombs before decompression", () => {
+  it("rejects traversal, nested archives and expansion bombs before decompression", async () => {
     const cases: Record<string, Uint8Array>[] = [
       { "../x.fit": strToU8("bad") },
       { "nested.zip": strToU8("bad") },
       { "huge.gpx": new Uint8Array(2 * 1024 * 1024) },
     ];
     for (const files of cases)
-      expect(() => unpackArchive(zipSync(files))).toThrow();
+      await expect(unpackArchive(zipSync(files))).rejects.toThrow();
   });
-  it("validates gzip CRC and length and bounds actual output even when its footer lies", () => {
+  it("validates gzip CRC and length and bounds actual output even when its footer lies", async () => {
     const bytes = strToU8("<gpx></gpx>"),
       compressed = gzipSync(bytes);
     const archive = (data: Uint8Array) =>
       zipSync({ "activity.gpx.gz": data }, { level: 0 });
-    expect(unpackArchive(archive(compressed))[0].bytes).toEqual(bytes);
+    expect((await unpackArchive(archive(compressed)))[0].bytes).toEqual(bytes);
     const crc = Uint8Array.from(compressed);
     crc[crc.length - 8] ^= 1;
-    expect(() => unpackArchive(archive(crc))).toThrow();
+    await expect(unpackArchive(archive(crc))).rejects.toThrow();
     const length = Uint8Array.from(compressed);
     length[length.length - 4] = 1;
-    expect(() => unpackArchive(archive(length))).toThrow();
+    await expect(unpackArchive(archive(length))).rejects.toThrow();
     const bomb = gzipSync(new Uint8Array(LIMITS.fileBytes + 1));
     bomb.writeUInt32LE(1, bomb.length - 4);
-    expect(() => unpackArchive(archive(bomb))).toThrow();
+    await expect(unpackArchive(archive(bomb))).rejects.toThrow();
     const members = Buffer.concat([
       gzipSync(strToU8("<gpx>")),
       gzipSync(strToU8("</gpx>")),
     ]);
-    expect(unpackArchive(archive(members))[0].bytes).toEqual(bytes);
+    expect((await unpackArchive(archive(members)))[0].bytes).toEqual(bytes);
   });
   it("only suggests uncertain duplicates without merging records", () => {
     expect(

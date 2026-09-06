@@ -30,6 +30,8 @@ Create packages as a tested boundary becomes useful. Do not add empty deployment
 
 ## Import recovery
 
+ZIP reads use a maintained strict archive reader. Every entry counts toward declared entry/expansion limits, including unsupported files. Imported activity and migration CSV entries receive CRC, local/central-header and overlap checks. Duplicate names, unsafe paths, encryption and nested archives fail explicitly. A bounded writer rejects output beyond the declared size, and the final byte count must match. Unsupported entries are not decompressed or checksummed. The complete archive is validated before any activity children are published; a failed archive retains its original for inspection or retry.
+
 Imports fence every worker publication by its claimed attempt number. Stream objects include that attempt in their key. Late failures cannot overwrite completed results. Retrying a failed archive child reopens its finished ancestors and clears any partial status scan. Retrying the archive reuses successful children and queues failed children. Aggregate status scans read at most 100 child records per page, with a 2 MB read bound; missing expected children count as failures. Recovery marks interrupted archives failed and clears old scan cursors so an operator can retry from the retained original.
 
 ## Resumable account exports

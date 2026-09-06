@@ -48,6 +48,7 @@ import type * as telemetry from "../telemetry.js";
 import type * as telemetryActions from "../telemetryActions.js";
 import type * as telemetryModel from "../telemetryModel.js";
 import type * as workspace from "../workspace.js";
+import type * as workspaceData from "../workspaceData.js";
 
 import type {
   ApiFromModules,
@@ -96,6 +97,7 @@ declare const fullApi: ApiFromModules<{
   telemetryActions: typeof telemetryActions;
   telemetryModel: typeof telemetryModel;
   workspace: typeof workspace;
+  workspaceData: typeof workspaceData;
 }>;
 
 /**

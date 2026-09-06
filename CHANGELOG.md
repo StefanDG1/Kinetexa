@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add paginated owned workspace and calendar APIs, read only required workspace collections for deterministic analytics, and default custom-query date groups to the athlete's timezone while preserving explicit overrides.
+
 - Recover partial archives through child or whole-archive retries, preserve completed children, page aggregate status scans and fence stale import attempts. Restore interrupted archives as retryable failures and discard stale scan cursors.
 
 ## 0.4.0-alpha.2 - 2026-09-06

@@ -7,13 +7,18 @@ export const preview = action({
   args: { query: v.any() },
   handler: async (ctx, args): Promise<ReturnType<typeof runQuery>> => {
     const permission = await ctx.runMutation(api.workspace.authorizeQuery, {});
+    const profile = await ctx.runQuery(api.athletes.current, {});
+    if (!profile) throw new Error("Account unavailable.");
     const input = querySchema.parse(args.query),
       rows = await collectActivities(ctx, {
         from: input.from,
         to: input.to,
         sport: input.sport,
       });
-    const result = runQuery(rows, input);
+    const result = runQuery(rows, {
+      ...input,
+      timezone: input.timezone ?? profile.timezone,
+    });
     await ctx.runMutation(internal.telemetry.queryCompleted, permission);
     return result;
   },

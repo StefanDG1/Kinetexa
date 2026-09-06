@@ -6,6 +6,63 @@ import { thresholdsSchema, sportSchema, clean } from "../packages/core/model";
 import { rateLimit } from "./limits";
 import { internal } from "./_generated/api";
 import { recordProductEvent } from "./telemetryModel";
+import { paginationOptsValidator } from "convex/server";
+
+export const page = query({
+  args: {
+    table: v.union(
+      v.literal("plans"),
+      v.literal("goals"),
+      v.literal("gear"),
+      v.literal("analyses"),
+      v.literal("privacyZones"),
+      v.literal("shares"),
+      v.literal("lifecycleJobs"),
+      v.literal("messages"),
+    ),
+    paginationOpts: paginationOptsValidator,
+    from: v.optional(v.number()),
+    to: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const a = await requireAthlete(ctx);
+    if (
+      args.table !== "plans" &&
+      (args.from !== undefined || args.to !== undefined)
+    )
+      throw new ConvexError("Date filters apply only to planned workouts.");
+    if (
+      [args.from, args.to].some(
+        (n) =>
+          n !== undefined &&
+          (!Number.isFinite(n) || Math.abs(n) > 8640000000000000),
+      ) ||
+      (args.from !== undefined && args.to !== undefined && args.from > args.to)
+    )
+      throw new ConvexError("Choose a valid date range.");
+    const opts = {
+      ...args.paginationOpts,
+      numItems: Math.min(100, Math.max(1, args.paginationOpts.numItems)),
+      maximumBytesRead: 2_000_000,
+    };
+    if (args.table === "plans")
+      return ctx.db
+        .query("plans")
+        .withIndex("by_athlete", (q) =>
+          q
+            .eq("athleteId", a._id)
+            .gte("start", args.from ?? -8640000000000000)
+            .lte("start", args.to ?? 8640000000000000),
+        )
+        .order("desc")
+        .paginate(opts);
+    return ctx.db
+      .query(args.table)
+      .withIndex("by_athlete", (q) => q.eq("athleteId", a._id))
+      .order("desc")
+      .paginate(opts);
+  },
+});
 
 export const overview = query({
   args: {},
@@ -256,6 +313,7 @@ export const preview = mutation({
   args: { query: v.any() },
   handler: async (ctx, args) => {
     const a = await requireAthlete(ctx);
+    const input = querySchema.parse(args.query);
     await rateLimit(ctx, a._id, "query", 100);
     const rows = await ctx.db
       .query("activities")
@@ -265,7 +323,10 @@ export const preview = mutation({
       throw new ConvexError("Use paginated query execution for this history.");
     return runQuery(
       rows.filter((r) => !r.mergedInto),
-      args.query,
+      {
+        ...input,
+        timezone: input.timezone ?? a.timezone,
+      },
     );
   },
 });

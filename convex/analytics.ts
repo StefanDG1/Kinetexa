@@ -6,6 +6,7 @@ import { toolSchema, resolvePeriod, type Evidence } from "../packages/core/ai";
 import { evaluateTool, type ToolData } from "../packages/core/ai-tools";
 import { dashboardData } from "../packages/core/dashboard";
 import { VERSION } from "../packages/core/model";
+import { collectWorkspace } from "./workspaceData";
 
 // This is a deterministic data API. It never invokes a model or consumes AI quota.
 export const calculate = action({
@@ -15,15 +16,19 @@ export const calculate = action({
     const permission = await ctx.runMutation(api.workspace.authorizeQuery, {});
     const profile = await ctx.runQuery(api.athletes.current, {});
     if (!profile) throw new Error("Account unavailable.");
-    const [activities, workspace] = await Promise.all([
+    const [activities, goals, gear, analyses] = await Promise.all([
       collectActivities(ctx),
-      ctx.runQuery(api.workspace.overview, {}),
+      call.tool === "getGoalProgress" ? collectWorkspace(ctx, "goals") : [],
+      call.tool === "getGearUsage" ? collectWorkspace(ctx, "gear") : [],
+      call.tool === "runSavedAnalyticsQuery"
+        ? collectWorkspace(ctx, "analyses")
+        : [],
     ]);
     const data: ToolData = {
       activities,
-      goals: workspace.goals,
-      gear: workspace.gear,
-      analyses: workspace.analyses,
+      goals,
+      gear,
+      analyses,
       health: [],
       excluded: 0,
       timezone: profile.timezone,

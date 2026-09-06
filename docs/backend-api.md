@@ -35,6 +35,10 @@ History endpoints `activities:page`, `imports:page` and `health:page` use Convex
 
 ## Workspace maintenance
 
+`workspace:page({ table, paginationOpts, from?, to? })` reads owned plans, goals, gear, analyses, privacy zones, shares, lifecycle jobs or messages, with at most 100 records and a 2 MB read bound per page. Continue until `isDone`. Only planned workouts accept `from`/`to`, inclusive UTC millisecond bounds; those results are ordered by start time descending. Messages use newest message time first; other collections use newest creation first. `workspace:overview` remains a compatibility endpoint for small workspaces. New frontend collections should use the paginated API.
+
+`queryActions:preview` uses the athlete's timezone for day/week/month/year groups unless `query.timezone` explicitly overrides it. Its `from`/`to` filters remain UTC millisecond instants. Deterministic goal, gear and saved-analysis calculations read complete paginated collections and avoid fetching unrelated plans, messages or jobs.
+
 `workspace:saveZone` accepts an optional existing zone ID for edits. `workspace:remove` deletes an owned goal, planned workout, saved analysis or privacy zone. Other account data is preserved. Plans validate sport, dates and intensity size; race results must be positive and event completion uses zero/one. Changing the profile timezone schedules retained-source reprocessing.
 
 Share tokens must be unique. Expiring links are revoked by a durable scheduled mutation as well as checked on access. Account export and deletion share one owned-table registry, including AI runs and insights.

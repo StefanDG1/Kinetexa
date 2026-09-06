@@ -47,7 +47,7 @@ A new FIT uploaded through the second synthetic account on staging produced all 
 
 Fifty-three tests pass, including health processing preferences, idempotent batches, 511 health rows across bounded pages, cross-athlete isolation, gzip CRC/length corruption, forged size headers and concatenated members. The production build passes. Sleep coverage and daily source-selection limitations are documented in `methods.md`.
 
-Desktop Ask had no Axe WCAG A/AA violations. The populated mobile review found inaccessible scroll containers and poor date wrapping; a responsive card view and focusable chart-data regions address those findings, with the revised hosted review still pending.
+Desktop Ask had no Axe WCAG A/AA violations. The populated mobile review found inaccessible scroll containers and poor date wrapping; a responsive card view and focusable chart-data regions address those findings. The revised hosted Ask review at 390px passed Axe WCAG A/AA with no page overflow. Recovery with all six recorded signals also passed at 390px and 1440px; manual inspection confirmed readable values, source records and coverage notes. The activity comparison loaded both recorded streams and its 601-row aligned data table.
 
 ## Remaining release work
 

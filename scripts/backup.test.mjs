@@ -43,7 +43,15 @@ it("filters deleted athletes and every owned table from an actual snapshot while
           key: "missing.zip",
         },
       ],
-      sources: [{ athleteId: "keep", status: "running", key: "retained.fit" }],
+      sources: [
+        { athleteId: "keep", status: "running", key: "retained.fit" },
+        {
+          athleteId: "keep",
+          status: "processing-archive",
+          key: "retained.zip",
+          archiveScan: { cursor: "stale" },
+        },
+      ],
     };
     fs.writeFileSync(
       input,
@@ -58,7 +66,7 @@ it("filters deleted athletes and every owned table from an actual snapshot while
     );
     const before = [];
     await scanSnapshot(input, (table, row) => before.push({ table, row }));
-    expect(before).toHaveLength(12);
+    expect(before).toHaveLength(13);
     await scrubSnapshot(input, output, new Set(["gone"]));
     const after = [];
     await scanSnapshot(output, (table, row) => after.push({ table, row }));
@@ -88,6 +96,13 @@ it("filters deleted athletes and every owned table from an actual snapshot while
       "delivery-unknown",
     );
     expect(after.find((r) => r.table === "sources").row.status).toBe("failed");
+    expect(
+      after
+        .filter((r) => r.table === "sources")
+        .every(
+          (r) => r.row.status === "failed" && r.row.archiveScan === undefined,
+        ),
+    ).toBe(true);
     expect(after.find((r) => r.table === "productEvents").row.status).toBe(
       "local-only",
     );

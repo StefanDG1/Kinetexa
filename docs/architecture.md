@@ -28,6 +28,10 @@ infra           Infrastructure configuration when required
 
 Create packages as a tested boundary becomes useful. Do not add empty deployment services solely to match a diagram.
 
+## Import recovery
+
+Imports fence every worker publication by its claimed attempt number. Stream objects include that attempt in their key. Late failures cannot overwrite completed results. Retrying a failed archive child reopens its finished ancestors and clears any partial status scan. Retrying the archive reuses successful children and queues failed children. Aggregate status scans read at most 100 child records per page, with a 2 MB read bound; missing expected children count as failures. Recovery marks interrupted archives failed and clears old scan cursors so an operator can retry from the retained original.
+
 ## Resumable account exports
 
 Account exports stream standard ZIP files through bounded object-storage backpressure. A durable cursor advances only after a part's upload and checksum are recorded transactionally. Interrupted attempts retry their current part; previous parts remain intact. Larger histories are divided after a completed metadata page when the current part reaches the byte or time target. The manifest lists every part and its checksum. Export APIs enforce ownership and seven-day expiry; daily cleanup removes completed files and abandoned multipart uploads. Page read times describe the export window honestly instead of claiming a transactionally frozen snapshot.

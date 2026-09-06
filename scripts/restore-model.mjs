@@ -37,9 +37,16 @@ export function restoreRecord(table, row, deleted) {
   if (table === "aiRuns" && row.status === "pending")
     return { ...row, status: "failed", finishedAt: Date.now() };
   if (table === "sources") {
-    const pending = ["queued", "running", "retrying", "waiting-archive"];
+    const pending = [
+      "queued",
+      "running",
+      "retrying",
+      "waiting-archive",
+      "processing-archive",
+    ];
+    const { archiveScan, ...source } = row;
     return {
-      ...row,
+      ...source,
       ...(pending.includes(row.status)
         ? {
             status: "failed",

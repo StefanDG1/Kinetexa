@@ -4,7 +4,9 @@ import {
   query,
   internalMutation,
   internalQuery,
+  type MutationCtx,
 } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { requireAthlete } from "./athletes";
 import { duplicateConfidence } from "../packages/core/dedup";
@@ -15,6 +17,9 @@ import { paginationOptsValidator } from "convex/server";
 import { publishFacts } from "./activityFacts";
 import { recordOperation } from "./operationModel";
 import { recordProductEvent } from "./telemetryModel";
+const currentAttempt = (source: Doc<"sources">, attempt?: number) =>
+  attempt === undefined ||
+  (source.status === "running" && source.attempts === attempt);
 
 export const page = query({
   args: { paginationOpts: paginationOptsValidator },
@@ -88,17 +93,54 @@ export const enqueue = mutation({
     const a = await requireAthlete(ctx),
       s = await ctx.db.get(id);
     if (!s || s.athleteId !== a._id) throw new ConvexError("File unavailable.");
-    if (!["awaiting-upload", "failed"].includes(s.status)) return;
     await rateLimit(ctx, a._id, "import", 100);
-    await ctx.db.patch(id, {
-      status: "queued",
-      error: undefined,
-      queuedAt: Date.now(),
-    });
-    await ctx.scheduler.runAfter(0, internal.processing.process, { id });
-    await recordProductEvent(ctx, a, "import_started");
+    if (await queueImport(ctx, s))
+      await recordProductEvent(ctx, a, "import_started");
   },
 });
+export async function queueImport(ctx: MutationCtx, source: Doc<"sources">) {
+  if (!["awaiting-upload", "failed", "partial"].includes(source.status))
+    return false;
+  await ctx.db.patch(source._id, {
+    status: "queued",
+    error: undefined,
+    queuedAt: Date.now(),
+    archiveScan: undefined,
+  });
+  // A retry can change a finished archive's aggregate outcome, including a multi-session file inside a ZIP.
+  let child = source;
+  const visited = new Set<Id<"sources">>([source._id]);
+  while (child.parentId) {
+    if (visited.has(child.parentId))
+      throw new ConvexError("Invalid source hierarchy.");
+    visited.add(child.parentId);
+    const parent = await ctx.db.get(child.parentId);
+    if (
+      !parent ||
+      parent.athleteId !== source.athleteId ||
+      !parent.childIds?.includes(child._id)
+    )
+      break;
+    if (["partial", "complete", "failed"].includes(parent.status)) {
+      await ctx.db.patch(parent._id, {
+        status: "processing-archive",
+        archiveScan: undefined,
+        error: undefined,
+      });
+      await ctx.scheduler.runAfter(0, internal.imports.archiveProgress, {
+        id: parent._id,
+      });
+    } else if (parent.status === "processing-archive" && parent.archiveScan) {
+      // A page may already have counted this child as failed. Restart that scan on a retry.
+      await ctx.db.patch(parent._id, { archiveScan: undefined });
+    }
+    child = parent;
+  }
+  await ctx.scheduler.runAfter(0, internal.processing.process, {
+    id: source._id,
+  });
+  return true;
+}
 export const get = internalQuery({
   args: { id: v.id("sources") },
   handler: (ctx, { id }) => ctx.db.get(id),
@@ -214,10 +256,16 @@ export const claim = internalMutation({
   },
 });
 export const failed = internalMutation({
-  args: { id: v.id("sources"), message: v.string(), retryable: v.boolean() },
+  args: {
+    id: v.id("sources"),
+    message: v.string(),
+    retryable: v.boolean(),
+    attempt: v.optional(v.number()),
+  },
   handler: async (ctx, args) => {
     const s = await ctx.db.get(args.id);
-    if (!s) return;
+    if (!s || s.status !== "running" || !currentAttempt(s, args.attempt))
+      return;
     const retry = args.retryable && s.attempts < 4;
     await recordOperation(ctx, {
       kind: "import",
@@ -250,10 +298,11 @@ export const complete = internalMutation({
     route: v.array(v.array(v.number())),
     routeSegments: v.optional(v.array(v.array(v.array(v.number())))),
     streamKey: v.string(),
+    attempt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const s = await ctx.db.get(args.id);
-    if (!s) return;
+    if (!s || !currentAttempt(s, args.attempt)) return;
     const a = await ctx.db.get(s.athleteId);
     if (!a || a.status !== "active")
       throw new ConvexError("Account unavailable.");
@@ -391,19 +440,28 @@ export const child = internalMutation({
     hash: v.string(),
     importMetadata: v.optional(v.any()),
     partIndex: v.optional(v.number()),
+    attempt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const p = await ctx.db.get(args.parentId);
-    if (!p) throw new ConvexError("Archive unavailable.");
+    if (!p || !currentAttempt(p, args.attempt))
+      throw new ConvexError("Archive attempt unavailable.");
+    if ((await ctx.db.get(p.athleteId))?.status !== "active")
+      throw new ConvexError("Account unavailable.");
     const old = await ctx.db
       .query("sources")
       .withIndex("by_parent", (q) =>
         q.eq("parentId", p._id).eq("name", args.name).eq("hash", args.hash),
       )
       .first();
-    if (old) return old._id;
+    if (old) {
+      if (["failed", "partial"].includes(old.status))
+        await queueImport(ctx, old);
+      return old._id;
+    }
+    const { attempt: _attempt, ...child } = args;
     const id = await ctx.db.insert("sources", {
-      ...args,
+      ...child,
       athleteId: p.athleteId,
       externalAi: p.externalAi ?? "unknown",
       aiPolicyVersion: p.aiPolicyVersion,
@@ -420,13 +478,22 @@ export const archiveComplete = internalMutation({
     id: v.id("sources"),
     hash: v.string(),
     childIds: v.array(v.id("sources")),
+    attempt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const source = await ctx.db.get(args.id);
+    if (
+      !source ||
+      !currentAttempt(source, args.attempt) ||
+      (await ctx.db.get(source.athleteId))?.status !== "active"
+    )
+      return;
     await ctx.db.patch(args.id, {
       status: "processing-archive",
       hash: args.hash,
       parserVersion: VERSION,
-      childIds: args.childIds,
+      childIds: [...new Set(args.childIds)],
+      archiveScan: undefined,
     });
     await ctx.scheduler.runAfter(1000, internal.imports.archiveProgress, {
       id: args.id,
@@ -456,15 +523,35 @@ export const archiveProgress = internalMutation({
     if (!s || s.status !== "processing-archive") return;
     const a = await ctx.db.get(s.athleteId);
     if (!a || a.status !== "active") return;
-    const children = await Promise.all(
-      (s.childIds ?? []).map((id) => ctx.db.get(id)),
-    );
-    const completed = children.filter(
-        (c) => c && ["complete", "duplicate"].includes(c.status),
-      ).length,
-      failed = children.filter((c) => !c || c.status === "failed").length,
-      done = completed + failed === children.length;
+    const expected = new Set(s.childIds ?? []);
+    const page = await ctx.db
+      .query("sources")
+      .withIndex("by_parent", (q) => q.eq("parentId", id))
+      .paginate({
+        cursor: s.archiveScan?.cursor ?? null,
+        numItems: 100,
+        maximumBytesRead: 2_000_000,
+      });
+    let completed = s.archiveScan?.completed ?? 0,
+      failed = s.archiveScan?.failed ?? 0,
+      seen = s.archiveScan?.seen ?? 0;
+    for (const child of page.page) {
+      if (!expected.has(child._id) || child.athleteId !== s.athleteId) continue;
+      seen++;
+      if (["complete", "duplicate"].includes(child.status)) completed++;
+      else if (["failed", "partial"].includes(child.status)) failed++;
+    }
+    if (!page.isDone) {
+      await ctx.db.patch(id, {
+        archiveScan: { cursor: page.continueCursor, completed, failed, seen },
+      });
+      await ctx.scheduler.runAfter(0, internal.imports.archiveProgress, { id });
+      return;
+    }
+    failed += Math.max(0, expected.size - seen);
+    const done = completed + failed === expected.size;
     await ctx.db.patch(id, {
+      archiveScan: undefined,
       completedChildren: completed,
       failedChildren: failed,
       status: done ? (failed ? "partial" : "complete") : "processing-archive",
@@ -499,6 +586,7 @@ export const health = internalMutation({
   args: {
     id: v.id("sources"),
     hash: v.string(),
+    attempt: v.optional(v.number()),
     samples: v.array(
       v.object({
         at: v.number(),
@@ -508,9 +596,9 @@ export const health = internalMutation({
       }),
     ),
   },
-  handler: async (ctx, { id, hash, samples }) => {
+  handler: async (ctx, { id, hash, samples, attempt }) => {
     const s = await ctx.db.get(id);
-    if (!s) return;
+    if (!s || !currentAttempt(s, attempt)) return;
     const a = await ctx.db.get(s.athleteId);
     if (!a || a.status !== "active") return;
     if (a.healthProcessing === false) return;
@@ -543,10 +631,14 @@ export const health = internalMutation({
   },
 });
 export const healthComplete = internalMutation({
-  args: { id: v.id("sources"), hash: v.string() },
-  handler: async (ctx, { id, hash }) => {
+  args: {
+    id: v.id("sources"),
+    hash: v.string(),
+    attempt: v.optional(v.number()),
+  },
+  handler: async (ctx, { id, hash, attempt }) => {
     const s = await ctx.db.get(id);
-    if (!s) return;
+    if (!s || !currentAttempt(s, attempt)) return;
     const a = await ctx.db.get(s.athleteId);
     if (!a || a.status !== "active") return;
     await ctx.db.patch(id, {

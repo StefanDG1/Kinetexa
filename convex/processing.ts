@@ -104,6 +104,7 @@ export const process = internalAction({
     const claimed = await ctx.runMutation(internal.imports.claim, { id });
     if (!claimed) return;
     const { source: s, thresholds, timezone } = claimed;
+    const attempt = s.attempts + 1;
     try {
       const size = await objectSize(s.key);
       if (size !== s.bytes)
@@ -125,7 +126,7 @@ export const process = internalAction({
           hash,
           key,
           expectedKey: s.key,
-          attempt: s.attempts + 1,
+          attempt,
         }))
       )
         return;
@@ -142,6 +143,7 @@ export const process = internalAction({
               internal.imports.child,
               clean({
                 parentId: id,
+                attempt,
                 name: f.name,
                 key,
                 bytes: f.bytes.length,
@@ -153,6 +155,7 @@ export const process = internalAction({
         }
         await ctx.runMutation(internal.imports.archiveComplete, {
           id,
+          attempt,
           hash,
           childIds,
         });
@@ -164,6 +167,7 @@ export const process = internalAction({
         for (let offset = 0; offset < health.length; offset += 200)
           await ctx.runMutation(internal.imports.health, {
             id,
+            attempt,
             hash,
             samples: health.slice(offset, offset + 200),
           });
@@ -180,6 +184,7 @@ export const process = internalAction({
                   internal.imports.child,
                   clean({
                     parentId: id,
+                    attempt,
                     name,
                     key: s.key,
                     bytes: s.bytes,
@@ -192,6 +197,7 @@ export const process = internalAction({
             }
             await ctx.runMutation(internal.imports.archiveComplete, {
               id,
+              attempt,
               hash,
               childIds,
             });
@@ -212,6 +218,7 @@ export const process = internalAction({
           ) {
             await ctx.runMutation(internal.imports.healthComplete, {
               id,
+              attempt,
               hash,
             });
             return;
@@ -219,7 +226,7 @@ export const process = internalAction({
           throw e;
         }
         const metrics = analyze(activity, thresholds),
-          streamKey = `${s.athleteId}/streams/${id}.json`;
+          streamKey = `${s.athleteId}/streams/${id}-import-${attempt}.json`;
         await putObject(
           streamKey,
           Buffer.from(JSON.stringify(activity)),
@@ -230,6 +237,7 @@ export const process = internalAction({
           internal.imports.complete,
           clean({
             id,
+            attempt,
             hash,
             summary,
             metrics,
@@ -260,6 +268,7 @@ export const process = internalAction({
           : "This file could not be processed. The original is retained.";
       await ctx.runMutation(internal.imports.failed, {
         id,
+        attempt,
         message,
         retryable,
       });

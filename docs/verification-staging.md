@@ -4,6 +4,10 @@ This records prerelease evidence, not completion of all V1 acceptance criteria. 
 
 ## Latest backend checkpoint
 
+After `0.4.0-alpha.2`, 114 focused tests pass. A hosted isolated restore imported a ZIP with one valid GPX and one malformed TCX. Child retry and whole-archive retry each reconciled the partial parent, reused its two children and retained exactly one successful activity. A 151-child integration case also verifies paginated aggregation and cross-owner retry rejection. Late worker mutations cannot replace a newer attempt or change an already completed result into a failure.
+
+The isolated database and bucket were then reset from the same staging backup. All 45 restored objects passed checksum verification, all seven activity streams were readable at calculation version `0.4.0-alpha.2`, and thirteen health records remained across the two owners. Four deleted accounts were absent from all 25 owned tables and their object prefixes. Analytics consent stayed off, pending external deliveries stayed disabled and temporary exports were expired. The recovery fixture was removed. This batch is deployed to staging and production; production still rejects registration and its public health endpoint returns 200.
+
 `0.4.0-alpha.2` has 113 passing focused tests. The later sections record private KPI/feedback APIs, upload integrity and cleanup, complete provenance paging, webhook byte limits and corrected best-distance calculations. All seven retained staging activities were reprocessed and preserved their originals, edits and historical calculations. Production registration remains closed and the public health endpoint passes. This milestone does not close all PRD requirements.
 
 ## Hosted journeys

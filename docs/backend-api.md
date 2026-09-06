@@ -20,6 +20,8 @@ Results carry units, date ranges, contributing activity IDs, reproducible querie
 
 ## Streams and retained sources
 
+`imports:enqueue({ id })` starts an uploaded file or retries a failed/partial source. A child retry also refreshes its parent archive's aggregate status. Retrying a whole archive reuses completed children and retries failed children, preserving successful activities. Stale workers cannot publish into a newer attempt. A terminal `partial` archive remains partial when a malformed child fails again; clients should display its child failure counts and retained original rather than promise that retry repairs invalid input.
+
 - `processing:stream({ id, from?, to? })`: an authorized chart view capped at 2,000 samples, preserving recording gaps through reduction. Extra decoded source fields are omitted from this bounded view.
 - `processing:canonical({ id })`: a short-lived authorized download URL for the complete canonical stream, including source fields and device/developer metadata.
 - `processing:interval({ id, from, to })`: interval summary, metrics, actual recorded boundaries and coverage caveats. Bounds are elapsed seconds.

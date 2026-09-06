@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Recover partial archives through child or whole-archive retries, preserve completed children, page aggregate status scans and fence stale import attempts. Restore interrupted archives as retryable failures and discard stale scan cursors.
+
 ## 0.4.0-alpha.2 - 2026-09-06
 
 Verified backend corrections and private measurement APIs. Production remains closed; this is not operational V1 completion.

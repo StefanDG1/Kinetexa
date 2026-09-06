@@ -54,6 +54,31 @@ it("seals the original under an immutable checksum identity and fences stale att
     await t.mutation(internal.imports.uploadRemoved, { id, key: source.key });
     expect(await t.query(internal.imports.uploadCleanup, { id })).toBeNull();
     expect((await a.query(api.imports.owned, { id })).key).toBe(args.key);
+    await t.run((ctx) => ctx.db.patch(id, { status: "running", attempts: 2 }));
+    await t.mutation(internal.imports.failed, {
+      id,
+      attempt: 1,
+      message: "Late failure",
+      retryable: false,
+    });
+    await t.mutation(internal.imports.healthComplete, {
+      id,
+      hash: args.hash,
+      attempt: 1,
+    });
+    expect((await a.query(api.imports.owned, { id })).status).toBe("running");
+    await t.mutation(internal.imports.healthComplete, {
+      id,
+      hash: args.hash,
+      attempt: 2,
+    });
+    await t.mutation(internal.imports.failed, {
+      id,
+      attempt: 2,
+      message: "Lost completion response",
+      retryable: true,
+    });
+    expect((await a.query(api.imports.owned, { id })).status).toBe("complete");
   } finally {
     vi.clearAllTimers();
     vi.useRealTimers();

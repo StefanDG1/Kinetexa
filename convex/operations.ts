@@ -8,6 +8,7 @@ import { internal } from "./_generated/api";
 import { queue as queueReprocessing } from "./reprocessing";
 import { EXPORT_RETENTION_MS } from "./exportModel";
 import type { Doc } from "./_generated/dataModel";
+import { queueImport } from "./imports";
 
 const jobKind = v.union(
   v.literal("import"),
@@ -128,16 +129,11 @@ export const retry = internalMutation({
         )
           throw new Error("Reprocessing is not awaiting a retry.");
       } else {
-        if (row.status !== "failed")
+        if (
+          !["failed", "partial"].includes(row.status) ||
+          !(await queueImport(ctx, row))
+        )
           throw new Error("Import is not awaiting a retry.");
-        await ctx.db.patch(row._id, {
-          status: "queued",
-          error: undefined,
-          queuedAt: Date.now(),
-        });
-        await ctx.scheduler.runAfter(0, internal.processing.process, {
-          id: row._id,
-        });
       }
     } else if ("kind" in row) {
       if (row.kind !== kind || row.status !== "failed")

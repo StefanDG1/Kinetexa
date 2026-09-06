@@ -140,6 +140,14 @@ export default defineSchema({
     childIds: v.optional(v.array(v.id("sources"))),
     completedChildren: v.optional(v.number()),
     failedChildren: v.optional(v.number()),
+    archiveScan: v.optional(
+      v.object({
+        cursor: v.string(),
+        completed: v.number(),
+        failed: v.number(),
+        seen: v.number(),
+      }),
+    ),
     importMetadata: v.optional(v.any()),
     receivedAt: v.optional(v.number()),
     completedAt: v.optional(v.number()),

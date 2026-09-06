@@ -274,7 +274,10 @@ export const authorizeQuery = mutation({
   handler: async (ctx) => {
     const a = await requireAthlete(ctx);
     await rateLimit(ctx, a._id, "query", 100);
-    await recordProductEvent(ctx, a, "analysis_query_run");
+    return {
+      athleteId: a._id,
+      consentRevision: a.analyticsConsentRevision ?? 0,
+    };
   },
 });
 export const saveZone = mutation({

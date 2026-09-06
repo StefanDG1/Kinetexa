@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add private consent-limited KPI reports with explicit pending and missing-data counts; record successful analysis queries, source completion times and Premium cancellation transitions.
+
 ## 0.4.0-alpha.1 - 2026-09-06
 
 Backend milestone. Production remains closed and external provider, analytics and release gates remain open.

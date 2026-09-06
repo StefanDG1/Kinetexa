@@ -100,6 +100,7 @@ export default defineSchema({
     mergedInto: v.optional(v.id("activities")),
   })
     .index("by_athlete", ["athleteId", "start"])
+    .index("by_athlete_created", ["athleteId", "mergedInto", "createdAt"])
     .index("by_merged", ["mergedInto"]),
   activityFacts: defineTable({
     athleteId: v.id("athletes"),
@@ -139,6 +140,7 @@ export default defineSchema({
     failedChildren: v.optional(v.number()),
     importMetadata: v.optional(v.any()),
     receivedAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
     format: v.optional(v.string()),
     mime: v.optional(v.string()),
     externalAi: v.optional(

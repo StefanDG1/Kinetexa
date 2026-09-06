@@ -48,13 +48,13 @@ This file records implemented and verified outcomes separately. Unchecked items 
 
 `0.4.0-alpha.1` records the backend milestone: 102 focused tests, hosted sandbox renewal/failure/recovery/cancellation, six passing AI acceptance scenarios, an independently verified automatic insight, production signed-webhook configuration and real simulator email delivery. Production remains closed. PostHog key creation requires re-authentication; capture stays off. Garmin approval, other connector permission/implementation, remaining KPI and operational coverage, live payment/payout readiness, business policies, Vercel commercial eligibility and the remaining PRD criteria are unresolved. The user's frontend work remains separate.
 
-Latest backend batch: operational job inspection, guarded retries, scheduled checks and OTLP job export are deployed; both scheduled environment checks passed. Production athlete APIs stay closed. Shared Resend send budgets total 90/day. Provider capability/approval gates reject six unapproved direct connections. Consented product telemetry and its deletion fence pass 101 focused tests and staged API checks; external PostHog capture remains off pending authenticated erasure-key setup. Full KPI queries, connector implementation/approval, production billing readiness and remaining PRD acceptance still prevent a V1 claim. UI polish remains with the user.
+Latest backend batch adds an internal consent-limited KPI report, exact source completion timestamps, archive/health completion instrumentation and successful-query events. It passes 107 focused tests. Hosted checks confirm failed queries produce no success event, withdrawal removes the reporting contribution, pending activation stays distinct and ordinary/anonymous accounts cannot call operator reports. Full KPI acceptance still depends on frontend observations, complete historical coverage, AI feedback/evaluations and approved provider operations. External PostHog capture remains off.
 
 ### Staging milestone, 6 September 2026
 
 See [staging verification](verification-staging.md) for hosted authentication, imports, reprocessing, canonical sensor data, deterministic analytics, workspace changes, export, sandbox Checkout, AI consent and signed email delivery evidence. Eighty-four focused tests pass. Permanent deletion and an independent restore have been verified with synthetic accounts. Remaining feature acceptance, model reliability and operational release gates remain open.
 
-### Implementation progress, 6 September 2026
+### Earlier implementation checkpoint, 6 September 2026
 
 The user authorized full implementation after the setup report. Work is on `codex/operational-v1`. `docs/requirements.md` retains every numbered requirement; no GA claim or `v1.0.0` tag has been made.
 
@@ -68,9 +68,9 @@ Verified against the development Convex deployment and local Next.js application
 - Browser inspection at 1600px desktop and 390px mobile. Home and activity pages display real synthetic imports without horizontal page overflow. This is partial UI verification, not the complete browser/accessibility matrix.
 - Eighteen focused tests currently cover core calculations, malformed inputs, archive limits, privacy masking, cross-user access, quotas and AI response validation. Production build and TypeScript checks pass at the recorded implementation batch.
 
-Still open: complete dashboard/customization, all analytics and import metadata criteria, provider framework/approval, automatic insight/evaluation coverage, production billing readiness, transactional email lifecycle, deletion/restore drill, operational alerts, large-history performance, full accessibility and all remaining ledger acceptance criteria. The production domain continues to serve the holding page until release gates are met.
+Open at that checkpoint; later verification above supersedes completed items: complete dashboard/customization, all analytics and import metadata criteria, provider framework/approval, automatic insight/evaluation coverage, production billing readiness, transactional email lifecycle, deletion/restore drill, operational alerts, large-history performance, full accessibility and all remaining ledger acceptance criteria. The production domain continues to serve the holding page until release gates are met.
 
-## Setup handoff, 6 September 2026
+## Historical setup handoff, 6 September 2026
 
 The user first asked for a manual setup checklist, then explicitly asked the agent to resume setup. The current phase is setup completion and a report before full V1 implementation. See [user decisions](decisions.md); the earlier [manual checklist](PRE_CODING_SETUP.md) is historical and its Vercel/MapTiler upgrade recommendations are superseded.
 

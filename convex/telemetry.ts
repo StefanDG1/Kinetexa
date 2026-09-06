@@ -35,6 +35,14 @@ export const track = mutation({
     return { recorded: true };
   },
 });
+export const queryCompleted = internalMutation({
+  args: { athleteId: v.id("athletes"), consentRevision: v.number() },
+  handler: async (ctx, { athleteId, consentRevision }) => {
+    const athlete = await ctx.db.get(athleteId);
+    if (athlete && (athlete.analyticsConsentRevision ?? 0) === consentRevision)
+      await recordProductEvent(ctx, athlete, "analysis_query_run");
+  },
+});
 export const page = query({
   args: { paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {

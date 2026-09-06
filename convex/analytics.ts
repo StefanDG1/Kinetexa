@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { action } from "./_generated/server";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { collectActivities, collectDashboard } from "./activityData";
 import { toolSchema, resolvePeriod, type Evidence } from "../packages/core/ai";
 import { evaluateTool, type ToolData } from "../packages/core/ai-tools";
@@ -12,7 +12,7 @@ export const calculate = action({
   args: { request: v.any() },
   handler: async (ctx, { request }): Promise<Evidence[]> => {
     const call = toolSchema.parse(request);
-    await ctx.runMutation(api.workspace.authorizeQuery, {});
+    const permission = await ctx.runMutation(api.workspace.authorizeQuery, {});
     const profile = await ctx.runQuery(api.athletes.current, {});
     if (!profile) throw new Error("Account unavailable.");
     const [activities, workspace] = await Promise.all([
@@ -54,7 +54,12 @@ export const calculate = action({
         cursor = result.isDone ? null : result.continueCursor;
       } while (cursor);
     }
-    return evaluateTool(call, data, false);
+    const result = evaluateTool(call, data, false);
+    if (
+      ["runAdHocAnalyticsQuery", "runSavedAnalyticsQuery"].includes(call.tool)
+    )
+      await ctx.runMutation(internal.telemetry.queryCompleted, permission);
+    return result;
   },
 });
 export const dashboard = action({

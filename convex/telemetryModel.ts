@@ -18,6 +18,7 @@ export const productEvents = [
   "first_saved_analysis_created",
   "premium_checkout_started",
   "premium_activated",
+  "premium_canceled",
   "dashboard_viewed",
   "activity_viewed",
   "date_range_changed",

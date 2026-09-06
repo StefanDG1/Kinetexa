@@ -37,6 +37,7 @@ import type * as migrations from "../migrations.js";
 import type * as operationModel from "../operationModel.js";
 import type * as operations from "../operations.js";
 import type * as processing from "../processing.js";
+import type * as productKpis from "../productKpis.js";
 import type * as providers from "../providers.js";
 import type * as queryActions from "../queryActions.js";
 import type * as reprocessing from "../reprocessing.js";
@@ -84,6 +85,7 @@ declare const fullApi: ApiFromModules<{
   operationModel: typeof operationModel;
   operations: typeof operations;
   processing: typeof processing;
+  productKpis: typeof productKpis;
   providers: typeof providers;
   queryActions: typeof queryActions;
   reprocessing: typeof reprocessing;

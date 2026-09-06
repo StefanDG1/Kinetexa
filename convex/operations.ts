@@ -252,7 +252,8 @@ export const check = internalAction({
         });
         metric.events++;
         metric.outcomes[row.outcome] = (metric.outcomes[row.outcome] ?? 0) + 1;
-        if (/failed|timeout|interrupted/.test(row.outcome)) metric.failures++;
+        if (/failed|timeout|interrupted|partial/.test(row.outcome))
+          metric.failures++;
         if (row.startedAt !== undefined)
           (latencies[row.kind] ??= []).push(
             Math.max(0, row.at - row.startedAt),

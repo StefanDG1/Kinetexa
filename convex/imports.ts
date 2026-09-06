@@ -390,6 +390,16 @@ export const archiveProgress = internalMutation({
       failedChildren: failed,
       status: done ? (failed ? "partial" : "complete") : "processing-archive",
     });
+    if (done)
+      await recordOperation(ctx, {
+        kind: "import",
+        jobId: id,
+        athleteId: a._id,
+        startedAt: s.receivedAt ?? s.createdAt,
+        attempt: s.attempts,
+        outcome: failed ? "partial" : "complete",
+        measures: { bytes: s.bytes },
+      });
     if (!done)
       await ctx.scheduler.runAfter(30000, internal.imports.archiveProgress, {
         id,
@@ -458,10 +468,21 @@ export const healthComplete = internalMutation({
   handler: async (ctx, { id, hash }) => {
     const s = await ctx.db.get(id);
     if (!s) return;
+    const a = await ctx.db.get(s.athleteId);
+    if (!a || a.status !== "active") return;
     await ctx.db.patch(id, {
       status: "complete",
       hash,
       parserVersion: VERSION,
+    });
+    await recordOperation(ctx, {
+      kind: "import",
+      jobId: id,
+      athleteId: a._id,
+      startedAt: s.receivedAt ?? s.createdAt,
+      attempt: s.attempts,
+      outcome: "complete",
+      measures: { bytes: s.bytes },
     });
   },
 });

@@ -72,6 +72,15 @@ export async function recordOperation(
     at: Date.now(),
   };
   await ctx.db.insert("operationalEvents", event);
+  if (
+    data.kind === "import" &&
+    ["complete", "duplicate"].includes(data.outcome)
+  ) {
+    const id = ctx.db.normalizeId("sources", data.jobId),
+      source = id ? await ctx.db.get(id) : null;
+    if (source && !source.completedAt)
+      await ctx.db.patch(source._id, { completedAt: event.at });
+  }
   if (data.kind === "import" && data.outcome === "complete" && data.athleteId) {
     const athlete = await ctx.db.get(data.athleteId);
     if (athlete) {

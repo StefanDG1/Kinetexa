@@ -114,6 +114,10 @@ export const apply = internalMutation({
         if (athlete)
           await recordProductEvent(ctx, athlete, "premium_activated");
       }
+      if (args.status === "canceled" && row.status !== "canceled") {
+        const athlete = await ctx.db.get(row.athleteId);
+        if (athlete) await recordProductEvent(ctx, athlete, "premium_canceled");
+      }
       await recordOperation(ctx, {
         kind: "billing",
         jobId: args.eventId,

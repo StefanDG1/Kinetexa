@@ -66,3 +66,7 @@ Deletion locks the account immediately and starts after fifteen minutes. Each de
 `providers:catalog` returns file-import formats and each direct provider's approval/terms status and unverified capabilities. `providers:connect` rejects all currently gated direct connections. See `provider-compliance.md`; persistent sync is still an external and implementation dependency.
 
 `docs/verification-staging.md` records hosted outcomes. Automated tests use synthetic fixtures and independent owners. Live verification accounts, tokens, temporary source files and detailed operational artifacts remain in ignored local storage.
+
+# Internal product measurement
+
+`productKpis:report({from,to})` returns private operator aggregates for a period up to 31 days within the retained last 90 days. It reports observed activation, retained first-activity timing, terminal root-import success, weekly engagement, explainability, current Premium conversion and observed cancellation. Pending work, missing history and unavailable KPIs are explicit. This internal action is inaccessible to ordinary or anonymous clients. See [product analytics](product-analytics.md) for consent and denominator definitions.

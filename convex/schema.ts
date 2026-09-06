@@ -10,6 +10,7 @@ export default defineSchema({
     units: v.union(v.literal("metric"), v.literal("imperial")),
     aiConsent: v.boolean(),
     aiConsentRevision: v.optional(v.number()),
+    healthProcessing: v.optional(v.boolean()),
     analyticsConsent: v.boolean(),
     consentUpdatedAt: v.number(),
     onboarded: v.boolean(),
@@ -146,7 +147,10 @@ export default defineSchema({
     sourceId: v.optional(v.id("sources")),
     at: v.optional(v.number()),
     unit: v.optional(v.string()),
-  }).index("by_athlete", ["athleteId", "date"]),
+  })
+    .index("by_athlete", ["athleteId", "date"])
+    .index("by_kind", ["athleteId", "kind", "date"])
+    .index("by_source", ["sourceId", "date", "kind"]),
   billing: defineTable({
     athleteId: v.id("athletes"),
     customerId: v.string(),

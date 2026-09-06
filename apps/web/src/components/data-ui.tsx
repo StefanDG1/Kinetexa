@@ -172,7 +172,12 @@ export function Chart({
       </div>
       <details>
         <summary>View chart data</summary>
-        <div className="table-wrap">
+        <div
+          className="table-wrap"
+          tabIndex={0}
+          role="region"
+          aria-label="Chart data table"
+        >
           <table>
             <thead>
               <tr>

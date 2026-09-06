@@ -104,7 +104,7 @@ export const claim = internalMutation({
       id,
       attempt: s.attempts + 1,
     });
-    return { source: s, thresholds: a.thresholds ?? {} };
+    return { source: s, thresholds: a.thresholds ?? {}, timezone: a.timezone };
   },
 });
 export const failed = internalMutation({
@@ -363,26 +363,33 @@ export const health = internalMutation({
     if (!s) return;
     const a = await ctx.db.get(s.athleteId);
     if (!a || a.status !== "active") return;
+    if (a.healthProcessing === false) return;
     const old = await ctx.db
       .query("sources")
       .withIndex("by_hash", (q) => q.eq("athleteId", a._id).eq("hash", hash))
       .filter((q) => q.eq(q.field("status"), "complete"))
       .first();
     if (old) return;
-    const existing = await ctx.db
-      .query("health")
-      .withIndex("by_athlete", (q) => q.eq("athleteId", a._id))
-      .filter((q) => q.eq(q.field("sourceId"), id))
-      .collect();
-    for (const row of existing) await ctx.db.delete(row._id);
-    for (const h of samples)
-      await ctx.db.insert("health", {
+    if (samples.length > 200)
+      throw new ConvexError("Use bounded health batches.");
+    for (const h of samples) {
+      const date = dayKey(h.at, a.timezone),
+        existing = await ctx.db
+          .query("health")
+          .withIndex("by_source", (q) =>
+            q.eq("sourceId", id).eq("date", date).eq("kind", h.kind),
+          )
+          .first();
+      const record = {
         ...h,
-        date: dayKey(h.at, a.timezone),
+        date,
         athleteId: a._id,
         source: s.name,
         sourceId: id,
-      });
+      };
+      if (existing) await ctx.db.patch(existing._id, record);
+      else await ctx.db.insert("health", record);
+    }
   },
 });
 export const healthComplete = internalMutation({

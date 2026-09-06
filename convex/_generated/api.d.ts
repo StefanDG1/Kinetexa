@@ -19,6 +19,7 @@ import type * as billing from "../billing.js";
 import type * as billingActions from "../billingActions.js";
 import type * as email from "../email.js";
 import type * as emailActions from "../emailActions.js";
+import type * as health from "../health.js";
 import type * as http from "../http.js";
 import type * as imports from "../imports.js";
 import type * as lifecycle from "../lifecycle.js";
@@ -51,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   billingActions: typeof billingActions;
   email: typeof email;
   emailActions: typeof emailActions;
+  health: typeof health;
   http: typeof http;
   imports: typeof imports;
   lifecycle: typeof lifecycle;

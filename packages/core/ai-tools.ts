@@ -10,6 +10,7 @@ import { type Goal, goalProgress } from "./goals";
 import { analyze, fitness } from "./analytics";
 import { dayKey } from "./dashboard";
 import { VERSION } from "./model";
+import { dailyHealth } from "./health";
 
 export type ToolActivity = Omit<QueryActivity, "metrics"> & {
   metrics: ReturnType<typeof analyze>;
@@ -478,7 +479,7 @@ export function evaluateTool(call: AiTool, data: ToolData): Evidence[] {
     }
     case "getHealthTrend": {
       for (const kind of call.metrics) {
-        const all = data.health.filter((h) => h.kind === kind),
+        const all = dailyHealth(data.health.filter((h) => h.kind === kind)),
           selected = all.filter(
             (h) => h.date >= period.from && h.date <= period.to,
           ),

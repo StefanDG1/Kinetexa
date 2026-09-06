@@ -41,6 +41,14 @@ The first saved-analysis attempt failed during planning. A later attempt succeed
 
 The ledger audit found 23 omitted source IDs (thirteen AI requirements and ten jobs-to-be-done). They were added without changing the source requirements. CI now verifies exact ledger coverage of all 236 numbered source IDs.
 
+## Health and compressed-import verification
+
+A new FIT uploaded through the second synthetic account on staging produced all six supported signals: resting HR 48 bpm, HRV 50 ms, weight 70 kg, VO₂max estimate 55 ml/kg/min, 2,000 recorded steps and 28,800 seconds of closed sleep intervals. It produced zero canonical activities. An earlier upload under the prior parser retained only its three supported readings; the subsequent verification used a distinct file and date.
+
+Fifty-three tests pass, including health processing preferences, idempotent batches, 511 health rows across bounded pages, cross-athlete isolation, gzip CRC/length corruption, forged size headers and concatenated members. The production build passes. Sleep coverage and daily source-selection limitations are documented in `methods.md`.
+
+Desktop Ask had no Axe WCAG A/AA violations. The populated mobile review found inaccessible scroll containers and poor date wrapping; a responsive card view and focusable chart-data regions address those findings, with the revised hosted review still pending.
+
 ## Remaining release work
 
 Full requirement closure remains open, including provider approval and connector operations, large-history performance, complete comparison/AI/health criteria, policy review, backup automation and retention, operational alerts and the full UI/accessibility matrix. Production continues to serve the holding page. This evidence does not justify `v1.0.0`.

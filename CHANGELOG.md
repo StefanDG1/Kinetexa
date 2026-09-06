@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.2.0-alpha.2 - 2026-09-06
+
+- Complete the six supported FIT health signals, expose source and date availability, and paginate health history with a processing preference.
+- Verify a six-signal health-only import on staging without inventing an activity; expand focused coverage to 53 tests.
+- Validate actual gzip expansion, CRC and length using bounded decompression, and make mobile AI evidence readable and keyboard-accessible.
+
 - Implement thirteen grounded AI tools, local-calendar comparisons, paginated conversation history, source-policy filtering, consent revisions and request cost telemetry.
 - Add optional, dismissible training-load insights and expand safety, privacy, calculation and quota coverage to fifty tests.
 

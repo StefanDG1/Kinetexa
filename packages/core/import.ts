@@ -1,6 +1,7 @@
 import FitParser from "fit-file-parser";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
-import { unzipSync, gunzipSync } from "fflate";
+import { unzipSync } from "fflate";
+import { gunzipSync } from "node:zlib";
 import { parse as parseCsv } from "csv-parse/sync";
 import {
   activitySchema,
@@ -207,6 +208,67 @@ export async function parseFitHealth(
     500,
   );
   add(list(messages.weight_scale), "weight", "weight", "kg", 1, 700);
+  add(
+    list(messages.max_met_data).map((r) => ({
+      ...r,
+      timestamp: r.update_time,
+    })),
+    "vo2max",
+    "vo2_max",
+    "ml/kg/min",
+    5,
+    100,
+  );
+  // Monitoring cycles are stored in half-step units by the FIT profile. Only walking/running records count as steps.
+  for (const row of list(messages.monitoring)) {
+    const at = timestamp(row.timestamp),
+      cycles = num(row.cycles);
+    if (
+      ["walking", "running"].includes(row.activity_type) &&
+      Number.isFinite(at) &&
+      cycles !== undefined &&
+      cycles >= 0 &&
+      cycles <= 100000
+    )
+      out.push({
+        at,
+        kind: "steps",
+        value: Math.round(cycles * 2),
+        unit: "steps",
+      });
+  }
+  // Derive only a closed, observed sleep-state interval. An open final segment or unknown state is not extrapolated.
+  const stages = list(messages.sleep_level)
+    .filter((r) => Number.isFinite(timestamp(r.timestamp)))
+    .sort((a, b) => timestamp(a.timestamp) - timestamp(b.timestamp));
+  let duration = 0,
+    valid = true;
+  for (let i = 0; i < stages.length - 1; i++) {
+    const row = stages[i],
+      next = stages[i + 1],
+      seconds = (timestamp(next.timestamp) - timestamp(row.timestamp)) / 1000;
+    if (seconds <= 0 || seconds > 12 * 3600) {
+      duration = 0;
+      valid = false;
+      continue;
+    }
+    if (["light", "deep", "rem"].includes(row.sleep_level)) duration += seconds;
+    else if (row.sleep_level === "awake") {
+      duration = 0;
+      valid = true;
+    } else valid = false;
+    if (next.sleep_level === "awake") {
+      if (valid && duration > 0 && duration <= 16 * 3600)
+        out.push({
+          at: timestamp(next.timestamp),
+          kind: "sleep",
+          value: duration,
+          unit: "seconds",
+        });
+      duration = 0;
+      valid = true;
+    }
+  }
   return out;
 }
 export async function parseActivity(
@@ -426,7 +488,9 @@ export function unpackArchive(
       ).getUint32(data.length - 4, true);
       if (size > LIMITS.fileBytes)
         throw new Error("Compressed activity expansion limit exceeded.");
-      const inflated = gunzipSync(data, { out: new Uint8Array(size) });
+      const inflated = new Uint8Array(
+        gunzipSync(data, { maxOutputLength: LIMITS.fileBytes }),
+      );
       total += inflated.length;
       if (total > LIMITS.expandedBytes)
         throw new Error("Archive expansion limit exceeded.");

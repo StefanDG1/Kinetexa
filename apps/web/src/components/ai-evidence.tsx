@@ -16,7 +16,12 @@ export function AiEvidence({ evidence }: { evidence: Evidence[] }) {
       )}
       <details open>
         <summary>Measurements and sources</summary>
-        <div className="table-wrap">
+        <div
+          className="ai-evidence-desktop table-wrap"
+          tabIndex={0}
+          role="region"
+          aria-label="AI evidence comparison table"
+        >
           <table>
             <thead>
               <tr>
@@ -62,6 +67,40 @@ export function AiEvidence({ evidence }: { evidence: Evidence[] }) {
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="ai-evidence-mobile">
+          {evidence.map((e) => (
+            <section key={e.id} className="evidence-measure">
+              <h3>{e.label}</h3>
+              <p className="evidence-value">
+                {e.value === null
+                  ? "Unavailable"
+                  : `${number(e.value, 3)} ${e.unit === "percent" ? "%" : e.unit}`}
+              </p>
+              <p className="evidence-period">
+                {e.from} – {e.to}
+              </p>
+              {e.comparison && (
+                <div className="evidence-baseline">
+                  <p>
+                    Compared with{" "}
+                    {e.comparison.value === null
+                      ? "unavailable data"
+                      : `${number(e.comparison.value, 3)} ${e.unit}`}
+                  </p>
+                  <p className="evidence-period">
+                    {e.comparison.from} – {e.comparison.to}
+                  </p>
+                  {e.comparison.percent !== null && (
+                    <p>
+                      {e.comparison.percent > 0 ? "+" : ""}
+                      {number(e.comparison.percent)}% change
+                    </p>
+                  )}
+                </div>
+              )}
+            </section>
+          ))}
         </div>
         {evidence.map((e) => (
           <details key={e.id}>

@@ -1,10 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { zipSync, strToU8 } from "fflate";
+import { gzipSync } from "node:zlib";
 import {
   parseActivity,
   unpackArchive,
   duplicateConfidence,
   parseFitHealth,
+  LIMITS,
 } from "./import";
 import { FitEncoder, FitBaseType } from "fit-file-parser";
 import {
@@ -18,6 +20,7 @@ import { maskedRoute } from "./geo";
 import type { Activity } from "./model";
 import { goalProgress } from "./goals";
 import { dashboardData } from "./dashboard";
+import { aggregateHealthFile, dailyHealth } from "./health";
 const ride: Activity = {
   title: "Synthetic constant power ride",
   sport: "cycling",
@@ -76,6 +79,82 @@ describe("retained source metadata", () => {
     await expect(parseActivity("health.fit", bytes)).rejects.toThrow(
       "No valid activity start",
     );
+  });
+  it("decodes source-provided HRV, weight, VO2, steps and closed sleep intervals with their units", async () => {
+    const encoder = new FitEncoder(),
+      at = FitEncoder.toFitTimestamp(new Date("2026-09-02T06:00:00Z")),
+      time = (number = 253, value = at) => ({
+        number,
+        size: 4,
+        baseType: FitBaseType.Uint32,
+        value,
+      });
+    encoder.writeMessage(370, [
+      time(),
+      { number: 1, size: 2, baseType: FitBaseType.Uint16, value: 50 * 128 },
+    ]);
+    encoder.writeMessage(30, [
+      time(),
+      { number: 0, size: 2, baseType: FitBaseType.Uint16, value: 70 * 100 },
+    ]);
+    encoder.writeMessage(229, [
+      time(0),
+      { number: 2, size: 2, baseType: FitBaseType.Uint16, value: 55 * 10 },
+    ]);
+    encoder.writeMessage(55, [
+      time(),
+      { number: 3, size: 4, baseType: FitBaseType.Uint32, value: 2000 },
+      { number: 5, size: 1, baseType: FitBaseType.Enum, value: 1 },
+    ]);
+    encoder.writeMessage(275, [
+      time(253, at - 8 * 3600),
+      { number: 0, size: 1, baseType: FitBaseType.Enum, value: 2 },
+    ]);
+    encoder.writeMessage(275, [
+      time(),
+      { number: 0, size: 1, baseType: FitBaseType.Enum, value: 1 },
+    ]);
+    const rows = await parseFitHealth(encoder.close());
+    expect(rows.map((r) => [r.kind, r.value, r.unit])).toEqual(
+      expect.arrayContaining([
+        ["hrv", 50, "ms"],
+        ["weight", 70, "kg"],
+        ["vo2max", 55, "ml/kg/min"],
+        ["steps", 2000, "steps"],
+        ["sleep", 28800, "seconds"],
+      ]),
+    );
+    const open = new FitEncoder();
+    open.writeMessage(275, [
+      time(),
+      { number: 0, size: 1, baseType: FitBaseType.Enum, value: 2 },
+    ]);
+    expect(await parseFitHealth(open.close())).toEqual([]);
+    const file = aggregateHealthFile(
+      [
+        {
+          at: Date.parse("2026-09-02T01:00:00Z"),
+          kind: "steps",
+          value: 1000,
+          unit: "steps",
+        },
+        {
+          at: Date.parse("2026-09-02T03:00:00Z"),
+          kind: "steps",
+          value: 2000,
+          unit: "steps",
+        },
+      ],
+      "Europe/Berlin",
+    );
+    expect(file).toHaveLength(1);
+    expect(file[0].value).toBe(2000);
+    expect(
+      dailyHealth([
+        { date: "2026-09-02", kind: "steps", value: 2000 },
+        { date: "2026-09-02", kind: "steps", value: 1500 },
+      ])[0].value,
+    ).toBe(2000);
   });
 });
 describe("deterministic training calculations", () => {
@@ -227,6 +306,27 @@ describe("untrusted imports", () => {
     ];
     for (const files of cases)
       expect(() => unpackArchive(zipSync(files))).toThrow();
+  });
+  it("validates gzip CRC and length and bounds actual output even when its footer lies", () => {
+    const bytes = strToU8("<gpx></gpx>"),
+      compressed = gzipSync(bytes);
+    const archive = (data: Uint8Array) =>
+      zipSync({ "activity.gpx.gz": data }, { level: 0 });
+    expect(unpackArchive(archive(compressed))[0].bytes).toEqual(bytes);
+    const crc = Uint8Array.from(compressed);
+    crc[crc.length - 8] ^= 1;
+    expect(() => unpackArchive(archive(crc))).toThrow();
+    const length = Uint8Array.from(compressed);
+    length[length.length - 4] = 1;
+    expect(() => unpackArchive(archive(length))).toThrow();
+    const bomb = gzipSync(new Uint8Array(LIMITS.fileBytes + 1));
+    bomb.writeUInt32LE(1, bomb.length - 4);
+    expect(() => unpackArchive(archive(bomb))).toThrow();
+    const members = Buffer.concat([
+      gzipSync(strToU8("<gpx>")),
+      gzipSync(strToU8("</gpx>")),
+    ]);
+    expect(unpackArchive(archive(members))[0].bytes).toEqual(bytes);
   });
   it("only suggests uncertain duplicates without merging records", () => {
     expect(

@@ -11,3 +11,11 @@ Core algorithms are versioned in `packages/core/model.ts`. Each activity stores 
 - Zone time uses the previous measurement over each recorded interval, excluding gaps above 30 seconds. The highest boundary belongs to the next zone. Boundaries must increase.
 
 The test suite checks analytic constant-signal cases, missing data, recording gaps and decay. This does not yet constitute the complete scientific validation required by ANALYTICS-011.
+
+## Imported health signals
+
+FIT field names, scale factors and units follow the installed `fit-file-parser` 5.0.2 SDK profile. Resting HR, HRV, weight and maximum metabolic/VO₂ estimates retain their reported units. Walking/running monitoring cycles convert to steps according to the profile's half-step scale; other activity types do not become steps.
+
+Recorded sleep duration sums observed light/deep/REM intervals that close with an awake record. Unknown states, gaps above twelve hours and an open final interval are omitted. This is recorded coverage, not an assertion that a whole night was measured. Closed intervals are assigned to their ending date in the athlete's timezone. Within one imported file, closed intervals on that date are summed and cumulative step counters use the maximum.
+
+The daily view selects the latest physiological reading and the highest step counter. It never adds different devices together. Multiple health files may overlap; source names remain available for inspection. AI health trends use the same daily selection before calculating averages. Turning health processing off affects future imports and preserves existing history.

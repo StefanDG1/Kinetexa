@@ -335,6 +335,47 @@ form {
   max-width: 100%;
   overflow: auto;
 }
+.ai-evidence-desktop table {
+  min-width: 600px;
+}
+.ai-evidence-mobile {
+  display: none;
+}
+.evidence-measure {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--mist);
+}
+.evidence-measure h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.evidence-measure .evidence-value {
+  margin: 4px 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--marine);
+}
+.evidence-measure .evidence-period {
+  margin: 2px 0;
+  font-size: 0.875rem;
+  color: #536e7a;
+}
+.evidence-baseline {
+  margin-top: 8px;
+  padding-left: 12px;
+  border-left: 3px solid var(--pool);
+}
+.evidence-baseline p {
+  margin: 2px 0;
+}
+@media (max-width: 640px) {
+  .ai-evidence-desktop {
+    display: none;
+  }
+  .ai-evidence-mobile {
+    display: block;
+  }
+}
 table {
   width: 100%;
   border-collapse: collapse;

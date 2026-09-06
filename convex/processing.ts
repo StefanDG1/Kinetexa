@@ -18,6 +18,7 @@ import {
 import { analyze } from "../packages/core/analytics";
 import { clean } from "../packages/core/model";
 import { route } from "../packages/core/geo";
+import { aggregateHealthFile } from "../packages/core/health";
 
 export const stream = action({
   args: {
@@ -69,7 +70,7 @@ export const process = internalAction({
   handler: async (ctx, { id }) => {
     const claimed = await ctx.runMutation(internal.imports.claim, { id });
     if (!claimed) return;
-    const { source: s, thresholds } = claimed;
+    const { source: s, thresholds, timezone } = claimed;
     try {
       const size = await objectSize(s.key);
       if (size !== s.bytes)
@@ -107,13 +108,13 @@ export const process = internalAction({
         });
       } else {
         const health = /\.fit$/i.test(s.name)
-          ? await parseFitHealth(bytes)
+          ? aggregateHealthFile(await parseFitHealth(bytes), timezone)
           : [];
-        if (health.length)
+        for (let offset = 0; offset < health.length; offset += 200)
           await ctx.runMutation(internal.imports.health, {
             id,
             hash,
-            samples: health,
+            samples: health.slice(offset, offset + 200),
           });
         let activity;
         try {

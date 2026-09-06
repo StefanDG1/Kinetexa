@@ -95,6 +95,12 @@ An imported staging GPX retained two recording segments and a canonical break ma
 
 The first QA account's retained sources were rebuilt under calculation version `0.3.0-alpha.2`. All thirteen deterministic APIs still passed; four activities totalled 27,060.470230766892 metres and the selected cycling interval retained its independently checked mean power and load. Recording breaks now exclude cross-boundary sensor time and best-effort windows. Geometry simplification preserves segment boundaries; complete samples remain in canonical downloads.
 
+## Hosted backend milestone
+
+Commit `5fc87d3` passed GitHub CI and the Vercel build. Deployment `dpl_APhJm6tB6HT8HrEjrh1Ho1hS3iap` is assigned to `staging.kinetexa.com`. The browser rendered the new export controls and live Stripe sandbox pricing; the recorded route showed its actual gap. The health endpoint returned 200 through the protected preview. Vercel preview protection remains enabled.
+
+WorkOS staging's homepage, initiate-login URL and default sign-out URI now use the staging domain; localhost remains an allowed development callback/sign-out URI. An actual browser sign-out returned to `https://staging.kinetexa.com/`. Visual redesign remains paused at the user's request. This backend milestone is a prerelease, not operational V1.
+
 ## Remaining release work
 
 Full requirement closure remains open, including provider approval and connector operations, large-history performance, complete comparison/AI/health criteria, policy review, backup automation and retention, operational alerts and the full UI/accessibility matrix. Production continues to serve the holding page. This evidence does not justify `v1.0.0`.

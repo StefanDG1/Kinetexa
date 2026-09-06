@@ -4,6 +4,8 @@
 
 The athlete owns canonical activities independently of provider availability. Each imported source keeps an immutable content hash, original private object, parser version and normalization version. Activity-source relationships preserve provenance and support conservative duplicate detection without destroying original records.
 
+New browser uploads use temporary private `uploads/` keys. The worker checks the actual byte count and checksum, writes the exact bytes to an `originals/<sha256>` key, then publishes that reference only if the import attempt still owns the source. Parsing and split sessions use those sealed bytes. Browser write URLs never target retained originals. Temporary copies are removed eleven minutes after sealing, beyond the ten-minute upload URL lifetime; an hourly bounded retry drains cleanup failures. A replay can alter only the temporary copy. Existing retained originals stay readable, and successful retries seal older originals after verifying their saved checksum.
+
 ## Boundaries
 
 The Next.js application handles pages, authenticated entry points and integration callbacks. Convex enforces athlete ownership for every private query and mutation, stores application metadata and coordinates durable jobs. Pure TypeScript packages implement canonical data validation, deterministic analytics, GIS transformations and provider contracts. Expensive parsing and stream work stays behind a processing interface that can move to a dedicated worker.

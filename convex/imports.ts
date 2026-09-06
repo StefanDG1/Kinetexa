@@ -62,7 +62,8 @@ export const reserve = mutation({
     return ctx.db.insert("sources", {
       athleteId: a._id,
       name: args.name,
-      key: `${a._id}/originals/${args.nonce}`,
+      key: `${a._id}/uploads/${args.nonce}`,
+      uploadKey: `${a._id}/uploads/${args.nonce}`,
       bytes: args.bytes,
       status: "awaiting-upload",
       externalAi: "allowed",
@@ -103,13 +104,39 @@ export const get = internalQuery({
   handler: (ctx, { id }) => ctx.db.get(id),
 });
 export const received = internalMutation({
-  args: { id: v.id("sources"), hash: v.string() },
-  handler: async (ctx, { id, hash }) => {
+  args: {
+    id: v.id("sources"),
+    hash: v.string(),
+    key: v.string(),
+    expectedKey: v.string(),
+    attempt: v.number(),
+  },
+  handler: async (ctx, { id, hash, key, expectedKey, attempt }) => {
     const s = await ctx.db.get(id);
-    if (!s) return;
+    const a = s ? await ctx.db.get(s.athleteId) : null;
+    if (
+      !s ||
+      a?.status !== "active" ||
+      s.status !== "running" ||
+      s.attempts !== attempt ||
+      s.key !== expectedKey
+    )
+      return false;
+    if (
+      !/^[a-f0-9]{64}$/.test(hash) ||
+      key !== `${s.athleteId}/originals/${hash}` ||
+      (s.hash && s.hash !== hash)
+    )
+      throw new ConvexError(
+        "The retained original failed its integrity check.",
+      );
+    const uploadCleanupAt =
+      s.uploadKey && s.uploadKey !== key ? Date.now() + 11 * 60000 : undefined;
     await ctx.db.patch(id, {
       hash,
-      receivedAt: Date.now(),
+      key,
+      uploadCleanupAt,
+      receivedAt: s.receivedAt ?? Date.now(),
       format: s.name.split(".").at(-1)?.toLowerCase(),
       mime: /\.zip$/i.test(s.name)
         ? "application/zip"
@@ -117,6 +144,58 @@ export const received = internalMutation({
           ? "application/xml"
           : "application/octet-stream",
     });
+    if (uploadCleanupAt)
+      await ctx.scheduler.runAt(
+        uploadCleanupAt,
+        internal.processing.removeUpload,
+        { id },
+      );
+    return true;
+  },
+});
+export const uploadCleanup = internalQuery({
+  args: { id: v.id("sources") },
+  handler: async (ctx, { id }) => {
+    const s = await ctx.db.get(id);
+    return s?.uploadCleanupAt &&
+      s.uploadCleanupAt <= Date.now() &&
+      s.uploadKey &&
+      s.uploadKey.startsWith(`${s.athleteId}/uploads/`) &&
+      s.uploadKey !== s.key
+      ? s.uploadKey
+      : null;
+  },
+});
+export const uploadRemoved = internalMutation({
+  args: { id: v.id("sources"), key: v.string() },
+  handler: async (ctx, { id, key }) => {
+    const s = await ctx.db.get(id);
+    if (s?.uploadKey === key && s.key !== key)
+      await ctx.db.patch(id, {
+        uploadKey: undefined,
+        uploadCleanupAt: undefined,
+      });
+  },
+});
+export const cleanupUploads = internalMutation({
+  args: { cursor: v.optional(v.string()), until: v.optional(v.number()) },
+  handler: async (ctx, { cursor, until }) => {
+    const cutoff = until ?? Date.now();
+    const result = await ctx.db
+      .query("sources")
+      .withIndex("by_upload_cleanup", (q) =>
+        q.gt("uploadCleanupAt", 0).lte("uploadCleanupAt", cutoff),
+      )
+      .paginate({ cursor: cursor ?? null, numItems: 100 });
+    for (const s of result.page)
+      await ctx.scheduler.runAfter(0, internal.processing.removeUpload, {
+        id: s._id,
+      });
+    if (!result.isDone)
+      await ctx.scheduler.runAfter(1000, internal.imports.cleanupUploads, {
+        cursor: result.continueCursor,
+        until: cutoff,
+      });
   },
 });
 export const claim = internalMutation({

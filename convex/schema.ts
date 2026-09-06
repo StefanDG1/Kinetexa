@@ -114,6 +114,8 @@ export default defineSchema({
     athleteId: v.id("athletes"),
     name: v.string(),
     key: v.string(),
+    uploadKey: v.optional(v.string()),
+    uploadCleanupAt: v.optional(v.number()),
     hash: v.optional(v.string()),
     bytes: v.number(),
     status: v.string(),
@@ -150,6 +152,7 @@ export default defineSchema({
   })
     .index("by_athlete", ["athleteId", "createdAt"])
     .index("by_status", ["status", "createdAt"])
+    .index("by_upload_cleanup", ["uploadCleanupAt"])
     .index("by_reprocess_status", ["reprocessStatus", "createdAt"])
     .index("by_hash", ["athleteId", "hash"])
     .index("by_parent", ["parentId", "name", "hash"])

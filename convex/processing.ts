@@ -9,6 +9,7 @@ import {
   uploadUrl,
   downloadUrl,
   objectSize,
+  removeObject,
 } from "./storage";
 import {
   parseActivity,
@@ -111,7 +112,24 @@ export const process = internalAction({
         );
       const bytes = await getObject(s.key),
         hash = createHash("sha256").update(bytes).digest("hex");
-      await ctx.runMutation(internal.imports.received, { id, hash });
+      if (bytes.length !== s.bytes || (s.hash && hash !== s.hash))
+        throw new Error(
+          "The retained original failed its integrity check. Previous results are preserved.",
+        );
+      // Browser upload URLs never target retained originals. Parse the same bytes that are sealed here.
+      const key = `${s.athleteId}/originals/${hash}`;
+      if (s.key !== key) await putObject(key, bytes);
+      if (
+        !(await ctx.runMutation(internal.imports.received, {
+          id,
+          hash,
+          key,
+          expectedKey: s.key,
+          attempt: s.attempts + 1,
+        }))
+      )
+        return;
+      s.key = key;
       if (/\.zip$/i.test(s.name)) {
         const files = unpackArchive(bytes);
         const childIds: import("./_generated/dataModel").Id<"sources">[] = [];
@@ -249,5 +267,14 @@ export const process = internalAction({
         JSON.stringify({ event: "import_failed", jobId: id, retryable }),
       );
     }
+  },
+});
+export const removeUpload = internalAction({
+  args: { id: v.id("sources") },
+  handler: async (ctx, { id }) => {
+    const key = await ctx.runQuery(internal.imports.uploadCleanup, { id });
+    if (!key) return;
+    await removeObject(key);
+    await ctx.runMutation(internal.imports.uploadRemoved, { id, key });
   },
 });

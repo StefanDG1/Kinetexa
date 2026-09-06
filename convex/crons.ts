@@ -1,6 +1,12 @@
 import { cronJobs } from "convex/server";
 import { internal } from "./_generated/api";
 const crons = cronJobs();
+crons.interval(
+  "remove expired sealed upload copies",
+  { hours: 1 },
+  internal.imports.cleanupUploads,
+  {},
+);
 crons.daily(
   "expire local product events",
   { hourUTC: 4, minuteUTC: 15 },

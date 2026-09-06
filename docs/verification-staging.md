@@ -154,3 +154,7 @@ Full requirement closure remains open, including provider approval and connector
 ## AI feedback API
 
 A retained staged answer was rated helpful, changed to unhelpful and cleared. Internal aggregates changed by exactly one at each step; the original rating and analytics consent were restored. Another owner and an anonymous client were rejected. No model was called and quota was unchanged. The 108-test suite covers feedback ownership, idempotence, removal, evidence eligibility and analytics-consent exclusion. This verifies the backend API; frontend feedback controls and a larger independent quality evaluation remain open.
+
+## Original integrity under upload replay
+
+A fresh synthetic account reproduced an upload URL overwriting an already processed original; the original bytes were immediately restored. After the fix, replaying a new upload URL still succeeds against its temporary key, but the downloaded retained original and SHA-256 remain unchanged. Reprocessing succeeds from that original. A ZIP containing two activities and a two-session GPX each completed, and malformed XML failed while preserving its exact original and checksum. Six canonical fixture activities were verified. The fixture is in its normal deletion grace period; final cleanup is pending. The focused suite has 109 passing tests.

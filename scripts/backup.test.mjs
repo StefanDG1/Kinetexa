@@ -13,7 +13,10 @@ it("filters deleted athletes and every owned table from an actual snapshot while
     const input = path.join(directory, "before.zip"),
       output = path.join(directory, "after.zip");
     const tables = {
-      athletes: [{ _id: "gone" }, { _id: "keep" }],
+      athletes: [
+        { _id: "gone" },
+        { _id: "keep", factsReady: true, factsCursor: "old" },
+      ],
       activities: [
         { _id: "private", athleteId: "gone" },
         { _id: "retained", athleteId: "keep" },
@@ -57,6 +60,15 @@ it("filters deleted athletes and every owned table from an actual snapshot while
     await scanSnapshot(output, (table, row) => after.push({ table, row }));
     expect(JSON.stringify(after)).not.toContain('"gone"');
     expect(JSON.stringify(after)).not.toContain("private@example.invalid");
+    expect(after.find((r) => r.table === "athletes").row).toEqual({
+      _id: "keep",
+      factsReady: false,
+    });
+    expect(
+      strFromU8(
+        unzipSync(fs.readFileSync(output))["activityFacts/documents.jsonl"],
+      ),
+    ).toBe("");
     expect(after.find((r) => r.table === "activities").row._id).toBe(
       "retained",
     );

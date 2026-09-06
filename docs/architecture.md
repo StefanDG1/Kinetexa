@@ -30,6 +30,12 @@ Create packages as a tested boundary becomes useful. Do not add empty deployment
 
 Account exports stream standard ZIP files through bounded object-storage backpressure. A durable cursor advances only after a part's upload and checksum are recorded transactionally. Interrupted attempts retry their current part; previous parts remain intact. Larger histories are divided after a completed metadata page when the current part reaches the byte or time target. The manifest lists every part and its checksum. Export APIs enforce ownership and seven-day expiry; daily cleanup removes completed files and abandoned multipart uploads. Page read times describe the export window honestly instead of claiming a transactionally frozen snapshot.
 
+## Numerical activity index
+
+`activityFacts` stores compact numerical summaries without route geometry, raw source metadata, laps or notes. Import publication, reprocessing, activity edits and merge/unmerge update it in the same transaction as the canonical activity. Source permission is checked when the index is read. Existing accounts prepare it in resumable bounded batches; recovery discards and rebuilds it. Canonical activity documents and full object-store streams remain authoritative.
+
+Numerical analytics and gear usage traverse this index in byte-bounded pages. Dashboard reads transfer only the values needed for its calculations. AI reads the same index after checking each request's active consent lease. Browser history and full activity detail retain their independent geometry paths; frontend large-history loading remains a separate acceptance item.
+
 ## Environment separation
 
 Development, preview, staging and production must not silently share private datasets or payment modes. Production requires verified WorkOS callbacks, a production Convex deployment, scoped private storage, live Stripe prices and signed webhook delivery. Configuration errors fail closed instead of opening a demonstration account.

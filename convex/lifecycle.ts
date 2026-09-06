@@ -10,6 +10,7 @@ import { requireAthlete } from "./athletes";
 import { rateLimit } from "./limits";
 export const tables = [
   "activities",
+  "activityFacts",
   "sources",
   "metricHistory",
   "gear",

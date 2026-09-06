@@ -23,6 +23,8 @@ export default defineSchema({
     dashboard: v.optional(v.array(v.string())),
     hiddenWidgets: v.optional(v.array(v.string())),
     insightConsent: v.optional(v.boolean()),
+    factsReady: v.optional(v.boolean()),
+    factsCursor: v.optional(v.string()),
   })
     .index("by_identity", ["tokenIdentifier"])
     .index("by_workos_user", ["workosUserId"]),
@@ -55,6 +57,14 @@ export default defineSchema({
   })
     .index("by_athlete", ["athleteId", "start"])
     .index("by_merged", ["mergedInto"]),
+  activityFacts: defineTable({
+    athleteId: v.id("athletes"),
+    activityId: v.id("activities"),
+    start: v.number(),
+    data: v.any(),
+  })
+    .index("by_athlete", ["athleteId", "start"])
+    .index("by_activity", ["activityId"]),
   sources: defineTable({
     athleteId: v.id("athletes"),
     name: v.string(),

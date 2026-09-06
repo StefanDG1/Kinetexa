@@ -1,6 +1,10 @@
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
-import { internalQuery, type ActionCtx } from "./_generated/server";
+import {
+  internalQuery,
+  internalMutation,
+  type ActionCtx,
+} from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { requireRun } from "./ai";
@@ -12,6 +16,7 @@ import {
 } from "../packages/core/ai-tools";
 import { querySchema } from "../packages/core/query";
 import { dayKey } from "../packages/core/dashboard";
+import { prepareAthlete } from "./activityFacts";
 
 const tableValidator = v.union(
   v.literal("activities"),
@@ -21,6 +26,13 @@ const tableValidator = v.union(
   v.literal("analyses"),
 );
 type Table = "activities" | "health" | "goals" | "gear" | "analyses";
+export const prepare = internalMutation({
+  args: { runId: v.id("aiRuns") },
+  handler: async (ctx, { runId }) => {
+    const { athlete } = await requireRun(ctx, runId);
+    return prepareAthlete(ctx, athlete);
+  },
+});
 export const page = internalQuery({
   args: {
     runId: v.id("aiRuns"),
@@ -29,17 +41,27 @@ export const page = internalQuery({
   },
   handler: async (ctx, args) => {
     const { athlete } = await requireRun(ctx, args.runId);
+    if (args.table === "activities" && !athlete.factsReady)
+      throw new Error("Prepare the activity index before reading it.");
     const result = await ctx.db
-      .query(args.table)
+      .query(args.table === "activities" ? "activityFacts" : args.table)
       .withIndex("by_athlete", (q) => q.eq("athleteId", athlete._id))
-      .paginate({ ...args.paginationOpts, numItems: 100 });
+      .paginate({
+        ...args.paginationOpts,
+        numItems: args.table === "activities" ? 1000 : 100,
+        maximumBytesRead: 6 * 1024 * 1024,
+      });
     let excluded = 0;
     const page = [];
-    for (const row of result.page) {
+    const sources = new Map<string, Doc<"sources"> | null>();
+    for (const original of result.page) {
+      const row = "data" in original ? original.data : original;
       if ("mergedInto" in row && row.mergedInto) continue;
       if (args.table === "activities" || args.table === "health") {
-        const sourceId = "sourceId" in row ? row.sourceId : undefined,
-          source = sourceId ? await ctx.db.get(sourceId) : null;
+        const sourceId = "sourceId" in row ? row.sourceId : undefined;
+        if (sourceId && !sources.has(sourceId))
+          sources.set(sourceId, await ctx.db.get(sourceId as Id<"sources">));
+        const source = sourceId ? sources.get(sourceId) : null;
         if (
           !source ||
           source.athleteId !== athlete._id ||
@@ -78,6 +100,13 @@ export async function readToolData(
     now: Date.now(),
   };
   let count = 0;
+  if (tables.includes("activities")) {
+    while (!(await ctx.runMutation(internal.aiData.prepare, { runId })))
+      if (Date.now() > deadline)
+        throw new Error(
+          "Activity index preparation is still running. Try again shortly.",
+        );
+  }
   for (const table of tables) {
     let cursor: string | null = null;
     do {

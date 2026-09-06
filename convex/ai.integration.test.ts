@@ -94,6 +94,7 @@ async function fixture() {
 it("authorizes every data page independently and filters blocked and unknown sources before tools", async () => {
   const { a, b } = await fixture(),
     session = await a.mutation(internal.ai.begin, { question: "My training" });
+  await a.mutation(internal.aiData.prepare, { runId: session.runId });
   for (const table of [
     "activities",
     "health",
@@ -118,6 +119,7 @@ it("authorizes every data page independently and filters blocked and unknown sou
   const other = await b.mutation(internal.ai.begin, {
     question: "My training",
   });
+  await b.mutation(internal.aiData.prepare, { runId: other.runId });
   expect(
     (
       await b.query(internal.aiData.page, {

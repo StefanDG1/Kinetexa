@@ -12,6 +12,7 @@ import { VERSION } from "../packages/core/model";
 import { rateLimit } from "./limits";
 import { dayKey } from "../packages/core/dashboard";
 import { paginationOptsValidator } from "convex/server";
+import { publishFacts } from "./activityFacts";
 
 export const page = query({
   args: { paginationOpts: paginationOptsValidator },
@@ -206,6 +207,8 @@ export const complete = internalMutation({
               : [],
           gearIds: original.gearIds.length ? original.gearIds : gearIds,
         });
+      if (original && meta)
+        await publishFacts(ctx, (await ctx.db.get(original._id))!);
       await ctx.db.patch(s._id, {
         status: "duplicate",
         hash: args.hash,
@@ -247,6 +250,7 @@ export const complete = internalMutation({
       createdAt: Date.now(),
       duplicateOf: duplicate?._id,
     });
+    await publishFacts(ctx, (await ctx.db.get(id))!);
     await ctx.db.patch(s._id, {
       status: "complete",
       hash: args.hash,

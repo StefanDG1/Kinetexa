@@ -117,6 +117,16 @@ Staging created a custom shoe-replacement reminder against the real imported 2,2
 
 Eighty-seven tests pass. Maintenance tests traverse 105 activities, exclude merged duplicates, avoid double-counting repeated equipment IDs, enforce ownership and preserve service history. Bounded stream tests retain omitted recording breaks and missing-time gaps, and saved-query validation rejects invalid time zones or inverted dates. Staging confirmed the route break and invalid-query rejection.
 
+## Large-history backend verification
+
+The isolated restore deployment received 1,000 and then 5,000 additional synthetic activity records with realistic stored route/metric sizes. The first run exposed an invalid pagination cursor caused by a changing default date bound. Stable bounds fix that error. The initial 1,000-activity dashboard took 5.4 seconds and gear usage took 4.0 seconds. Compact numerical indexing reduced those measurements to 0.95 seconds and 0.46 seconds.
+
+With 5,004 activities, the dashboard completed in 2.45 seconds, a complete-history analytical query in 3.91 seconds and gear usage in 1.82 seconds. Paginated checks counted all 5,004 activities and reproduced 90,027,060.47023076 metres against the independently constructed fixture total. All seven cycling power-record evidence results were finite or explicitly unavailable. Index preparation took 50.6 seconds for this legacy dataset and persists progress between calls; new application writes maintain it incrementally.
+
+These are individual synthetic API measurements, not a production percentile or browser rendering claim. Fixtures reused retained source references, so they do not measure processing 5,000 distinct files or all provider lookup patterns. The browser's initial history traversal remains open for the user's frontend work. The experiment was removed by restoring the original seven-activity dataset, clearing all 5,004 cache entries. Both owners' original totals and the pre-deletion recovery exclusion passed again.
+
+Eighty-eight focused tests, TypeScript and the production build pass. Staging's thirteen deterministic tools and selected interval calculations passed after deployment. AI also reads the compact index with per-page consent and source-policy checks; live explanation reliability remains under verification.
+
 ## Remaining release work
 
 Full requirement closure remains open, including provider approval and connector operations, large-history performance, complete comparison/AI/health criteria, policy review, operational alerts and the full UI/accessibility matrix. Production continues to serve the holding page. This evidence does not justify `v1.0.0`.

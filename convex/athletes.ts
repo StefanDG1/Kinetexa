@@ -31,6 +31,8 @@ export const current = query({
     const {
       tokenIdentifier: _token,
       workosUserId: _user,
+      factsReady: _factsReady,
+      factsCursor: _factsCursor,
       ...profile
     } = athlete;
     return profile;

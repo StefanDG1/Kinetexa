@@ -4,7 +4,11 @@ export function restoreRecord(table, row, deleted) {
     (row.athleteId && deleted.has(row.athleteId))
   )
     return null;
-  if (table === "exportParts") return null;
+  if (table === "exportParts" || table === "activityFacts") return null;
+  if (table === "athletes") {
+    const { factsCursor, ...rest } = row;
+    return { ...rest, factsReady: false };
+  }
   if (table === "lifecycleJobs" && row.kind === "export") {
     const { key, position, lease, partCount, ...rest } = row;
     return {

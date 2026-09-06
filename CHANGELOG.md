@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Keep a transactional numerical activity index for large-history analytics, preserve pagination cursors and rebuild derived caches after recovery.
+
 - Add custom distance, duration and date-based gear reminders, idempotent service history and paginated usage APIs.
 
 - Preserve recording gaps in bounded chart streams and reject invalid saved-query calendar inputs.

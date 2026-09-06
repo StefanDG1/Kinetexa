@@ -5,6 +5,7 @@ import type { QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { paginationOptsValidator } from "convex/server";
 import { simplifySegments, type Point } from "../packages/core/geo";
+import { publishFacts } from "./activityFacts";
 export async function ownedActivity(ctx: QueryCtx, id: Id<"activities">) {
   const a = await requireAthlete(ctx),
     row = await ctx.db.get(id);
@@ -26,7 +27,7 @@ export const list = query({
         q
           .eq("athleteId", a._id)
           .gte("start", args.from ?? 0)
-          .lte("start", args.to ?? Date.now() + 86400000),
+          .lte("start", args.to ?? 8640000000000000),
       )
       .order("desc")
       .take(10001);
@@ -54,7 +55,7 @@ export const page = query({
         q
           .eq("athleteId", a._id)
           .gte("start", args.from ?? 0)
-          .lte("start", args.to ?? Date.now() + 86400000),
+          .lte("start", args.to ?? 8640000000000000),
       )
       .order("desc")
       .paginate({
@@ -172,6 +173,7 @@ export const update = mutation({
         throw new ConvexError("Gear unavailable.");
     }
     await ctx.db.patch(id, args);
+    await publishFacts(ctx, (await ctx.db.get(id))!);
   },
 });
 export const merge = mutation({
@@ -193,6 +195,7 @@ export const merge = mutation({
         );
     }
     await ctx.db.patch(id, { mergedInto: into });
+    await publishFacts(ctx, (await ctx.db.get(id))!);
     await ctx.db.insert("auditEvents", {
       athleteId: row.athleteId,
       action: into ? "activity_merged" : "activity_unmerged",

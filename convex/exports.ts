@@ -13,7 +13,7 @@ import { visibleHealth } from "./health";
 import type { Doc } from "./_generated/dataModel";
 import { exportPosition, EXPORT_RETENTION_MS } from "./exportModel";
 export const exportTables = tables.filter(
-  (t) => !["lifecycleJobs", "exportParts"].includes(t),
+  (t) => !["lifecycleJobs", "exportParts", "activityFacts"].includes(t),
 );
 export const retry = mutation({
   args: { id: v.id("lifecycleJobs") },

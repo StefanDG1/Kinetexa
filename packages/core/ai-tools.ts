@@ -15,7 +15,7 @@ import { dailyHealth } from "./health";
 export type ToolActivity = Omit<QueryActivity, "metrics"> & {
   metrics: ReturnType<typeof analyze>;
   excludedRecords: boolean;
-  route: number[][];
+  route?: number[][];
 };
 export type ToolData = {
   activities: ToolActivity[];
@@ -665,8 +665,12 @@ export function evaluateTool(
       break;
     }
     case "getMapSummary": {
-      const located = rows.filter((a) => a.route.length > 1),
-        old = before.filter((a) => a.route.length > 1);
+      const located = rows.filter(
+          (a) => a.hasRoute ?? Boolean(a.route && a.route.length > 1),
+        ),
+        old = before.filter(
+          (a) => a.hasRoute ?? Boolean(a.route && a.route.length > 1),
+        );
       emit(
         "routes",
         "Activities with recorded routes",

@@ -14,13 +14,20 @@ export const WIDGETS = [
   ["insight", "Training insight"],
   ["analyses", "Saved analyses"],
 ] as const;
+const dateFormatters = new Map<string, Intl.DateTimeFormat>();
 export function dayKey(t: number, timezone = "UTC") {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(t);
+  let formatter = dateFormatters.get(timezone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    if (dateFormatters.size >= 32) dateFormatters.clear();
+    dateFormatters.set(timezone, formatter);
+  }
+  return formatter.format(t);
 }
 export function dashboardData(
   items: QueryActivity[],

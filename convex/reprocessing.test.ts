@@ -151,6 +151,21 @@ it("publishes a complete replacement once, preserving edits, original checksums 
     distance: 12,
     streamKey: "new-version",
   });
+  expect(
+    await t.run(
+      async (ctx) =>
+        (
+          await ctx.db
+            .query("activityFacts")
+            .withIndex("by_activity", (q) => q.eq("activityId", activityId))
+            .unique()
+        )?.data,
+    ),
+  ).toMatchObject({
+    distance: 12,
+    title: "My edited title",
+    metrics: { rebuilt: true },
+  });
   const provenance = await a.query(api.activities.provenance, {
     id: activityId,
   });

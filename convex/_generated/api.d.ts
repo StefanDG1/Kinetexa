@@ -10,6 +10,7 @@
 
 import type * as activities from "../activities.js";
 import type * as activityData from "../activityData.js";
+import type * as activityFacts from "../activityFacts.js";
 import type * as ai from "../ai.js";
 import type * as aiActions from "../aiActions.js";
 import type * as aiData from "../aiData.js";
@@ -50,6 +51,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   activities: typeof activities;
   activityData: typeof activityData;
+  activityFacts: typeof activityFacts;
   ai: typeof ai;
   aiActions: typeof aiActions;
   aiData: typeof aiData;

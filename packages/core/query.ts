@@ -70,6 +70,7 @@ export type AnalysisQuery = z.infer<typeof querySchema>;
 export type QueryActivity = {
   aiEligible?: boolean;
   route?: number[][];
+  hasRoute?: boolean;
   _id: string;
   sport: string;
   start: number;
@@ -100,7 +101,8 @@ export function runQuery(items: QueryActivity[], input: unknown) {
     (a) =>
       (!q.aiEligibleOnly || a.aiEligible === true) &&
       (q.hasRoute === undefined ||
-        Boolean(a.route && a.route.length > 1) === q.hasRoute) &&
+        (a.hasRoute ?? Boolean(a.route && a.route.length > 1)) ===
+          q.hasRoute) &&
       (!q.sport || a.sport === q.sport) &&
       (q.from === undefined || a.start >= q.from) &&
       (q.to === undefined || a.start <= q.to) &&

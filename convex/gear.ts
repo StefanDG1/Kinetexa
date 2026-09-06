@@ -151,21 +151,21 @@ export const history = query({
 export const usagePage = query({
   args: { cursor: v.union(v.string(), v.null()) },
   handler: async (ctx, { cursor }) => {
-    const a = await requireAthlete(ctx),
-      result = await ctx.db
-        .query("activities")
-        .withIndex("by_athlete", (q) => q.eq("athleteId", a._id))
-        .paginate({ cursor, numItems: 100 });
+    const a = await requireAthlete(ctx);
+    if (!a.factsReady)
+      throw new ConvexError("Prepare the activity index before reading it.");
+    const result = await ctx.db
+      .query("activityFacts")
+      .withIndex("by_athlete", (q) => q.eq("athleteId", a._id))
+      .paginate({ cursor, numItems: 1000, maximumBytesRead: 6 * 1024 * 1024 });
     return {
       ...result,
-      page: result.page
-        .filter((r) => !r.mergedInto)
-        .map((r) => ({
-          start: r.start,
-          gearIds: r.gearIds,
-          distance: r.distance,
-          duration: r.duration,
-        })),
+      page: result.page.map(({ data: r }) => ({
+        start: r.start,
+        gearIds: r.gearIds,
+        distance: r.distance,
+        duration: r.duration,
+      })),
     };
   },
 });
@@ -195,6 +195,7 @@ export const status = action({
     readAt: number;
   }> => {
     await ctx.runMutation(api.workspace.authorizeQuery, {});
+    while (!(await ctx.runMutation(api.activityFacts.prepare, {}))) {}
     const [gear, reminders] = await Promise.all([
       ctx.runQuery(api.gear.list, {}),
       ctx.runQuery(api.gear.reminders, {}),

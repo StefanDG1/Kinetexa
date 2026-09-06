@@ -29,6 +29,8 @@ Results carry units, date ranges, contributing activity IDs, reproducible querie
 
 History endpoints `activities:page`, `imports:page` and `health:page` use Convex pagination cursors. Continue until `isDone`; an empty filtered page can still have a continuation cursor. Legacy list endpoints explicitly reject oversized history rather than returning silently truncated totals.
 
+`activityFacts:prepare` resumes numerical index preparation and returns true when complete. Normal analytics actions perform this step automatically. `activityFacts:page` reads the complete owned index with stable date bounds; it omits geometry and private notes. Internal `activityFacts:rebuild` marks an account for repair after an operator imports canonical metadata directly. Application mutations keep the index current transactionally.
+
 ## Workspace maintenance
 
 `workspace:saveZone` accepts an optional existing zone ID for edits. `workspace:remove` deletes an owned goal, planned workout, saved analysis or privacy zone. Other account data is preserved. Plans validate sport, dates and intensity size; race results must be positive and event completion uses zero/one. Changing the profile timezone schedules retained-source reprocessing.

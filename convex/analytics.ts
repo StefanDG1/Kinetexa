@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { api } from "./_generated/api";
-import { collectActivities } from "./activityData";
+import { collectActivities, collectDashboard } from "./activityData";
 import { toolSchema, resolvePeriod, type Evidence } from "../packages/core/ai";
 import { evaluateTool, type ToolData } from "../packages/core/ai-tools";
 import { dashboardData } from "../packages/core/dashboard";
@@ -78,7 +78,7 @@ export const dashboard = action({
     await ctx.runMutation(api.workspace.authorizeQuery, {});
     const profile = await ctx.runQuery(api.athletes.current, {});
     if (!profile) throw new Error("Account unavailable.");
-    const rows = await collectActivities(ctx, { to });
+    const rows = await collectDashboard(ctx, to);
     const { selected, ...result } = dashboardData(
       rows,
       from,

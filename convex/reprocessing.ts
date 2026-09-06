@@ -1,4 +1,5 @@
 import { v, ConvexError } from "convex/values";
+import { publishFacts } from "./activityFacts";
 import {
   mutation,
   internalMutation,
@@ -268,6 +269,7 @@ export const finish = internalMutation({
         duration: parsed.summary.duration,
         distance: parsed.summary.distance,
       });
+      await publishFacts(ctx, (await ctx.db.get(old._id))!);
     }
     await ctx.db.patch(id, {
       reprocessStatus: "complete",

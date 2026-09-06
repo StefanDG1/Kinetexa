@@ -26,6 +26,7 @@ export async function scrubSnapshot(input, output, deleted) {
     destination.on("error", reject);
   });
   finished.catch(() => {});
+  const entries = new Set();
   const zip = new Zip((error, data, final) => {
     if (error) {
       failure = error;
@@ -36,6 +37,7 @@ export async function scrubSnapshot(input, output, deleted) {
     if (final) destination.end();
   });
   const unzip = new Unzip((file) => {
+    entries.add(file.name);
     const entry = new ZipPassThrough(file.name);
     zip.add(entry);
     const jsonl = file.name.endsWith("/documents.jsonl"),
@@ -82,6 +84,13 @@ export async function scrubSnapshot(input, output, deleted) {
     }
     unzip.push(new Uint8Array(), true);
     if (failure) throw failure;
+    // Older snapshots predate this rebuildable cache. An explicit empty table
+    // also clears stale cache rows when restoring over a newer deployment.
+    if (!entries.has("activityFacts/documents.jsonl")) {
+      const empty = new ZipPassThrough("activityFacts/documents.jsonl");
+      zip.add(empty);
+      empty.push(new Uint8Array(), true);
+    }
     zip.end();
     await finished;
   } catch (error) {

@@ -46,120 +46,117 @@ export default function GearPage() {
       {status.loading && <p role="status">Calculating equipment usage…</p>}
       {(error || status.error) && <p role="alert">{error || status.error}</p>}
       <div className="collection section">
-        {status.data?.gear
-          .filter((g) => !reminder || reminder.gearId === g._id)
-          .map((g) => (
-            <article className="surface" key={g._id}>
-              <h2>{g.name}</h2>
+        {status.data?.gear.map((g) => (
+          <article className="surface" key={g._id}>
+            <h2>{g.name}</h2>
+            <p>
+              {g.kind}
+              {g.retired ? " · Retired" : ""}
+            </p>
+            <p>
+              {number(g.usage.distanceKm)} km ·{" "}
+              {duration(g.usage.durationHours * 3600)} · {g.usage.activityCount}{" "}
+              activities
+            </p>
+            {g.usage.distanceMeasuredCount < g.usage.activityCount && (
               <p>
-                {g.kind}
-                {g.retired ? " · Retired" : ""}
+                Distance is partial:{" "}
+                {g.usage.activityCount - g.usage.distanceMeasuredCount}{" "}
+                activities have no recorded distance.
               </p>
+            )}
+            <button className="quiet" onClick={() => setEditing(g)}>
+              Edit equipment
+            </button>
+            <button
+              className="secondary"
+              disabled={busy}
+              onClick={() =>
+                void attempt(() =>
+                  save({
+                    id: g._id,
+                    name: g.name,
+                    kind: g.kind,
+                    retired: !g.retired,
+                    servicedAt: g.servicedAt,
+                    maintenanceKm: g.maintenanceKm,
+                    maintenanceHours: g.maintenanceHours,
+                  }),
+                )
+              }
+            >
+              {g.retired ? "Restore" : "Retire"}
+            </button>
+            {(g.maintenanceKm || g.maintenanceHours) && (
               <p>
-                {number(g.usage.distanceKm)} km ·{" "}
-                {duration(g.usage.durationHours * 3600)} ·{" "}
-                {g.usage.activityCount} activities
+                Earlier service interval:{" "}
+                {g.maintenanceKm ? `${g.maintenanceKm} km` : ""}{" "}
+                {g.maintenanceHours ? `${g.maintenanceHours} hours` : ""}.{" "}
+                <button
+                  className="quiet"
+                  disabled={busy}
+                  onClick={() =>
+                    void attempt(() => convertLegacy({ id: g._id }))
+                  }
+                >
+                  Convert to service-history reminder
+                </button>{" "}
+                The interval and last-service baseline are preserved.
               </p>
-              {g.usage.distanceMeasuredCount < g.usage.activityCount && (
-                <p>
-                  Distance is partial:{" "}
-                  {g.usage.activityCount - g.usage.distanceMeasuredCount}{" "}
-                  activities have no recorded distance.
-                </p>
-              )}
-              <button className="quiet" onClick={() => setEditing(g)}>
-                Edit equipment
-              </button>
-              <button
-                className="secondary"
-                disabled={busy}
-                onClick={() =>
-                  void attempt(() =>
-                    save({
-                      id: g._id,
-                      name: g.name,
-                      kind: g.kind,
-                      retired: !g.retired,
-                      servicedAt: g.servicedAt,
-                      maintenanceKm: g.maintenanceKm,
-                      maintenanceHours: g.maintenanceHours,
-                    }),
-                  )
-                }
-              >
-                {g.retired ? "Restore" : "Retire"}
-              </button>
-              {(g.maintenanceKm || g.maintenanceHours) && (
-                <p>
-                  Earlier service interval:{" "}
-                  {g.maintenanceKm ? `${g.maintenanceKm} km` : ""}{" "}
-                  {g.maintenanceHours ? `${g.maintenanceHours} hours` : ""}.{" "}
-                  <button
-                    className="quiet"
-                    disabled={busy}
-                    onClick={() =>
-                      void attempt(() => convertLegacy({ id: g._id }))
-                    }
+            )}
+            {status.data?.reminders
+              .filter((r) => r.gearId === g._id)
+              .map((r) => (
+                <section className="section" key={r._id}>
+                  <h3>{r.title}</h3>
+                  <p>
+                    {r.retired
+                      ? "Equipment retired"
+                      : r.disabled
+                        ? "Reminder disabled"
+                        : r.due
+                          ? "Maintenance due"
+                          : "Not due"}
+                    . Last service {date(r.servicedAt)}.
+                  </p>
+                  <p>
+                    {number(r.usage.distanceKm)} km ·{" "}
+                    {number(r.usage.durationHours)} hours since service
+                    {r.distanceKm ? `; interval ${r.distanceKm} km` : ""}
+                    {r.durationHours
+                      ? `; interval ${r.durationHours} hours`
+                      : ""}
+                    {r.dueAt ? `; due ${date(r.dueAt)}` : ""}.
+                  </p>
+                  <button className="quiet" onClick={() => setReminder(r)}>
+                    Edit reminder
+                  </button>
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const f = new FormData(e.currentTarget);
+                      void attempt(() =>
+                        service({
+                          id: r._id,
+                          note: String(f.get("note")),
+                        }),
+                      );
+                    }}
                   >
-                    Convert to service-history reminder
-                  </button>{" "}
-                  The interval and last-service baseline are preserved.
-                </p>
-              )}
-              {status.data?.reminders
-                .filter((r) => r.gearId === g._id)
-                .map((r) => (
-                  <section className="section" key={r._id}>
-                    <h3>{r.title}</h3>
-                    <p>
-                      {r.retired
-                        ? "Equipment retired"
-                        : r.disabled
-                          ? "Reminder disabled"
-                          : r.due
-                            ? "Maintenance due"
-                            : "Not due"}
-                      . Last service {date(r.servicedAt)}.
-                    </p>
-                    <p>
-                      {number(r.usage.distanceKm)} km ·{" "}
-                      {number(r.usage.durationHours)} hours since service
-                      {r.distanceKm ? `; interval ${r.distanceKm} km` : ""}
-                      {r.durationHours
-                        ? `; interval ${r.durationHours} hours`
-                        : ""}
-                      {r.dueAt ? `; due ${date(r.dueAt)}` : ""}.
-                    </p>
-                    <button className="quiet" onClick={() => setReminder(r)}>
-                      Edit reminder
-                    </button>
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        const f = new FormData(e.currentTarget);
-                        void attempt(() =>
-                          service({
-                            id: r._id,
-                            at: Date.now(),
-                            note: String(f.get("note")),
-                          }),
-                        );
-                      }}
-                    >
-                      <label>
-                        Service note{" "}
-                        <input
-                          name="note"
-                          maxLength={2000}
-                          placeholder="What was maintained or replaced?"
-                        />
-                      </label>
-                      <button disabled={busy}>Record completed service</button>
-                    </form>
-                  </section>
-                ))}
-            </article>
-          ))}
+                    <label>
+                      Service note{" "}
+                      <input
+                        name="note"
+                        maxLength={2000}
+                        placeholder="What was maintained or replaced?"
+                      />
+                    </label>
+                    <button disabled={busy}>Record completed service</button>
+                  </form>
+                </section>
+              ))}
+          </article>
+        ))}
       </div>
       {status.data?.gear.length === 0 && (
         <p>No equipment yet. Add it below, then assign it from an activity.</p>
@@ -177,7 +174,7 @@ export default function GearPage() {
                 name: String(f.get("name")),
                 kind: String(f.get("kind")),
                 retired: editing?.retired ?? false,
-                servicedAt: editing?.servicedAt ?? Date.now(),
+                servicedAt: editing?.servicedAt,
                 maintenanceKm: editing?.maintenanceKm,
                 maintenanceHours: editing?.maintenanceHours,
               });

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.5.0-alpha.3 - 2026-09-07
+
+Functional journey milestone. Production remains closed.
+
+- Use server time for equipment creation and completed service to avoid rejecting valid actions when the browser clock is ahead. Preserve historical service baselines on edits.
+- Keep every equipment card visible while editing a reminder and show planned workout start times on calendar cards.
+- Verify the import-to-dashboard, activity inspection/editing, selected-field sharing/revocation, saved analysis, goal, calendar and equipment/service workflows with one 4,290-byte synthetic recording. Record the remaining acceptance and external dependencies explicitly.
+
 ## 0.5.0-alpha.2 - 2026-09-07
 
 Contributor and operational milestone. Production remains closed.

@@ -1,0 +1,66 @@
+{
+  "version": "0.5.0-alpha.3",
+  "date": "2026-09-07",
+  "environment": "staging",
+  "productionOpen": false,
+  "fixture": {
+    "bytes": 4290,
+    "samples": 13,
+    "distanceMetres": 300,
+    "durationSeconds": 120,
+    "synthetic": true,
+    "retained": true
+  },
+  "browser": {
+    "desktopWidth": 1600,
+    "mobileWidth": 390,
+    "journeys": [
+      "TCX upload and completion",
+      "Activity route/sensor display and selected interval calculation",
+      "Activity title/private note edit",
+      "Selected-field share preview, publication and public read",
+      "Share revocation returns 404",
+      "Saved analysis creation, pinning and display update",
+      "Home pinned analysis value 300",
+      "Goal creation with 0.3 km progress",
+      "Planned workout creation and date move preserving 10:00",
+      "Equipment creation and 100 km maintenance reminder",
+      "Completed service and persisted history note",
+      "Activity equipment assignment and 0.3 km / 120 s / one activity totals",
+      "Equipment retirement and restoration"
+    ],
+    "limitations": [
+      "Desktop overflow checks for activity and Home; mobile overflow checks for share and analysis only",
+      "Not a complete accessibility or supported-browser audit",
+      "No new health, AI, payment, export or account deletion tests"
+    ]
+  },
+  "fixes": [
+    "Server-generated current service timestamps avoid browser clock skew",
+    "Preserve equipment list while editing a reminder",
+    "Display planned workout local start time"
+  ],
+  "local": {
+    "gearIntegration": "Two tests passed, including server-time defaults, baseline preservation, future-date rejection and existing ownership/usage lifecycle",
+    "rootTypes": "passed",
+    "webTypes": "passed",
+    "stagingBuild": "passed"
+  },
+  "deployments": {
+    "stagingWalkthrough": "dpl_GXXnw4RvSnS7qvrLELgnqFHPcTfC"
+  },
+  "cleanup": {
+    "publicShare": "revoked",
+    "retained": "One labelled synthetic activity, analysis, goal, plan, equipment, reminder and service record"
+  },
+  "remaining": [
+    "Approved persistent connector code and provider access",
+    "Remaining PRD feature/acceptance mapping",
+    "Auth-sensitive and invalid-token traffic controls",
+    "Operational collector/alert receipt and broader tracing",
+    "Supported-browser/accessibility/performance acceptance",
+    "Live billing/payout, business policies and brand review",
+    "Vercel commercial eligibility without an agent-initiated upgrade",
+    "PostHog erasure credentials before external capture"
+  ]
+}

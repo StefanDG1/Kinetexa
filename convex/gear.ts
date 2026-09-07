@@ -128,8 +128,12 @@ export const convertLegacyReminder = mutation({
   },
 });
 export const completeService = mutation({
-  args: { id: v.id("gearReminders"), at: v.number(), note: v.string() },
-  handler: async (ctx, { id, at, note }) => {
+  args: {
+    id: v.id("gearReminders"),
+    at: v.optional(v.number()),
+    note: v.string(),
+  },
+  handler: async (ctx, { id, at = Date.now(), note }) => {
     const a = await requireAthlete(ctx),
       reminder = await ctx.db.get(id);
     if (reminder?.athleteId !== a._id)

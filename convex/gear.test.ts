@@ -5,6 +5,55 @@ import schema from "./schema";
 import { api, internal } from "./_generated/api";
 const modules = import.meta.glob("./**/*.ts");
 
+it("uses server time for new equipment and completed service, preserving dated baselines", async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-09-07T12:00:00Z"));
+  try {
+    const t = convexTest(schema, modules);
+    const owner = t.withIdentity({ subject: "gear-clock-owner" });
+    await owner.mutation(internal.athletes.ensureRecord);
+    const input = { name: "Shoes", kind: "running shoe", retired: false };
+    const id = await owner.mutation(api.workspace.saveGear, input);
+    const baseline = Date.now();
+    expect((await owner.query(api.gear.list))[0].servicedAt).toBe(baseline);
+    vi.advanceTimersByTime(60_000);
+    await owner.mutation(api.workspace.saveGear, {
+      ...input,
+      id,
+      name: "Renamed",
+    });
+    expect((await owner.query(api.gear.list))[0].servicedAt).toBe(baseline);
+    await expect(
+      owner.mutation(api.workspace.saveGear, {
+        ...input,
+        servicedAt: Date.now() + 60_000,
+      }),
+    ).rejects.toThrow("service interval");
+    const reminderId = await owner.mutation(api.gear.saveReminder, {
+      gearId: id,
+      title: "Inspection",
+      distanceKm: 100,
+      disabled: false,
+    });
+    await owner.mutation(api.gear.completeService, {
+      id: reminderId,
+      note: "Inspected",
+    });
+    expect((await owner.query(api.gear.reminders))[0].servicedAt).toBe(
+      Date.now(),
+    );
+    await expect(
+      owner.mutation(api.gear.completeService, {
+        id: reminderId,
+        at: Date.now() + 60_000,
+        note: "",
+      }),
+    ).rejects.toThrow("completed service date");
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 it("tracks maintenance across paginated history, services, merges and retirement without crossing owners", async () => {
   vi.useFakeTimers();
   try {

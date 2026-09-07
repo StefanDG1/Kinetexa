@@ -46,6 +46,10 @@ This file records implemented and verified outcomes separately. Unchecked items 
 
 ## Verification record
 
+The `0.5.0-alpha.3` functional walkthrough used one 4,290-byte synthetic recording. Import, activity inspection/editing, sharing/revocation, saved analysis on Home, goal progress, calendar moves, equipment assignment and maintenance history passed. The equipment journey exposed and fixed client/server clock sensitivity. [Current functional inventory](functional-readiness.md) lists the remaining browser paths, provider implementation, operational and business gates. Styling remains with the user; production stays closed.
+
+The `0.5.0-alpha.2` milestone added reproducible contributor setup and bounded processing/AI phase timings. CI passed; one tiny hosted import emitted storage, parsing and analytics timings. External collector and alert receipt remain unverified. [Evidence](verification/operations-0.5.0-alpha.2.json).
+
 The `0.5.0-alpha.1` functional milestone connects backend calculations and previously hidden CRUD, maintenance, provenance and interval APIs to the interface. It removes the global full-history browser subscription. [Page inventory and remaining gates](functional-readiness.md) distinguish implementation from pending browser acceptance. Production remains closed. The service setup checklist is historical, not a current feature inventory.
 
 `0.4.0-alpha.6` has 139 passing focused tests. Hosted TCX imports verified record scopes, sport isolation and exclusion/reinstatement. Seven staging activities gained reproducible metric inputs with unchanged numeric results and retained originals/history. CI now scans complete Git history; the default-branch CodeQL finding is resolved. Production remains closed. [Evidence and limitations](verification/backend-0.4.0-alpha.6.json).

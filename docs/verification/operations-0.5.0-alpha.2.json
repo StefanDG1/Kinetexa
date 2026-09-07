@@ -1,0 +1,61 @@
+{
+  "version": "0.5.0-alpha.2",
+  "date": "2026-09-07",
+  "commit": "7fd321b",
+  "ci": {
+    "verify": "success",
+    "codeql": "success",
+    "secrets": "success"
+  },
+  "deployments": {
+    "staging": "dpl_7w89KY4a7NJVxAk4tiuSKjHB7heX",
+    "production": "dpl_Aw8yAGaiorXbH23dCpCYKSTFr8Xq",
+    "backendStaging": "deployed",
+    "backendProduction": "deployed"
+  },
+  "verification": {
+    "local": "Focused timing, OTLP payload/parent-child IDs, reprocessing, operation aggregation/alerts and AI feedback tests passed. Root and web TypeScript passed.",
+    "hostedImport": [
+      {
+        "kind": "import",
+        "outcome": "complete",
+        "bytes": 4290,
+        "phases": [
+          {
+            "name": "storage.read",
+            "failed": false,
+            "durationMs": 158
+          },
+          {
+            "name": "storage.write",
+            "failed": false,
+            "durationMs": 323
+          },
+          {
+            "name": "parse.normalize",
+            "failed": false,
+            "durationMs": 112
+          },
+          {
+            "name": "analytics",
+            "failed": false,
+            "durationMs": 2
+          },
+          {
+            "name": "storage.write",
+            "failed": false,
+            "durationMs": 276
+          }
+        ]
+      }
+    ],
+    "productionHealth": 200,
+    "productionSignInClosed": true,
+    "externalCollector": "not configured or receipt-verified"
+  },
+  "limits": [
+    "One 4290-byte synthetic UI recording, no bulk or reprocessing tests",
+    "Phase timings cover instrumented processing and AI paths; interrupted jobs and archive fan-out can be incomplete",
+    "Alert receipt, cross-service/provider traces and remaining release gates open"
+  ]
+}

@@ -164,37 +164,38 @@ export const saveGear = mutation({
     retired: v.boolean(),
     maintenanceKm: v.optional(v.number()),
     maintenanceHours: v.optional(v.number()),
-    servicedAt: v.number(),
+    servicedAt: v.optional(v.number()),
   },
   handler: async (ctx, { id, ...args }) => {
     const a = await requireAthlete(ctx);
     await rateLimit(ctx, a._id, "edit", 500);
+    const old = id ? await ctx.db.get(id) : null;
+    if (id && old?.athleteId !== a._id)
+      throw new ConvexError("Gear unavailable.");
+    const servicedAt = args.servicedAt ?? old?.servicedAt ?? Date.now();
     if (
       !args.name.trim() ||
       args.name.length > 100 ||
       !["bicycle", "running shoe", "equipment"].includes(args.kind) ||
-      ![
-        args.servicedAt,
-        args.maintenanceKm ?? 0,
-        args.maintenanceHours ?? 0,
-      ].every(Number.isFinite) ||
+      ![servicedAt, args.maintenanceKm ?? 0, args.maintenanceHours ?? 0].every(
+        Number.isFinite,
+      ) ||
       (args.maintenanceKm ?? 0) < 0 ||
       (args.maintenanceHours ?? 0) < 0 ||
-      Number.isNaN(new Date(args.servicedAt).getTime()) ||
-      args.servicedAt > Date.now()
+      Number.isNaN(new Date(servicedAt).getTime()) ||
+      servicedAt > Date.now()
     )
       throw new ConvexError("Check the gear name and service interval.");
     if (id) {
-      const old = await ctx.db.get(id);
-      if (old?.athleteId !== a._id) throw new ConvexError("Gear unavailable.");
       await ctx.db.patch(id, {
         ...args,
+        servicedAt,
         maintenanceKm: args.maintenanceKm,
         maintenanceHours: args.maintenanceHours,
       });
       return id;
     }
-    return ctx.db.insert("gear", { ...args, athleteId: a._id });
+    return ctx.db.insert("gear", { ...args, servicedAt, athleteId: a._id });
   },
 });
 export const saveGoal = mutation({

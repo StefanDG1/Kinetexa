@@ -128,7 +128,8 @@ export default function CalendarPage() {
                     }
                   >
                     <p>
-                      {p.title} · {duration(p.duration)} · Planned
+                      {localInput(p.start, timezone).slice(11)} · {p.title} ·{" "}
+                      {duration(p.duration)} · Planned
                     </p>
                     <label>
                       Move to

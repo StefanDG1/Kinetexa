@@ -1,0 +1,58 @@
+{
+  "version": "0.5.0-alpha.4",
+  "date": "2026-09-07",
+  "commit": "0478406",
+  "ci": {
+    "verify": "success",
+    "codeql": "success",
+    "secrets": "success"
+  },
+  "deployments": {
+    "staging": "dpl_3fosrJEMU2A9fejCfDh5E9bcAewR",
+    "production": "dpl_9UWVvjJBtAuikPQBY1qn7zVUfhBu",
+    "backendStaging": "deployed",
+    "backendProduction": "deployed"
+  },
+  "local": {
+    "tests": {
+      "files": 4,
+      "tests": 7,
+      "result": "passed",
+      "scope": "Logout retry/success reuse, existing registration/pre-registration lifecycle and profile limit"
+    },
+    "rootTypes": "passed",
+    "webTypes": "passed",
+    "productionBuild": "passed",
+    "pwa": {
+      "installabilityErrors": [],
+      "serverStoppedNavigation": "reconnect page at /home",
+      "serverRestartedNavigation": "online app",
+      "cachedPaths": [
+        "/offline.html",
+        "/icon-192.png",
+        "/icon-512.png",
+        "/apple-icon.png"
+      ]
+    }
+  },
+  "hosted": {
+    "stagingChromeInstallabilityErrors": [],
+    "stagingWorkerControlsAuthenticatedHome": true,
+    "stagingPinnedAnalysisVisible": true,
+    "stagingCacheContainsOnlyFourPublicAssets": true,
+    "productionHealth": 200,
+    "productionSignIn": "307 to holding page",
+    "productionWorker": 200,
+    "productionWorkerNoStore": true,
+    "productionOfflineDocument": 200,
+    "productionPublicAssetHeader": true
+  },
+  "limits": [
+    "No new hosted fixture import, AI, billing, reprocessing, restore or logout tests",
+    "Native mobile installation and complete browser/accessibility matrix remain unverified",
+    "Anonymous auth, first-registration and invalid-token ingress controls remain open",
+    "Persistent provider permission and implementation remain open",
+    "Operational collector/alert receipt and business/payment release gates remain open",
+    "Production remains closed; no v1.0.0 claim"
+  ]
+}

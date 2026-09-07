@@ -380,9 +380,14 @@ export const complete = internalMutation({
           .lte("start", args.summary.start + 60000),
       )
       .collect();
-    const duplicate = near.find(
-      (n) => duplicateConfidence(n.summary, args.summary) >= 0.7,
-    );
+    const duplicate = near
+      .filter((n) => !n.mergedInto)
+      .map((n) => ({
+        row: n,
+        score: duplicateConfidence(n.summary, args.summary),
+      }))
+      .filter((n) => n.score >= 0.7)
+      .sort((a, b) => b.score - a.score)[0]?.row;
     const id = await ctx.db.insert("activities", {
       athleteId: s.athleteId,
       title: meta?.title || args.summary.title,

@@ -6,6 +6,7 @@ import type { Id, Doc } from "./_generated/dataModel";
 import { paginationOptsValidator } from "convex/server";
 import { simplifySegments, type Point } from "../packages/core/geo";
 import { publishFacts } from "./activityFacts";
+import { duplicateAssessment } from "../packages/core/dedup";
 export async function ownedActivity(ctx: QueryCtx, id: Id<"activities">) {
   const a = await requireAthlete(ctx),
     row = await ctx.db.get(id);
@@ -244,12 +245,95 @@ export const merge = mutation({
           "Unmerge this activity's duplicates before merging it into another activity.",
         );
     }
-    await ctx.db.patch(id, { mergedInto: into });
+    await ctx.db.patch(id, {
+      mergedInto: into,
+      duplicateOf: into ?? row.duplicateOf,
+      duplicateDismissed: !into,
+    });
     await publishFacts(ctx, (await ctx.db.get(id))!);
     await ctx.db.insert("auditEvents", {
       athleteId: row.athleteId,
       action: into ? "activity_merged" : "activity_unmerged",
       at: Date.now(),
     });
+  },
+});
+
+function member(row: Doc<"activities">) {
+  return {
+    id: row._id,
+    title: row.title,
+    sport: row.sport,
+    start: row.start,
+    sourceId: row.sourceId,
+  };
+}
+export const duplicate = query({
+  args: { id: v.id("activities") },
+  handler: async (ctx, { id }) => {
+    const row = await ownedActivity(ctx, id);
+    const targetId = row.mergedInto ?? row.duplicateOf;
+    if (!targetId) return null;
+    let target = await ctx.db.get(targetId);
+    if (!target || target.athleteId !== row.athleteId) return null;
+    // Suggestions imported before a later merge point to the surviving workout.
+    if (target.mergedInto) target = await ctx.db.get(target.mergedInto);
+    if (
+      !target ||
+      target.athleteId !== row.athleteId ||
+      target._id === id ||
+      target.mergedInto
+    )
+      return null;
+    const assessment = duplicateAssessment(row.summary, target.summary);
+    if (!row.mergedInto && assessment.score < assessment.suggestionThreshold)
+      return null;
+    return {
+      status: row.mergedInto
+        ? ("merged" as const)
+        : row.duplicateDismissed
+          ? ("kept-separate" as const)
+          : ("suggested" as const),
+      target: member(target),
+      assessment,
+    };
+  },
+});
+export const keepSeparate = mutation({
+  args: { id: v.id("activities") },
+  handler: async (ctx, { id }) => {
+    const row = await ownedActivity(ctx, id);
+    if (row.mergedInto)
+      throw new ConvexError(
+        "Undo the merge before keeping these activities separate.",
+      );
+    if (!row.duplicateOf)
+      throw new ConvexError("No duplicate suggestion is available.");
+    await ctx.db.patch(id, { duplicateDismissed: true });
+    await ctx.db.insert("auditEvents", {
+      athleteId: row.athleteId,
+      action: "duplicate_kept_separate",
+      at: Date.now(),
+    });
+  },
+});
+export const mergeMembersPage = query({
+  args: { id: v.id("activities"), paginationOpts: paginationOptsValidator },
+  handler: async (ctx, { id, paginationOpts }) => {
+    const row = await ownedActivity(ctx, id);
+    const result = await ctx.db
+      .query("activities")
+      .withIndex("by_merged", (q) => q.eq("mergedInto", id))
+      .paginate({
+        ...paginationOpts,
+        numItems: Math.min(100, Math.max(1, paginationOpts.numItems)),
+        maximumBytesRead: 2_000_000,
+      });
+    return {
+      ...result,
+      page: result.page
+        .filter((r) => r.athleteId === row.athleteId)
+        .map(member),
+    };
   },
 });

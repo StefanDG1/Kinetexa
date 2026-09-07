@@ -118,3 +118,9 @@ Activity `metrics.metrics` includes each derived value's definition, unit, formu
 Canonical and summary `duration` is elapsed time. FIT `timerDuration` preserves stopwatch time; `movingDuration` preserves a valid supplied moving time or an eligible speed estimate. Inspect `movingDurationSource`, `movingDurationCoverageSeconds` and `movingSpeedThreshold` for its basis. Missing values remain absent, including moving time from a paused timer without enough event context.
 
 The complete canonical download includes validated `timerWindows`. Activity summaries keep `timerWindowCount` rather than copying the full schedule into every history response. Interval analysis intersects known timer windows with the selected samples, preserving elapsed, active timer and moving-time distinctions. See [method definitions](methods.md).
+
+## Duplicate review and retained recordings
+
+`activities:duplicate({ id })` returns a private suggestion, merged relation or kept-separate decision, with the target activity and versioned rule inputs/reasons. It follows a previously suggested target to its surviving workout after a merge. A score is not a probability. `activities:keepSeparate({ id })` persists dismissal; merged recordings must first be unmerged. `activities:merge({ id, into })` merges into an owned unmerged workout; omitting `into` restores the recording and records the keep-separate decision. Reprocessing preserves these decisions.
+
+`activities:mergeMembersPage({ id, paginationOpts })` returns retained secondary recordings, capped at 100 rows with a 2 MB pagination read target. Follow each member ID to `activities:provenance` / `provenancePage` for its sources and history, or to owner-authorized original/canonical downloads. Empty pages can still carry a continuation cursor. No original or stream is deleted by merge. The surviving activity supplies the aggregate values; undo restores the secondary contribution.

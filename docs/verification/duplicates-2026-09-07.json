@@ -1,0 +1,28 @@
+{
+  "verifiedAt": "2026-09-07T00:08:22.635Z",
+  "environment": "isolated-restore",
+  "uploadedFiles": 4,
+  "canonicalActivities": 3,
+  "strongestSuggestionSelected": true,
+  "explanationInputsVerified": true,
+  "keepSeparateSurvivesReprocessing": true,
+  "identicalFileDeduplicated": true,
+  "mergedMembersDiscoverable": true,
+  "allOriginalChecksumsPreserved": true,
+  "mergedStreamReadable": true,
+  "calculationHistoryRetained": true,
+  "undoPreservesEditsAndRestoresTotals": true,
+  "fixturesRemoved": true,
+  "cleanup": {
+    "restoredObjects": 45,
+    "restoredActivities": 7,
+    "restoredHealth": 13,
+    "allBaselineStreamsReadable": true
+  },
+  "localIntegration": {
+    "ownerIsolation": true,
+    "nestedMergeRejected": true,
+    "numericIndexRestoredOnUndo": true,
+    "missingDistanceAndTimeBoundaries": true
+  }
+}

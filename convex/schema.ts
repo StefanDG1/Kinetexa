@@ -98,6 +98,7 @@ export default defineSchema({
     version: v.string(),
     createdAt: v.number(),
     duplicateOf: v.optional(v.id("activities")),
+    duplicateDismissed: v.optional(v.boolean()),
     mergedInto: v.optional(v.id("activities")),
   })
     .index("by_athlete", ["athleteId", "start"])

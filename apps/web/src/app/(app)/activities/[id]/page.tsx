@@ -3,7 +3,12 @@ import { useActivityHistory } from "@/components/activity-history";
 import { use, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useAction, useMutation, useQuery } from "convex/react";
+import {
+  useAction,
+  useMutation,
+  useQuery,
+  usePaginatedQuery,
+} from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import type { Activity, Metric, Sample } from "@core/model";
@@ -20,11 +25,18 @@ export default function ActivityPage({
     activityId = id as Id<"activities">,
     a = useQuery(api.activities.get, { id: activityId }),
     provenance = useQuery(api.activities.provenance, { id: activityId }),
+    duplicate = useQuery(api.activities.duplicate, { id: activityId }),
+    mergedMembers = usePaginatedQuery(
+      api.activities.mergeMembersPage,
+      { id: activityId },
+      { initialNumItems: 10 },
+    ),
     workspace = useQuery(api.workspace.overview),
     all = useActivityHistory({}),
     getStream = useAction(api.processing.stream),
     update = useMutation(api.activities.update),
-    merge = useMutation(api.activities.merge);
+    merge = useMutation(api.activities.merge),
+    keepSeparate = useMutation(api.activities.keepSeparate);
   const [stream, setStream] = useState<Activity | null>(null),
     [error, setError] = useState(""),
     [cursor, setCursor] = useState(0),
@@ -526,14 +538,18 @@ export default function ActivityPage({
           <button>Save activity</button>
         </form>
       </section>
-      {a.duplicateOf && (
+      {duplicate && duplicate.status !== "kept-separate" && (
         <section className="privacy-note">
-          <h2>Possible duplicate</h2>
+          <h2>
+            {duplicate.status === "merged"
+              ? "Merged activity"
+              : "Possible duplicate"}
+          </h2>
           <p>
-            Another activity has a similar sport, start time and duration. Both
-            originals are preserved.
+            {duplicate.assessment.reasons.join(" ")} Both originals are
+            preserved.
           </p>
-          <Link href={`/activities/${a.duplicateOf}`}>
+          <Link href={`/activities/${duplicate.target.id}`}>
             Inspect the other activity
           </Link>
           <button
@@ -541,12 +557,26 @@ export default function ActivityPage({
             onClick={() =>
               void merge({
                 id: activityId,
-                into: a.mergedInto ? undefined : a.duplicateOf,
-              })
+                into: a.mergedInto ? undefined : duplicate.target.id,
+              }).catch(() =>
+                setError("The merge could not be saved. Please retry."),
+              )
             }
           >
             {a.mergedInto ? "Undo merge" : "Merge into the other activity"}
           </button>
+          {!a.mergedInto && (
+            <button
+              className="secondary"
+              onClick={() =>
+                void keepSeparate({ id: activityId }).catch(() =>
+                  setError("The decision could not be saved. Please retry."),
+                )
+              }
+            >
+              Keep separate
+            </button>
+          )}
         </section>
       )}
       <details className="section">
@@ -556,6 +586,27 @@ export default function ActivityPage({
           Thresholds: {JSON.stringify(a.metrics.thresholds)}.
         </p>
         <Link href="/import">Download the original from import history</Link>
+        {mergedMembers.results.length > 0 && (
+          <div>
+            <p>
+              Merged recordings retain their own originals and calculation
+              history.
+            </p>
+            {mergedMembers.results.map((m) => (
+              <p key={m.id}>
+                <Link href={`/activities/${m.id}`}>{m.title}</Link>
+              </p>
+            ))}
+          </div>
+        )}
+        {mergedMembers.status === "CanLoadMore" && (
+          <button
+            className="secondary"
+            onClick={() => mergedMembers.loadMore(10)}
+          >
+            More merged recordings
+          </button>
+        )}
         {provenance?.source && (
           <dl>
             <dt>Original filename</dt>

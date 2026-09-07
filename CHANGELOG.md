@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Explain duplicate suggestions, persist keep-separate decisions and expose retained merged recordings through bounded provenance navigation; preserve originals, edits and history through merge/undo.
+
 - Decode FIT once per import/reprocessing job and release consumed records during canonical validation; verify a hosted 48-hour, 172,801-sample recording without changing source data or calculated results.
 
 - Bound activity, import and health pagination by bytes as well as row count; verify complete traversal of metadata-heavy histories.

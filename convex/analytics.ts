@@ -21,7 +21,7 @@ export const calculate = action({
     const profile = await ctx.runQuery(api.athletes.current, {});
     if (!profile) throw new Error("Account unavailable.");
     const [activities, goals, gear, analyses] = await Promise.all([
-      collectActivities(ctx),
+      call.tool === "getHealthTrend" ? [] : collectActivities(ctx),
       call.tool === "getGoalProgress" ? collectWorkspace(ctx, "goals") : [],
       call.tool === "getGearUsage" ? collectWorkspace(ctx, "gear") : [],
       call.tool === "runSavedAnalyticsQuery"
@@ -80,6 +80,7 @@ export const dashboard = action({
     Omit<ReturnType<typeof dashboardData>, "selected"> & {
       selectedCount: number;
       version: string;
+      gearNames: Record<string, string>;
       goals: (Doc<"goals"> & { progress: ReturnType<typeof goalProgress> })[];
       analyses: {
         id: string;
@@ -106,6 +107,9 @@ export const dashboard = action({
     ]);
     const pinned = analyses.filter((a) => a.pinned),
       now = Date.now();
+    const gear = pinned.some((a) => a.query.group === "gear")
+      ? await ctx.runQuery(api.gear.list, {})
+      : [];
     const rows = pinned.length
       ? await collectActivities(ctx, { to: Math.max(now, to) })
       : await collectDashboard(ctx, Math.max(now, to));
@@ -119,6 +123,7 @@ export const dashboard = action({
       ...result,
       selectedCount: selected.length,
       version: VERSION,
+      gearNames: Object.fromEntries(gear.map((g) => [g._id, g.name])),
       goals: goals.map((g) => ({ ...g, progress: goalProgress(g, rows, now) })),
       analyses: pinned.map((a) => {
         const base = { id: a._id, name: a.name, query: a.query };

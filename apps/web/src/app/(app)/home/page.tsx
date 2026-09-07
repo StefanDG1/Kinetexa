@@ -289,7 +289,11 @@ export default function Home() {
             <div key={a.id}>
               <h3>{a.name}</h3>
               {a.error && <p role="alert">{a.error}</p>}
-              <AnalysisResult rows={result} visual={a.query.visual} />
+              <AnalysisResult
+                rows={result}
+                visual={a.query.visual}
+                labels={d.gearNames}
+              />
               <Link href={`/analysis?selected=${a.id}`}>Edit analysis</Link>
             </div>
           );

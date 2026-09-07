@@ -14,7 +14,7 @@ import { rateLimit } from "./limits";
 import { evidenceSchema } from "../packages/core/ai";
 import { dayKey } from "../packages/core/dashboard";
 import { hasPremium } from "../packages/core/entitlements";
-import { recordOperation } from "./operationModel";
+import { recordOperation, operationPhases } from "./operationModel";
 import { recordProductEvent } from "./telemetryModel";
 
 export async function requireRun(ctx: QueryCtx, id: Id<"aiRuns">) {
@@ -158,6 +158,7 @@ const telemetry = {
 };
 export const finish = internalMutation({
   args: {
+    phases: v.optional(operationPhases),
     runId: v.id("aiRuns"),
     status: v.string(),
     content: v.string(),
@@ -169,7 +170,7 @@ export const finish = internalMutation({
     if (!run || run.status !== "pending") return;
     const a = await ctx.db.get(run.athleteId);
     if (!a || a.status !== "active") return;
-    const { runId, status, content, evidence, ...stats } = args;
+    const { runId, status, content, evidence, phases, ...stats } = args;
     const valid =
       a.aiConsent &&
       (a.aiConsentRevision ?? 0) === run.revision &&
@@ -188,6 +189,7 @@ export const finish = internalMutation({
       startedAt: run.startedAt,
       outcome: finalStatus,
       measures: {
+        phases,
         inputTokens: stats.inputTokens,
         outputTokens: stats.outputTokens,
         toolCalls: stats.toolCalls,

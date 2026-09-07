@@ -15,7 +15,7 @@ import { rateLimit } from "./limits";
 import { dayKey } from "../packages/core/dashboard";
 import { paginationOptsValidator } from "convex/server";
 import { publishFacts } from "./activityFacts";
-import { recordOperation } from "./operationModel";
+import { recordOperation, operationPhases } from "./operationModel";
 import { recordProductEvent } from "./telemetryModel";
 const currentAttempt = (source: Doc<"sources">, attempt?: number) =>
   attempt === undefined ||
@@ -258,6 +258,7 @@ export const claim = internalMutation({
 });
 export const failed = internalMutation({
   args: {
+    phases: v.optional(operationPhases),
     id: v.id("sources"),
     message: v.string(),
     retryable: v.boolean(),
@@ -275,7 +276,7 @@ export const failed = internalMutation({
       startedAt: s.receivedAt ?? s.createdAt,
       attempt: s.attempts,
       outcome: retry ? "retrying" : "failed",
-      measures: { bytes: s.bytes },
+      measures: { bytes: s.bytes, phases: args.phases },
     });
     await ctx.db.patch(s._id, {
       status: retry ? "retrying" : "failed",
@@ -292,6 +293,7 @@ export const failed = internalMutation({
 });
 export const complete = internalMutation({
   args: {
+    phases: v.optional(operationPhases),
     id: v.id("sources"),
     hash: v.string(),
     summary: v.any(),
@@ -367,7 +369,7 @@ export const complete = internalMutation({
         startedAt: s.receivedAt ?? s.createdAt,
         attempt: s.attempts,
         outcome: "duplicate",
-        measures: { bytes: s.bytes },
+        measures: { bytes: s.bytes, phases: args.phases },
       });
       return;
     }
@@ -423,7 +425,7 @@ export const complete = internalMutation({
       startedAt: s.receivedAt ?? s.createdAt,
       attempt: s.attempts,
       outcome: "complete",
-      measures: { bytes: s.bytes },
+      measures: { bytes: s.bytes, phases: args.phases },
     });
     if (!s.parentId)
       await ctx.scheduler.runAfter(0, internal.email.enqueue, {
@@ -638,11 +640,12 @@ export const health = internalMutation({
 });
 export const healthComplete = internalMutation({
   args: {
+    phases: v.optional(operationPhases),
     id: v.id("sources"),
     hash: v.string(),
     attempt: v.optional(v.number()),
   },
-  handler: async (ctx, { id, hash, attempt }) => {
+  handler: async (ctx, { id, hash, attempt, phases }) => {
     const s = await ctx.db.get(id);
     if (!s || !currentAttempt(s, attempt)) return;
     const a = await ctx.db.get(s.athleteId);
@@ -659,7 +662,7 @@ export const healthComplete = internalMutation({
       startedAt: s.receivedAt ?? s.createdAt,
       attempt: s.attempts,
       outcome: "complete",
-      measures: { bytes: s.bytes },
+      measures: { bytes: s.bytes, phases: phases },
     });
   },
 });

@@ -1,6 +1,6 @@
 import { v, ConvexError } from "convex/values";
 import { publishFacts } from "./activityFacts";
-import { recordOperation } from "./operationModel";
+import { recordOperation, operationPhases } from "./operationModel";
 import {
   mutation,
   internalMutation,
@@ -211,6 +211,7 @@ export const stageHealth = internalMutation({
 });
 export const finish = internalMutation({
   args: {
+    phases: v.optional(operationPhases),
     ...attemptArgs,
     healthRebuilt: v.boolean(),
     healthRevision: v.number(),
@@ -232,6 +233,7 @@ export const finish = internalMutation({
       id,
       attempt,
       healthRebuilt,
+      phases,
       healthRevision,
       parsed,
       thresholds,
@@ -297,13 +299,19 @@ export const finish = internalMutation({
       startedAt: run.source.reprocessStartedAt,
       attempt,
       outcome: "complete",
+      measures: { phases },
     });
     return true;
   },
 });
 export const fail = internalMutation({
-  args: { ...attemptArgs, message: v.string(), retryable: v.boolean() },
-  handler: async (ctx, { id, attempt, message, retryable }) => {
+  args: {
+    ...attemptArgs,
+    phases: v.optional(operationPhases),
+    message: v.string(),
+    retryable: v.boolean(),
+  },
+  handler: async (ctx, { id, attempt, message, retryable, phases }) => {
     const run = await current(ctx, id, attempt);
     if (!run) return;
     const retries = run.source.reprocessRetries ?? 0,
@@ -315,6 +323,7 @@ export const fail = internalMutation({
       startedAt: run.source.reprocessStartedAt,
       attempt,
       outcome: retry ? "retrying" : "failed",
+      measures: { phases },
     });
     await ctx.db.patch(id, {
       reprocessStatus: retry ? "queued" : "failed",

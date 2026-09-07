@@ -20,8 +20,15 @@ import {
   type AiTelemetry,
 } from "./aiProvider";
 import { catalog, executePlan, readToolData } from "./aiData";
+import { operationTiming } from "../packages/core/operation-timing";
 import { findInsight } from "../packages/core/ai-insights";
 
+function timedGateway(timing: ReturnType<typeof operationTiming>) {
+  return (...args: Parameters<typeof gatewayModel.complete>) =>
+    timing.measure(args[0] === PLANNER ? "ai.plan" : "ai.explain", () =>
+      gatewayModel.complete(...args),
+    );
+}
 export const ask = action({
   args: { question: v.string(), activityId: v.optional(v.id("activities")) },
   handler: async (ctx, { question, activityId }): Promise<void> => {
@@ -34,6 +41,8 @@ export const ask = action({
       inputTokens: 0,
       outputTokens: 0,
     };
+    const timing = operationTiming(),
+      complete = timedGateway(timing);
     let stage = "loading",
       status = "failed",
       content =
@@ -67,7 +76,7 @@ export const ask = action({
       await ctx.runQuery(internal.ai.consent, { runId: session.runId });
       stage = "planning";
       const plan = planSchema.parse(
-        await gatewayModel.complete(
+        await complete(
           PLANNER,
           {
             today: new Date().toISOString().slice(0, 10),
@@ -94,17 +103,14 @@ export const ask = action({
       telemetry.toolCalls = plan.calls.length;
       stage = "calculating";
       telemetry.tools = plan.calls.map((c) => c.tool);
-      evidence = executePlan(plan, data, sources.aliases);
+      evidence = timing.sync("ai.tools", () =>
+        executePlan(plan, data, sources.aliases),
+      );
       const facts = modelEvidence(evidence);
       await ctx.runQuery(internal.ai.consent, { runId: session.runId });
       stage = "explaining";
       const answer = validateExplanation(
-        await gatewayModel.complete(
-          EXPLAINER,
-          { question, facts },
-          deadline,
-          telemetry,
-        ),
+        await complete(EXPLAINER, { question, facts }, deadline, telemetry),
         evidence,
       );
       content = answer.summary;
@@ -145,6 +151,7 @@ export const ask = action({
         content,
         evidence,
         ...telemetry,
+        phases: timing.phases,
       });
       console.info(
         JSON.stringify({
@@ -186,6 +193,8 @@ export const refreshInsight = internalAction({
         inputTokens: 0,
         outputTokens: 0,
       };
+    const timing = operationTiming(),
+      complete = timedGateway(timing);
     let status = "no-finding",
       content = "",
       evidence: Evidence[] = [];
@@ -197,7 +206,7 @@ export const refreshInsight = internalAction({
         deadline,
         ["activities"],
       );
-      const candidate = findInsight(data);
+      const candidate = timing.sync("ai.tools", () => findInsight(data));
       if (!candidate) return;
       evidence = candidate;
       telemetry.toolCalls = 1;
@@ -205,12 +214,7 @@ export const refreshInsight = internalAction({
       const facts = modelEvidence(evidence);
       await ctx.runQuery(internal.ai.consent, { runId: session.runId });
       content = validateExplanation(
-        await gatewayModel.complete(
-          EXPLAINER,
-          { question, facts },
-          deadline,
-          telemetry,
-        ),
+        await complete(EXPLAINER, { question, facts }, deadline, telemetry),
         evidence,
       ).summary;
       status = "completed";
@@ -224,6 +228,7 @@ export const refreshInsight = internalAction({
         content,
         evidence,
         ...telemetry,
+        phases: timing.phases,
       });
     }
   },

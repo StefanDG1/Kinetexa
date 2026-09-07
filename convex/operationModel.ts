@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
 import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { recordProductEvent } from "./telemetryModel";
@@ -22,7 +22,25 @@ export type OperationKind =
   | "ai"
   | "billing"
   | "webhook";
+export const operationPhases = v.array(
+  v.object({
+    name: v.union(
+      v.literal("storage.read"),
+      v.literal("storage.write"),
+      v.literal("decode"),
+      v.literal("parse.normalize"),
+      v.literal("analytics"),
+      v.literal("ai.plan"),
+      v.literal("ai.tools"),
+      v.literal("ai.explain"),
+    ),
+    startedAt: v.number(),
+    endedAt: v.number(),
+    failed: v.boolean(),
+  }),
+);
 export const operationMeasures = v.object({
+  phases: v.optional(operationPhases),
   bytes: v.optional(v.number()),
   inputTokens: v.optional(v.number()),
   outputTokens: v.optional(v.number()),
@@ -39,13 +57,7 @@ export async function recordOperation(
     outcome: string;
     startedAt?: number;
     attempt?: number;
-    measures?: {
-      bytes?: number;
-      inputTokens?: number;
-      outputTokens?: number;
-      costMicrousd?: number;
-      toolCalls?: number;
-    };
+    measures?: Infer<typeof operationMeasures>;
   },
 ) {
   const key = `${data.kind}:${data.jobId}:${data.attempt ?? 0}:${data.outcome}`;

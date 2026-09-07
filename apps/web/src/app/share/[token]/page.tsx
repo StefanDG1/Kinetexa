@@ -15,6 +15,8 @@ export default async function Share({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
+  // Reject malformed links before a network/database call.
+  if (!/^[a-f0-9]{64}$/.test(token)) notFound();
   const data = await fetchMutation(api.sharing.publicView, { token }).catch(
     (error) => {
       if (

@@ -14,6 +14,7 @@ import { aggregateHealthFile } from "../packages/core/health";
 import { analyze } from "../packages/core/analytics";
 import { clean, activitySummary } from "../packages/core/model";
 import { route, routeSegments } from "../packages/core/geo";
+import { operationTiming } from "../packages/core/operation-timing";
 import { withTimeContext } from "../packages/core/time-context";
 export const source = internalAction({
   args: { id: v.id("sources") },
@@ -28,8 +29,11 @@ export const source = internalAction({
       healthEnabled,
       healthRevision,
     } = run;
+    const timing = operationTiming();
     try {
-      const bytes = await getObject(source.key);
+      const bytes = await timing.measure("storage.read", () =>
+        getObject(source.key),
+      );
       if (
         bytes.length !== source.bytes ||
         createHash("sha256").update(bytes).digest("hex") !== source.hash
@@ -38,7 +42,7 @@ export const source = internalAction({
           "The retained original failed its integrity check. Previous results are preserved.",
         );
       const fit = /\.fit$/i.test(source.name)
-        ? await decodeFit(bytes)
+        ? await timing.measure("decode", () => decodeFit(bytes))
         : undefined;
       let partIndex = source.partIndex;
       const splitCount =
@@ -97,13 +101,19 @@ export const source = internalAction({
       let parsed;
       if (source.activityId) {
         const activity = withTimeContext(
-            await parseActivity(source.name, bytes, partIndex, fit),
+            await timing.measure("parse.normalize", () =>
+              parseActivity(source.name, bytes, partIndex, fit),
+            ),
             timezone,
           ),
-          metrics = analyze(activity, thresholds),
+          metrics = timing.sync("analytics", () =>
+            analyze(activity, thresholds),
+          ),
           summary = activitySummary(activity),
           streamKey = `${source.athleteId}/streams/${id}-reprocess-${attempt}.json`;
-        await putActivity(streamKey, activity);
+        await timing.measure("storage.write", () =>
+          putActivity(streamKey, activity),
+        );
         parsed = {
           metrics,
           summary,
@@ -118,6 +128,7 @@ export const source = internalAction({
           id,
           attempt,
           healthRebuilt,
+          phases: timing.phases,
           healthRevision,
           parsed,
           thresholds,
@@ -128,6 +139,7 @@ export const source = internalAction({
         await ctx.runMutation(internal.reprocessing.children, { id });
     } catch (e) {
       await ctx.runMutation(internal.reprocessing.fail, {
+        phases: timing.phases,
         id,
         attempt,
         retryable:

@@ -20,7 +20,17 @@ it("counts operations once, finds backlogs, reports alert changes and keeps priv
           jobId: `fixture-${i}`,
           outcome: i < 5 ? "failed" : "complete",
           startedAt: now - 1000,
-          measures: { bytes: 10 },
+          measures: {
+            bytes: 10,
+            phases: [
+              {
+                name: "storage.read" as const,
+                startedAt: now - 500,
+                endedAt: now - 100,
+                failed: i < 5,
+              },
+            ],
+          },
         };
         await recordOperation(ctx, event);
         await recordOperation(ctx, event);
@@ -58,8 +68,17 @@ it("counts operations once, finds backlogs, reports alert changes and keeps priv
       p95Ms: 1000,
     });
     expect(first.newAlerts).toEqual(
-      expect.arrayContaining(["import-backlog", "import-failure-rate"]),
+      expect.arrayContaining([
+        "import-backlog",
+        "import-failure-rate",
+        "phase:storage.read-failure-rate",
+      ]),
     );
+    expect(first.metrics["phase:storage.read"]).toMatchObject({
+      events: 10,
+      failures: 5,
+      p95Ms: 400,
+    });
     expect((await t.action(internal.operations.check, {})).newAlerts).toEqual(
       [],
     );

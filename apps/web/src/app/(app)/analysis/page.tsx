@@ -30,6 +30,8 @@ export default function AnalysisPage() {
     [error, setError] = useState("");
   const [editingId, setEditingId] = useState<Id<"analyses"> | undefined>(),
     [pinned, setPinned] = useState(false);
+  const [resultQuery, setResultQuery] = useState("");
+  const queryKey = JSON.stringify({ ...q, visual: undefined });
   useEffect(() => {
     if (initialized.current) return;
     const params = new URLSearchParams(window.location.search),
@@ -107,6 +109,7 @@ export default function AnalysisPage() {
           e.preventDefault();
           try {
             setRows(await preview({ query: q }));
+            setResultQuery(queryKey);
             setError("");
           } catch {
             setError("Check your query and try again.");
@@ -178,6 +181,11 @@ export default function AnalysisPage() {
             Through
             <input
               type="date"
+              value={
+                q.to === undefined
+                  ? ""
+                  : calendarDate(q.to, q.timezone ?? profile?.timezone ?? "UTC")
+              }
               onChange={(e) =>
                 setQ({
                   ...q,
@@ -364,7 +372,11 @@ export default function AnalysisPage() {
             several items; gear totals are not additive.
           </p>
         )}
-        <AnalysisResult rows={rows} visual={q.visual} />
+        <AnalysisResult
+          rows={resultQuery === queryKey ? rows : []}
+          visual={q.visual}
+          labels={Object.fromEntries(data.gear.map((g) => [g._id, g.name]))}
+        />
       </section>
       <form
         onSubmit={async (e) => {

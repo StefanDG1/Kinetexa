@@ -25,6 +25,7 @@ import { streamView } from "../packages/core/stream-view";
 import { route, routeSegments } from "../packages/core/geo";
 import { aggregateHealthFile } from "../packages/core/health";
 import { withTimeContext } from "../packages/core/time-context";
+import { operationTiming } from "../packages/core/operation-timing";
 import { analyzeInterval } from "../packages/core/interval";
 
 export const stream = action({
@@ -107,13 +108,16 @@ export const process = internalAction({
     if (!claimed) return;
     const { source: s, thresholds, timezone } = claimed;
     const attempt = s.attempts + 1;
+    const timing = operationTiming();
     try {
       const size = await objectSize(s.key);
       if (size !== s.bytes)
         throw new Error(
           "Uploaded byte count does not match. Upload the original again.",
         );
-      const bytes = await getObject(s.key),
+      const bytes = await timing.measure("storage.read", () =>
+          getObject(s.key),
+        ),
         hash = createHash("sha256").update(bytes).digest("hex");
       if (bytes.length !== s.bytes || (s.hash && hash !== s.hash))
         throw new Error(
@@ -121,7 +125,8 @@ export const process = internalAction({
         );
       // Browser upload URLs never target retained originals. Parse the same bytes that are sealed here.
       const key = `${s.athleteId}/originals/${hash}`;
-      if (s.key !== key) await putObject(key, bytes);
+      if (s.key !== key)
+        await timing.measure("storage.write", () => putObject(key, bytes));
       if (
         !(await ctx.runMutation(internal.imports.received, {
           id,
@@ -162,7 +167,9 @@ export const process = internalAction({
           childIds,
         });
       } else {
-        const fit = /\.fit$/i.test(s.name) ? await decodeFit(bytes) : undefined;
+        const fit = /\.fit$/i.test(s.name)
+          ? await timing.measure("decode", () => decodeFit(bytes))
+          : undefined;
         const health =
           /\.fit$/i.test(s.name) && s.partIndex === undefined
             ? aggregateHealthFile(await parseFitHealth(bytes, fit), timezone)
@@ -210,7 +217,9 @@ export const process = internalAction({
         let activity;
         try {
           activity = withTimeContext(
-            await parseActivity(s.name, bytes, s.partIndex, fit),
+            await timing.measure("parse.normalize", () =>
+              parseActivity(s.name, bytes, s.partIndex, fit),
+            ),
             timezone,
           );
         } catch (e) {
@@ -220,6 +229,7 @@ export const process = internalAction({
             /No valid/.test(e.message)
           ) {
             await ctx.runMutation(internal.imports.healthComplete, {
+              phases: timing.phases,
               id,
               attempt,
               hash,
@@ -228,13 +238,18 @@ export const process = internalAction({
           }
           throw e;
         }
-        const metrics = analyze(activity, thresholds),
+        const metrics = timing.sync("analytics", () =>
+            analyze(activity, thresholds),
+          ),
           streamKey = `${s.athleteId}/streams/${id}-import-${attempt}.json`;
-        await putActivity(streamKey, activity);
+        await timing.measure("storage.write", () =>
+          putActivity(streamKey, activity),
+        );
         const summary = activitySummary(activity);
         await ctx.runMutation(
           internal.imports.complete,
           clean({
+            phases: timing.phases,
             id,
             attempt,
             hash,
@@ -266,6 +281,7 @@ export const process = internalAction({
           ? e.message
           : "This file could not be processed. The original is retained.";
       await ctx.runMutation(internal.imports.failed, {
+        phases: timing.phases,
         id,
         attempt,
         message,

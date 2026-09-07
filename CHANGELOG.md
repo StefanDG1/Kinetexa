@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.5.0-alpha.2 - 2026-09-07
+
+Contributor and operational milestone. Production remains closed.
+
+- Attach bounded processing and AI phase timings to existing operational events, export parent/child OTLP spans, add opt-in collector delivery and phase failure/latency alerts without per-phase database writes.
+- Expose saved-analysis measurement coverage and contributing activities; preserve query date controls and suppress stale results after filter changes.
+- Skip activity-history reads for health-only calculations and reject malformed share links before a backend request.
+
 - Add current contributor/local-development guides, a local configuration checker, and synthetic-data issue/PR templates. Keep standalone Open Solo limitations explicit.
 - Select backend environment files explicitly and pipe secret values through stdin in the configuration sync helper.
 

@@ -296,6 +296,29 @@ export const check = internalAction({
           "toolCalls",
         ] as const)
           metric[key] += row.measures?.[key] ?? 0;
+        for (const phase of row.measures?.phases ?? []) {
+          const phaseGroup = `phase:${phase.name}`;
+          const part = (metrics[phaseGroup] ??= {
+            events: 0,
+            failures: 0,
+            outcomes: {},
+            latencyCount: 0,
+            meanMs: null,
+            p95Ms: null,
+            costMicrousd: 0,
+            bytes: 0,
+            inputTokens: 0,
+            outputTokens: 0,
+            toolCalls: 0,
+          });
+          part.events++;
+          const outcome = phase.failed ? "failed" : "complete";
+          part.outcomes[outcome] = (part.outcomes[outcome] ?? 0) + 1;
+          if (phase.failed) part.failures++;
+          (latencies[phaseGroup] ??= []).push(
+            Math.max(0, phase.endedAt - phase.startedAt),
+          );
+        }
       }
       cursor = result.isDone ? null : result.continueCursor;
     } while (cursor);

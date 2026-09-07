@@ -8,6 +8,7 @@ import {
   parseActivity,
   parseFitHealth,
   activityPartCount,
+  decodeFit,
 } from "../packages/core/import";
 import { aggregateHealthFile } from "../packages/core/health";
 import { analyze } from "../packages/core/analytics";
@@ -36,11 +37,14 @@ export const source = internalAction({
         throw new Error(
           "The retained original failed its integrity check. Previous results are preserved.",
         );
+      const fit = /\.fit$/i.test(source.name)
+        ? await decodeFit(bytes)
+        : undefined;
       let partIndex = source.partIndex;
       const splitCount =
         source.splitCount ??
         (source.activityId && partIndex === undefined
-          ? await activityPartCount(source.name, bytes)
+          ? await activityPartCount(source.name, bytes, fit)
           : 1);
       if (splitCount > 1) {
         await ctx.runMutation(internal.reprocessing.prepareSplit, {
@@ -80,7 +84,7 @@ export const source = internalAction({
         healthEnabled;
       if (healthRebuilt) {
         const samples = aggregateHealthFile(
-          await parseFitHealth(bytes),
+          await parseFitHealth(bytes, fit),
           timezone,
         );
         for (let offset = 0; offset < samples.length; offset += 200)
@@ -93,7 +97,7 @@ export const source = internalAction({
       let parsed;
       if (source.activityId) {
         const activity = withTimeContext(
-            await parseActivity(source.name, bytes, partIndex),
+            await parseActivity(source.name, bytes, partIndex, fit),
             timezone,
           ),
           metrics = analyze(activity, thresholds),

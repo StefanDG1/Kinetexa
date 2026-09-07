@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Decode FIT once per import/reprocessing job and release consumed records during canonical validation; verify a hosted 48-hour, 172,801-sample recording without changing source data or calculated results.
+
 - Bound activity, import and health pagination by bytes as well as row count; verify complete traversal of metadata-heavy histories.
 
 - Preserve separate FIT elapsed/timer/moving durations and correct moving-time estimates for stationary, missing, rejected and paused data.

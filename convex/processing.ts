@@ -17,6 +17,7 @@ import {
   unpackArchive,
   parseFitHealth,
   activityPartCount,
+  decodeFit,
 } from "../packages/core/import";
 import { analyze } from "../packages/core/analytics";
 import { clean, activitySummary } from "../packages/core/model";
@@ -161,9 +162,10 @@ export const process = internalAction({
           childIds,
         });
       } else {
+        const fit = /\.fit$/i.test(s.name) ? await decodeFit(bytes) : undefined;
         const health =
           /\.fit$/i.test(s.name) && s.partIndex === undefined
-            ? aggregateHealthFile(await parseFitHealth(bytes), timezone)
+            ? aggregateHealthFile(await parseFitHealth(bytes, fit), timezone)
             : [];
         for (let offset = 0; offset < health.length; offset += 200)
           await ctx.runMutation(internal.imports.health, {
@@ -173,7 +175,7 @@ export const process = internalAction({
             samples: health.slice(offset, offset + 200),
           });
         if (s.partIndex === undefined) {
-          const count = await activityPartCount(s.name, bytes);
+          const count = await activityPartCount(s.name, bytes, fit);
           if (count > 1) {
             const childIds: import("./_generated/dataModel").Id<"sources">[] =
               [];
@@ -208,7 +210,7 @@ export const process = internalAction({
         let activity;
         try {
           activity = withTimeContext(
-            await parseActivity(s.name, bytes, s.partIndex),
+            await parseActivity(s.name, bytes, s.partIndex, fit),
             timezone,
           );
         } catch (e) {

@@ -1,0 +1,80 @@
+{
+  "hosted": {
+    "verifiedAt": "2026-09-06T23:54:14.911Z",
+    "environment": "isolated-restore",
+    "inputBytes": 5356938,
+    "samples": 172801,
+    "canonicalRoundTrip": true,
+    "originalChecksumUnchanged": true,
+    "boundedStreamRead": true,
+    "elapsedMs": 26862,
+    "version": "0.4.0-alpha.8"
+  },
+  "localBefore": {
+    "samples": 172801,
+    "inputBytes": 5356938,
+    "canonicalBytes": 115177930,
+    "canonicalSha256": "cba74d9e6bf4a3e8e05217e8a65dafa53395caa93c810d7623b7044cd1071e20",
+    "metricSha256": "9cb0d5dab1d7659ec99cfea4acf52bd105a7b5da1fdbe692b559308bf64747b5",
+    "parseCalculateSerializeMs": 3175,
+    "peakRssMiB": 754,
+    "heapUsedMiB": 390,
+    "host": "fresh-local-windows-node24",
+    "convexNodeMemoryLimitMiB": 512
+  },
+  "localAfter": {
+    "samples": 172801,
+    "inputBytes": 5356938,
+    "canonicalBytes": 115177930,
+    "canonicalSha256": "cba74d9e6bf4a3e8e05217e8a65dafa53395caa93c810d7623b7044cd1071e20",
+    "metricSha256": "9cb0d5dab1d7659ec99cfea4acf52bd105a7b5da1fdbe692b559308bf64747b5",
+    "parseCalculateSerializeMs": 2746,
+    "peakRssMiB": 539,
+    "heapUsedMiB": 241,
+    "host": "fresh-local-windows-node24",
+    "convexNodeMemoryLimitMiB": 512
+  },
+  "stagingReprocessing": {
+    "verifiedAt": "2026-09-07T00:01:44.793Z",
+    "environment": "staging",
+    "owners": [
+      {
+        "account": 1,
+        "activities": 4,
+        "version": "0.4.0-alpha.8",
+        "numericResultsUnchanged": true,
+        "originalChecksumsAndEditsPreserved": true,
+        "previousCalculationVersionsRetained": true,
+        "explanationInputsPresent": true,
+        "dashboardModelInputsVerified": true,
+        "invalidThresholdsRejectedWithoutMutation": true
+      },
+      {
+        "account": 2,
+        "activities": 3,
+        "version": "0.4.0-alpha.8",
+        "numericResultsUnchanged": true,
+        "originalChecksumsAndEditsPreserved": true,
+        "previousCalculationVersionsRetained": true,
+        "explanationInputsPresent": true,
+        "dashboardModelInputsVerified": true,
+        "invalidThresholdsRejectedWithoutMutation": true
+      }
+    ]
+  },
+  "cleanup": {
+    "verifiedAt": "2026-09-07T00:01:26.237Z",
+    "environment": "isolated-restore",
+    "objects": 45,
+    "activities": 7,
+    "health": 13,
+    "allBaselineStreamsReadable": true,
+    "largeFitFixtureRemoved": true
+  },
+  "limitations": [
+    "One synthetic recording; broader real-device and concurrent-load verification remains open.",
+    "Windows RSS is not hosted memory usage.",
+    "The baseline omitted health extraction; timing is not an identical-workload comparison.",
+    "The hosted duration includes upload and verification downloads."
+  ]
+}

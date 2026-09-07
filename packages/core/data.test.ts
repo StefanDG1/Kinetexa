@@ -1,6 +1,12 @@
 import { it, expect } from "vitest";
 import { FitEncoder, FitBaseType } from "fit-file-parser";
-import { parseActivity, activityPartCount, normalize } from "./import";
+import {
+  parseActivity,
+  activityPartCount,
+  normalize,
+  decodeFit,
+  parseFitHealth,
+} from "./import";
 import { explicitOffset, withTimeContext } from "./time-context";
 import { analyzeInterval } from "./interval";
 import type { Activity } from "./model";
@@ -75,12 +81,20 @@ it("separates FIT sessions, preserves sensor fields and uses each session's dist
       ]);
   }
   const bytes = e.close();
-  expect(await activityPartCount("multi.fit", bytes)).toBe(2);
+  const decoded = await decodeFit(bytes);
+  expect(await parseFitHealth(bytes, decoded)).toEqual([]);
+  expect(await activityPartCount("multi.fit", bytes, decoded)).toBe(2);
   await expect(parseActivity("multi.fit", bytes)).rejects.toThrow(
     "multiple sessions",
   );
-  const run = await parseActivity("multi.fit", bytes, 0),
+  const run = await parseActivity("multi.fit", bytes, 0, decoded),
     ride = await parseActivity("multi.fit", bytes, 1);
+  await expect(parseActivity("multi.fit", bytes, 1, decoded)).rejects.toThrow(
+    "already been consumed",
+  );
+  await expect(parseFitHealth(bytes, decoded)).rejects.toThrow(
+    "already been consumed",
+  );
   expect(run.sport).toBe("running");
   expect(ride.sport).toBe("cycling");
   for (const a of [run, ride]) {

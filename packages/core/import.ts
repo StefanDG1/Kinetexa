@@ -5,6 +5,7 @@ import { gunzipSync } from "node:zlib";
 import { parse as parseCsv } from "csv-parse/sync";
 import {
   activitySchema,
+  sampleSchema,
   clean,
   type Activity,
   type Sample,
@@ -31,6 +32,7 @@ const num = (v: unknown): number | undefined =>
       : undefined;
 const timestamp = (v: unknown) =>
   v instanceof Date ? v.getTime() : Date.parse(String(v));
+const metadataSchema = activitySchema.omit({ samples: true });
 function sport(v: unknown): Sport {
   const s = String(v).toLowerCase();
   return /run/.test(s)
@@ -49,10 +51,20 @@ export function normalize(
 ): Activity {
   if (!Number.isFinite(input.start))
     throw new Error("No valid activity start time.");
-  const samples = input.samples
-    .filter((s) => Number.isFinite(s.t) && s.t >= 0)
-    .sort((a, b) => a.t - b.t)
-    .filter((s, i, a) => i === 0 || s.t !== a[i - 1].t);
+  // Normalize the owned parser buffer in place so validation does not retain two full streams.
+  const samples = input.samples;
+  let kept = 0;
+  for (const sample of samples)
+    if (Number.isFinite(sample.t) && sample.t >= 0) samples[kept++] = sample;
+  samples.length = kept;
+  samples.sort((a, b) => a.t - b.t);
+  kept = 0;
+  for (const sample of samples)
+    if (kept === 0 || sample.t !== samples[kept - 1].t)
+      samples[kept++] = sample;
+  samples.length = kept;
+  if (samples.length > 500000)
+    throw new Error("Activity exceeds the 500,000 sample limit.");
   let distance = 0,
     gain = 0,
     loss = 0,
@@ -129,6 +141,7 @@ export function normalize(
       s.paceSecondsPerKm = 1000 / s.speed;
     if (input.sport === "running" && s.power !== undefined)
       s.runningPower = s.power;
+    samples[i] = sampleSchema.parse(s);
   }
   const boundedDuration = (value: number | undefined, maximum: number) =>
     value !== undefined &&
@@ -167,7 +180,7 @@ export function normalize(
     throw new Error(
       "An individual activity must be at most 48 hours. Split longer recordings before importing.",
     );
-  return activitySchema.parse({
+  const metadata = metadataSchema.parse({
     ...input,
     samples,
     duration,
@@ -205,6 +218,7 @@ export function normalize(
         ? (duration / totalDistance) * 1000
         : undefined,
   });
+  return { ...metadata, samples };
 }
 // Untrusted parser objects stop at this boundary and are validated into Activity.
 type Xml = Record<string, any>;
@@ -222,7 +236,7 @@ function fitMetadata(fit: Xml) {
     developerApplications: list(fit.developer_data_ids),
   });
 }
-async function decodeFit(bytes: Uint8Array): Promise<Xml> {
+export async function decodeFit(bytes: Uint8Array): Promise<Xml> {
   if (bytes.length > LIMITS.fileBytes)
     throw new Error("Activity exceeds the 32 MiB file limit.");
   const parser = new FitParser({
@@ -253,10 +267,13 @@ export type HealthSample = {
 };
 export async function parseFitHealth(
   bytes: Uint8Array,
+  decodedFit?: Xml,
 ): Promise<HealthSample[]> {
-  const fit = await decodeFit(bytes),
+  const fit = decodedFit ?? (await decodeFit(bytes)),
     messages = fit.messages ?? {},
     out: HealthSample[] = [];
+  if (!Array.isArray(fit.records))
+    throw new Error("Decoded FIT data have already been consumed.");
   const add = (
     rows: Xml[],
     kind: string,
@@ -361,12 +378,17 @@ export async function parseActivity(
   name: string,
   bytes: Uint8Array,
   partIndex?: number,
+  decodedFit?: Xml,
 ): Promise<Activity> {
   if (bytes.length > LIMITS.fileBytes)
     throw new Error("Activity exceeds the 32 MiB file limit.");
   const ext = name.split(".").at(-1)?.toLowerCase();
   if (ext === "fit") {
-    const fit = await decodeFit(bytes);
+    const fit = decodedFit ?? (await decodeFit(bytes));
+    if (!Array.isArray(fit.records))
+      throw new Error(
+        "Decoded FIT activity records have already been consumed.",
+      );
     const sessions = list<Xml>(fit.sessions);
     if (sessions.length > 1 && partIndex === undefined)
       throw new Error(
@@ -398,7 +420,9 @@ export async function parseActivity(
       });
     const distanceBase =
       sessions.length > 1 ? (num(records[0]?.distance) ?? 0) : 0;
-    return normalize({
+    fit.records = undefined;
+    fit.messages = undefined;
+    const parsed: Activity = {
       title: name.replace(/\.[^.]+$/, ""),
       sport: sport(session.sport),
       subSport: session.sub_sport,
@@ -435,37 +459,40 @@ export async function parseActivity(
         sessionCount: Math.max(1, sessions.length),
         session: clean(session),
       },
-      samples: records.map((r) => ({
-        t: (timestamp(r.timestamp) - start) / 1000,
-        lat: num(r.position_lat),
-        lon: num(r.position_long),
-        altitude: num(r.enhanced_altitude ?? r.altitude),
-        distance:
-          num(r.distance) === undefined
-            ? undefined
-            : Math.max(0, num(r.distance)! - distanceBase),
-        speed: num(r.enhanced_speed ?? r.speed),
-        hr: num(r.heart_rate),
-        power: num(r.power),
-        cadence: num(r.cadence),
-        temperature: num(r.temperature),
-        grade: num(r.grade),
-        verticalSpeed: num(r.vertical_speed),
-        runningDynamics: numericFields(r, [
-          "vertical_oscillation",
-          "stance_time",
-          "stance_time_percent",
-          "stance_time_balance",
-          "vertical_ratio",
-          "step_length",
-        ]),
-        cyclingDynamics: Object.fromEntries(
-          Object.entries(r).filter(([key]) =>
-            /^(left_|right_|total_hemoglobin|saturated_hemoglobin)/.test(key),
+      samples: records.map((r, index) => {
+        records[index] = {};
+        return {
+          t: (timestamp(r.timestamp) - start) / 1000,
+          lat: num(r.position_lat),
+          lon: num(r.position_long),
+          altitude: num(r.enhanced_altitude ?? r.altitude),
+          distance:
+            num(r.distance) === undefined
+              ? undefined
+              : Math.max(0, num(r.distance)! - distanceBase),
+          speed: num(r.enhanced_speed ?? r.speed),
+          hr: num(r.heart_rate),
+          power: num(r.power),
+          cadence: num(r.cadence),
+          temperature: num(r.temperature),
+          grade: num(r.grade),
+          verticalSpeed: num(r.vertical_speed),
+          runningDynamics: numericFields(r, [
+            "vertical_oscillation",
+            "stance_time",
+            "stance_time_percent",
+            "stance_time_balance",
+            "vertical_ratio",
+            "step_length",
+          ]),
+          cyclingDynamics: Object.fromEntries(
+            Object.entries(r).filter(([key]) =>
+              /^(left_|right_|total_hemoglobin|saturated_hemoglobin)/.test(key),
+            ),
           ),
-        ),
-        sourceFields: clean(r),
-      })),
+          sourceFields: clean(r),
+        };
+      }),
       laps: list<Xml>(fit.laps)
         .filter(
           (l) =>
@@ -479,7 +506,10 @@ export async function parseActivity(
           duration: num(l.total_elapsed_time) ?? 0,
           distance: num(l.total_distance),
         })),
-    });
+    };
+    // The canonical samples retain the decoded fields; release the decoder's copy before validation.
+    records.length = 0;
+    return normalize(parsed);
   }
   if (ext !== "gpx" && ext !== "tcx")
     throw new Error("Choose a FIT, TCX or GPX activity.");
@@ -567,11 +597,18 @@ export async function parseActivity(
     })),
   });
 }
-export async function activityPartCount(name: string, bytes: Uint8Array) {
+export async function activityPartCount(
+  name: string,
+  bytes: Uint8Array,
+  decodedFit?: Xml,
+) {
   if (bytes.length > LIMITS.fileBytes)
     throw new Error("Activity exceeds the 32 MiB file limit.");
   if (/\.fit$/i.test(name))
-    return Math.max(1, list((await decodeFit(bytes)).sessions).length);
+    return Math.max(
+      1,
+      list((decodedFit ?? (await decodeFit(bytes))).sessions).length,
+    );
   if (!/\.(gpx|tcx)$/i.test(name))
     throw new Error("Choose a FIT, TCX or GPX activity.");
   return Math.max(

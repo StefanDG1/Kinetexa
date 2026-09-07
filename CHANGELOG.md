@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.4.0-alpha.8 - 2026-09-07
+
+Verified duration, large FIT import, history pagination and duplicate-decision milestone. Production registration remains closed; V1 release gates remain open.
+
 - Explain duplicate suggestions, persist keep-separate decisions and expose retained merged recordings through bounded provenance navigation; preserve originals, edits and history through merge/undo.
 
 - Decode FIT once per import/reprocessing job and release consumed records during canonical validation; verify a hosted 48-hour, 172,801-sample recording without changing source data or calculated results.

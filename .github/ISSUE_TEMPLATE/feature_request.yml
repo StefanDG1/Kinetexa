@@ -1,0 +1,16 @@
+name: Feature request
+description: Propose a concrete athlete or contributor improvement
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What task is difficult or impossible today?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired behavior and alternatives
+      description: Mention an existing PRD requirement when applicable.
+    validations:
+      required: true

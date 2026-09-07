@@ -3,16 +3,16 @@ import { parseEnv } from "node:util";
 import { spawnSync } from "node:child_process";
 const prod = process.argv.includes("--prod");
 const staging = process.argv.includes("--staging");
-const env = parseEnv(
-  fs.readFileSync(
-    prod
-      ? ".env.production.local"
-      : staging
-        ? ".env.staging.local"
-        : ".env.local",
-    "utf8",
-  ),
-);
+if (prod && staging) throw new Error("Choose one environment.");
+const envFile = prod
+  ? ".env.production.local"
+  : staging
+    ? ".env.staging.local"
+    : ".env.local";
+const env = parseEnv(fs.readFileSync(envFile, "utf8"));
+const expected = prod ? "production" : staging ? "staging" : "development";
+if (env.KINETEXA_ENVIRONMENT !== expected)
+  throw new Error("Environment file does not match the requested target.");
 const keys = [
   "KINETEXA_ENVIRONMENT",
   "KINETEXA_APP_ENABLED",
@@ -51,12 +51,11 @@ for (const key of keys) {
       "node_modules/convex/bin/main.js",
       "env",
       "set",
-      ...(prod ? ["--prod"] : staging ? ["--deployment", "staging"] : []),
+      "--env-file",
+      envFile,
       key,
-      "--",
-      env[key],
     ],
-    { encoding: "utf8" },
+    { encoding: "utf8", input: env[key] },
   );
   if (r.status !== 0) {
     console.error(`Failed to configure ${key}`);

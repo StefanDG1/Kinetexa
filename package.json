@@ -20,7 +20,8 @@
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "convex:dev": "convex dev",
-    "convex:deploy": "convex deploy"
+    "convex:deploy": "convex deploy",
+    "setup:check": "node scripts/dev-config.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1127.0",

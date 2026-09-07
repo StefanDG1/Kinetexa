@@ -1,0 +1,46 @@
+{
+  "version": "0.5.0-alpha.1",
+  "date": "2026-09-07",
+  "commit": "8d2c63c",
+  "ci": {
+    "verify": "success",
+    "secrets": "success",
+    "codeql": "success"
+  },
+  "local": {
+    "rootTypes": "passed",
+    "webTypes": "passed",
+    "build": "passed",
+    "focusedChecks": [
+      "calendar/DST",
+      "multi-gear query and missing numeric filters",
+      "workspace authorization",
+      "records batch scopes and isolation",
+      "maintenance conversion and ownership",
+      "bounded history and linked selection isolation"
+    ]
+  },
+  "deployments": {
+    "staging": "dpl_CjtxyTwAa5zEjWF6uQmhCTnsZNwP",
+    "production": "dpl_DL1wA9fWL8XNpygdWennUZg2ZKgy",
+    "backendStaging": "deployed",
+    "backendProduction": "deployed"
+  },
+  "hostedChecks": {
+    "stagingHealth": "ok, authenticated Vercel CLI",
+    "productionHealth": 200,
+    "productionSignIn": "307 to holding page",
+    "productionCsp": true
+  },
+  "notRun": [
+    "new hosted activity imports",
+    "reprocessing",
+    "backup/restore drill",
+    "authenticated browser acceptance"
+  ],
+  "limitations": [
+    "Browser sign-in pending user",
+    "Provider and operational/business release gates remain open",
+    "No production cost savings measured"
+  ]
+}

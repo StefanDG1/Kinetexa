@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add current contributor/local-development guides, a local configuration checker, and synthetic-data issue/PR templates. Keep standalone Open Solo limitations explicit.
+- Select backend environment files explicitly and pipe secret values through stdin in the configuration sync helper.
+
 ## 0.5.0-alpha.1 - 2026-09-07
 
 Functional interface milestone. Production remains closed; authenticated browser acceptance and external release gates remain open.

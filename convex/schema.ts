@@ -343,6 +343,8 @@ export default defineSchema({
     workosUserId: v.optional(v.string()),
     sessionHash: v.string(),
     createdAt: v.number(),
+    providerAttemptAt: v.optional(v.number()),
+    providerRevokedAt: v.optional(v.number()),
   })
     .index("by_session", ["sessionHash"])
     .index("by_workos_user", ["workosUserId"])

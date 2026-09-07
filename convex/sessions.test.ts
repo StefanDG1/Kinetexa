@@ -80,6 +80,7 @@ it("revokes only the signed session, blocks private reads and writes immediately
     expect(await second.query(api.athletes.current, {})).not.toBeNull();
     expect(await different.query(api.athletes.current, {})).not.toBeNull();
     await first.action(api.sessionActions.logout, {});
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     const rows = await t.run((ctx) =>
       ctx.db.query("revokedSessions").collect(),
     );
@@ -109,27 +110,41 @@ it("revokes only the signed session, blocks private reads and writes immediately
   }
 });
 it("keeps API denial when the session provider fails and rejects anonymous logout", async () => {
+  vi.useFakeTimers();
   const t = convexTest(schema, modules),
     owner = t.withIdentity({
       subject: "owner",
       sid: "session_failed_provider",
     });
   await owner.mutation(internal.athletes.ensureRecord);
-  vi.stubGlobal(
-    "fetch",
-    vi.fn().mockResolvedValue(new Response(null, { status: 503 })),
-  );
+  const request = vi
+    .fn()
+    .mockResolvedValue(new Response(null, { status: 503 }));
+  vi.stubGlobal("fetch", request);
   vi.stubEnv("WORKOS_API_KEY", "unit-fixture");
   try {
     await expect(owner.action(api.sessionActions.logout, {})).rejects.toThrow(
       "unavailable",
     );
     expect(await owner.query(api.athletes.current, {})).toBeNull();
+    await expect(owner.action(api.sessionActions.logout, {})).rejects.toThrow(
+      "once per minute",
+    );
+    expect(request).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(60_000);
+    request.mockResolvedValue(new Response(null, { status: 204 }));
+    expect(await owner.action(api.sessionActions.logout, {})).toEqual({
+      revoked: true,
+    });
+    expect(request).toHaveBeenCalledTimes(2);
+    await owner.action(api.sessionActions.logout, {});
+    expect(request).toHaveBeenCalledTimes(2);
     await expect(t.action(api.sessionActions.logout, {})).rejects.toThrow(
       "No active",
     );
   } finally {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
+    vi.useRealTimers();
   }
 });

@@ -10,6 +10,7 @@ import { internal } from "./_generated/api";
 import type { QueryCtx } from "./_generated/server";
 import { recordProductEvent } from "./telemetryModel";
 import { sessionRevoked } from "./sessionModel";
+import { rateLimit } from "./limits";
 export function appOpen() {
   return (
     process.env.KINETEXA_ENVIRONMENT !== "production" ||
@@ -145,6 +146,7 @@ export const updateProfile = mutation({
   },
   handler: async (ctx, args) => {
     const athlete = await requireAthlete(ctx);
+    await rateLimit(ctx, athlete._id, "profile", 30);
     if (args.units !== "metric")
       throw new ConvexError("V1 currently supports metric units.");
     const displayName = args.displayName.trim();

@@ -52,7 +52,12 @@ export const logout = action({
     )
       throw new ConvexError("No active AuthKit session.");
     // Persist denial before contacting WorkOS; a provider outage must not reopen API access.
-    await ctx.runMutation(internal.sessions.revoke, {});
+    const attempt = await ctx.runMutation(internal.sessions.revoke, {});
+    if (attempt.providerRevoked) return { revoked: true };
+    if (!attempt.callProvider)
+      throw new ConvexError(
+        "Session provider retry is limited to once per minute. Local access is already revoked.",
+      );
     if (!process.env.WORKOS_API_KEY)
       throw new ConvexError("Session provider is unavailable.");
     const response = await fetch(
@@ -68,6 +73,7 @@ export const logout = action({
       },
     );
     if (!response.ok) throw new ConvexError("Session provider is unavailable.");
+    await ctx.runMutation(internal.sessions.providerRevoked, {});
     return { revoked: true };
   },
 });

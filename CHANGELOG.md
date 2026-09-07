@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Limit profile changes before they can schedule repeated recalculation. Make confirmed logout idempotent across WorkOS requests and bound failed-provider retries without reopening private access.
+
 ## 0.5.0-alpha.3 - 2026-09-07
 
 Functional journey milestone. Production remains closed.

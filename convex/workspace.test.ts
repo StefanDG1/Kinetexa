@@ -10,7 +10,7 @@ it("supports owned workspace updates and deletion, validates plan and goal data,
     const t = convexTest(schema, modules),
       a = t.withIdentity({ subject: "workspace-owner" }),
       b = t.withIdentity({ subject: "workspace-other" });
-    await a.mutation(internal.athletes.ensureRecord);
+    const athleteId = await a.mutation(internal.athletes.ensureRecord);
     await b.mutation(internal.athletes.ensureRecord);
     const zone = { name: "Home", lat: 45, lon: 25, radius: 300 };
     const zoneId = await a.mutation(api.workspace.saveZone, zone);
@@ -91,6 +91,24 @@ it("supports owned workspace updates and deletion, validates plan and goal data,
         analyticsConsent: false,
       }),
     ).rejects.toThrow("metric");
+    await t.run((ctx) =>
+      ctx.db.insert("usage", {
+        athleteId,
+        kind: "profile",
+        window: String(Math.floor(Date.now() / 3600000)),
+        count: 30,
+      }),
+    );
+    await expect(
+      a.mutation(api.athletes.updateProfile, {
+        displayName: "Blocked update",
+        timezone: "Europe/Berlin",
+        units: "metric",
+        aiConsent: false,
+        analyticsConsent: false,
+      }),
+    ).rejects.toThrow("Usage limit");
+    expect((await a.query(api.athletes.current))?.timezone).toBe("UTC");
   } finally {
     vi.clearAllTimers();
     vi.useRealTimers();

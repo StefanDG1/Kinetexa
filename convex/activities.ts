@@ -14,6 +14,16 @@ export async function ownedActivity(ctx: QueryCtx, id: Id<"activities">) {
     throw new ConvexError("Activity unavailable.");
   return row;
 }
+export const selection = query({
+  args: { id: v.string() },
+  handler: async (ctx, { id }) => {
+    const athlete = await requireAthlete(ctx);
+    const normalized = ctx.db.normalizeId("activities", id);
+    const row = normalized ? await ctx.db.get(normalized) : null;
+    if (!row || row.athleteId !== athlete._id || row.mergedInto) return null;
+    return { _id: row._id, title: row.title };
+  },
+});
 export const list = query({
   args: {
     from: v.optional(v.number()),
@@ -101,22 +111,94 @@ export const get = query({
   args: { id: v.id("activities") },
   handler: (ctx, { id }) => ownedActivity(ctx, id),
 });
+export const browse = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    from: v.optional(v.number()),
+    to: v.optional(v.number()),
+    sport: v.optional(v.string()),
+    search: v.optional(v.string()),
+    view: v.union(v.literal("list"), v.literal("map"), v.literal("picker")),
+  },
+  handler: async (ctx, args) => {
+    const a = await requireAthlete(ctx);
+    if (
+      (args.search?.length ?? 0) > 240 ||
+      (args.from !== undefined && args.to !== undefined && args.from > args.to)
+    )
+      throw new ConvexError("Choose valid history filters.");
+    const result = await ctx.db
+      .query("activities")
+      .withIndex("by_athlete", (q) =>
+        q
+          .eq("athleteId", a._id)
+          .gte("start", args.from ?? -8640000000000000)
+          .lte("start", args.to ?? 8640000000000000),
+      )
+      .order("desc")
+      .paginate({
+        ...args.paginationOpts,
+        numItems: Math.min(100, Math.max(1, args.paginationOpts.numItems)),
+        maximumBytesRead: 2_000_000,
+      });
+    const search = args.search?.trim().toLocaleLowerCase();
+    return {
+      ...result,
+      page: result.page
+        .filter(
+          (r) =>
+            !r.mergedInto &&
+            (!args.sport || r.sport === args.sport) &&
+            (!search ||
+              `${r.title} ${r.tags.join(" ")}`
+                .toLocaleLowerCase()
+                .includes(search)) &&
+            (args.view !== "map" || r.route.length > 1),
+        )
+        .map((r) => {
+          const segments =
+            args.view === "picker"
+              ? []
+              : simplifySegments(
+                  (r.routeSegments ?? [r.route]) as Point[][],
+                  args.view === "map" ? 300 : 60,
+                );
+          return {
+            _id: r._id,
+            title: r.title,
+            sport: r.sport,
+            start: r.start,
+            duration: r.duration,
+            distance: r.distance,
+            tags: r.tags,
+            load: r.metrics.metrics?.load?.value ?? null,
+            route: segments.flat(),
+            routeSegments: segments,
+          };
+        }),
+    };
+  },
+});
 export const provenance = query({
-  args: { id: v.id("activities") },
-  handler: async (ctx, { id }) => {
+  args: { id: v.id("activities"), overviewOnly: v.optional(v.boolean()) },
+  handler: async (ctx, { id, overviewOnly }) => {
     const row = await ownedActivity(ctx, id),
       source = await ctx.db.get(row.sourceId);
-    const history = await ctx.db
-      .query("metricHistory")
-      .withIndex("by_activity", (q) => q.eq("activityId", id))
-      .filter((q) => q.eq(q.field("athleteId"), row.athleteId))
-      .order("desc")
-      .take(26);
-    const sources = await ctx.db
-      .query("sources")
-      .withIndex("by_activity", (q) => q.eq("activityId", id))
-      .filter((q) => q.eq(q.field("athleteId"), row.athleteId))
-      .take(101);
+    const history = overviewOnly
+      ? []
+      : await ctx.db
+          .query("metricHistory")
+          .withIndex("by_activity", (q) => q.eq("activityId", id))
+          .filter((q) => q.eq(q.field("athleteId"), row.athleteId))
+          .order("desc")
+          .take(26);
+    const sources = overviewOnly
+      ? []
+      : await ctx.db
+          .query("sources")
+          .withIndex("by_activity", (q) => q.eq("activityId", id))
+          .filter((q) => q.eq(q.field("athleteId"), row.athleteId))
+          .take(101);
     return {
       source:
         source?.athleteId === row.athleteId

@@ -46,6 +46,8 @@ This file records implemented and verified outcomes separately. Unchecked items 
 
 ## Verification record
 
+The `0.5.0-alpha.1` functional milestone connects backend calculations and previously hidden CRUD, maintenance, provenance and interval APIs to the interface. It removes the global full-history browser subscription. [Page inventory and remaining gates](functional-readiness.md) distinguish implementation from pending browser acceptance. Production remains closed. The service setup checklist is historical, not a current feature inventory.
+
 `0.4.0-alpha.6` has 139 passing focused tests. Hosted TCX imports verified record scopes, sport isolation and exclusion/reinstatement. Seven staging activities gained reproducible metric inputs with unchanged numeric results and retained originals/history. CI now scans complete Git history; the default-branch CodeQL finding is resolved. Production remains closed. [Evidence and limitations](verification/backend-0.4.0-alpha.6.json).
 
 Latest backend milestone, `0.4.0-alpha.5`: 136 focused tests; hosted logout/refresh, post-deletion token rejection and pre-registration security-record lifecycle; strict ZIP integrity checks and hosted migration verification; nonce CSP, a working shared route map, browser injection blocking and verified public security contact. Both latest synthetic accounts and the never-registered identity were removed. Production registration remains closed. [Evidence and limits](verification/backend-0.4.0-alpha.5.json).

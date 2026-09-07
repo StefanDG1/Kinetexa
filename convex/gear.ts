@@ -93,6 +93,40 @@ export const saveReminder = mutation({
     });
   },
 });
+export const convertLegacyReminder = mutation({
+  args: { id: v.id("gear") },
+  handler: async (ctx, { id }) => {
+    const a = await requireAthlete(ctx),
+      gear = await ctx.db.get(id);
+    if (!gear || gear.athleteId !== a._id)
+      throw new ConvexError("Gear unavailable.");
+    if (!gear.maintenanceKm && !gear.maintenanceHours) return;
+    await rateLimit(ctx, a._id, "edit", 500);
+    if (
+      (
+        await ctx.db
+          .query("gearReminders")
+          .withIndex("by_athlete", (q) => q.eq("athleteId", a._id))
+          .take(500)
+      ).length >= 500
+    )
+      throw new ConvexError("The account limit is 500 maintenance reminders.");
+    await ctx.db.insert("gearReminders", {
+      athleteId: a._id,
+      gearId: id,
+      title: "Equipment service",
+      disabled: false,
+      distanceKm: gear.maintenanceKm || undefined,
+      durationHours: gear.maintenanceHours || undefined,
+      servicedAt: gear.servicedAt,
+      createdAt: Date.now(),
+    });
+    await ctx.db.patch(id, {
+      maintenanceKm: undefined,
+      maintenanceHours: undefined,
+    });
+  },
+});
 export const completeService = mutation({
   args: { id: v.id("gearReminders"), at: v.number(), note: v.string() },
   handler: async (ctx, { id, at, note }) => {

@@ -69,7 +69,21 @@ export function RouteThumb({
     </svg>
   );
 }
-export function ActivityList({ items }: { items: ActivityDoc[] }) {
+export function ActivityList({
+  items,
+}: {
+  items: Pick<
+    ActivityDoc,
+    | "_id"
+    | "title"
+    | "sport"
+    | "start"
+    | "distance"
+    | "duration"
+    | "route"
+    | "routeSegments"
+  >[];
+}) {
   return (
     <div className="activity-list">
       {items.map((a) => (

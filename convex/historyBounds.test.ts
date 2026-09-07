@@ -46,6 +46,31 @@ it("continues through metadata-heavy history pages without truncation or exposin
         });
       }
     });
+    const picker = await owner.query(api.activities.browse, {
+      view: "picker",
+      paginationOpts: { numItems: 100, cursor: null },
+    });
+    expect(picker.page.length).toBeGreaterThan(0);
+    expect(picker.page[0]).not.toHaveProperty("summary");
+    expect(picker.page[0]).not.toHaveProperty("metrics");
+    expect(picker.page[0].route).toEqual([]);
+    expect(
+      await owner.query(api.activities.selection, { id: picker.page[0]._id }),
+    ).toEqual({ _id: picker.page[0]._id, title: "Wide metadata" });
+    expect(
+      await other.query(api.activities.selection, { id: picker.page[0]._id }),
+    ).toBeNull();
+    expect(
+      await owner.query(api.activities.selection, { id: "invalid" }),
+    ).toBeNull();
+    expect(
+      (
+        await other.query(api.activities.browse, {
+          view: "picker",
+          paginationOpts: { numItems: 100, cursor: null },
+        })
+      ).page,
+    ).toEqual([]);
     for (const endpoint of [api.activities.page, api.imports.page]) {
       let cursor: string | null = null;
       const ids = new Set<string>();

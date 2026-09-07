@@ -1,5 +1,7 @@
 # Calculation methods
 
+The 0.5.0-alpha.1 query update groups each activity under every distinct assigned gear item. Gear totals overlap and must not be added together. Numeric comparisons exclude absent/non-finite values. Calendar ranges include entire local dates, including 23/25-hour daylight-saving days. These query/calendar corrections do not change stored canonical calculation versions.
+
 Core algorithms are versioned in `packages/core/model.ts`. Each activity stores its parameters and calculation version. Missing measurements remain absent; load needs user thresholds. Fixture values in tests are synthetic.
 
 - Weighted power is the fourth root of the mean fourth power of complete 30-second moving averages. Samples are held for their recorded interval, up to 30 seconds; longer gaps invalidate affected windows. This is Kinetexa's implementation, not a claim of equivalence to a proprietary service.

@@ -1,18 +1,20 @@
 "use client";
-import { useActivityHistory } from "@/components/activity-history";
+import { useServerRead } from "@/components/server-read";
+import { calendarDate, dateBounds } from "@core/calendar";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
 import { number, date } from "@/components/data-ui";
-import { goalProgress } from "@core/goals";
+import { DeleteItem } from "@/components/delete-item";
 export default function GoalsPage() {
-  const data = useQuery(api.workspace.overview),
-    activities = useActivityHistory({}),
+  const results = useServerRead(api.analytics.goals, {}),
+    profile = useQuery(api.athletes.current),
     save = useMutation(api.workspace.saveGoal);
   const [error, setError] = useState(""),
     [editing, setEditing] = useState<Doc<"goals"> | null>(null),
     [kind, setKind] = useState("distance");
+  const timezone = profile?.timezone ?? "UTC";
   const units = (kind: string) =>
     ({
       distance: "km",
@@ -24,9 +26,14 @@ export default function GoalsPage() {
   return (
     <>
       <h1>Something to work toward.</h1>
+      <button className="quiet" onClick={results.refresh}>
+        Refresh progress
+      </button>
+      {results.loading && <p role="status">Calculating goal progress…</p>}
+      {results.error && <p role="alert">{results.error}</p>}
       <div className="collection section">
-        {data?.goals.map((g) => {
-          const p = goalProgress(g, activities ?? []);
+        {results.data?.map((g) => {
+          const p = g.progress;
           return (
             <article className="surface" key={g._id}>
               <h2>{g.title}</h2>
@@ -40,6 +47,13 @@ export default function GoalsPage() {
                   {number(p.current)} {units(g.kind)} · Target{" "}
                   {number(g.target)} {units(g.kind)}
                   {g.kind === "raceTime" ? " or faster" : ""}
+                </p>
+              )}
+              {p.measurementStatus !== "complete" && (
+                <p role="status">
+                  {p.measurementStatus === "partial"
+                    ? `${p.missingCount} activities lack this measurement; progress is partial.`
+                    : "Progress is unavailable until measurements or manual progress are recorded."}
                 </p>
               )}
               <progress
@@ -71,6 +85,14 @@ export default function GoalsPage() {
               >
                 Edit goal or progress
               </button>
+              <DeleteItem
+                id={g._id}
+                label="goal"
+                onDeleted={() => {
+                  if (editing?._id === g._id) setEditing(null);
+                  results.refresh();
+                }}
+              />
             </article>
           );
         })}
@@ -88,8 +110,16 @@ export default function GoalsPage() {
                 title: String(f.get("title")),
                 kind,
                 target: kind === "event" ? 1 : Number(f.get("target")),
-                start: Date.parse(String(f.get("start"))),
-                end: Date.parse(String(f.get("end"))) + 86399999,
+                start: dateBounds(
+                  String(f.get("start")),
+                  String(f.get("end")),
+                  timezone,
+                ).from,
+                end: dateBounds(
+                  String(f.get("start")),
+                  String(f.get("end")),
+                  timezone,
+                ).to,
                 manualProgress:
                   kind === "event"
                     ? f.get("complete") === "on"
@@ -99,6 +129,7 @@ export default function GoalsPage() {
               });
               setError("Goal saved.");
               setEditing(null);
+              results.refresh();
               setKind("distance");
             } catch {
               setError("Check your target and dates.");
@@ -150,9 +181,10 @@ export default function GoalsPage() {
               <input
                 name="start"
                 type="date"
-                defaultValue={new Date(editing?.start ?? Date.now())
-                  .toISOString()
-                  .slice(0, 10)}
+                defaultValue={calendarDate(
+                  editing?.start ?? Date.now(),
+                  timezone,
+                )}
                 required
               />
             </label>
@@ -162,9 +194,7 @@ export default function GoalsPage() {
                 name="end"
                 type="date"
                 defaultValue={
-                  editing
-                    ? new Date(editing.end).toISOString().slice(0, 10)
-                    : undefined
+                  editing ? calendarDate(editing.end, timezone) : undefined
                 }
                 required
               />

@@ -137,6 +137,23 @@ it("tracks maintenance across paginated history, services, merges and retirement
         })
       ).page,
     ).toHaveLength(2);
+    await a.mutation(api.workspace.saveGear, {
+      id: gearId,
+      ...input,
+      maintenanceKm: 250,
+      servicedAt: 12,
+    });
+    await expect(
+      b.mutation(api.gear.convertLegacyReminder, { id: gearId }),
+    ).rejects.toThrow("unavailable");
+    await a.mutation(api.gear.convertLegacyReminder, { id: gearId });
+    await a.mutation(api.gear.convertLegacyReminder, { id: gearId });
+    expect(
+      (await a.query(api.gear.reminders)).filter(
+        (r) => r.title === "Equipment service",
+      ),
+    ).toMatchObject([{ distanceKm: 250, servicedAt: 12 }]);
+    expect((await a.query(api.gear.list))[0].maintenanceKm).toBeUndefined();
     await a.mutation(api.lifecycle.requestDeletion, {
       confirmation: "DELETE MY ACCOUNT",
     });

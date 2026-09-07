@@ -2,6 +2,13 @@
 
 These explicit user decisions take precedence over the original planning documents.
 
+## Functional V1 and verification budget, 7 September 2026
+
+- Resume implementation through successive substantial milestones until V1 functionality is complete. Frontend polish remains with the user, but reachable pages, complete controls, accurate results and usable error states are implementation work.
+- Minimize testing cost. Prefer existing local fixtures, focused regression tests and local builds. Do not repeat hosted large-import, full-history reprocessing or restore drills for routine changes. Deploy coherent milestones and use only small targeted hosted checks when necessary.
+- Include the capabilities needed to use and contribute to the open-source project: reproducible setup, sample environment configuration without secrets, local verification, contribution/security guidance and honest deployment requirements. Provider approvals and external service obligations remain explicit gates; useful open-source scope does not authorize bypassing them.
+- Next milestones: complete frontend/backend connections and management controls; finish remaining V1 feature and operational gaps; prepare the open-source handoff and final acceptance record. Visual polish is excluded from these milestones.
+
 ## Full implementation authorization, 6 September 2026
 
 - The user explicitly approved sending the COROS clarification recorded in `provider-requests.md`, from the configured Kinetexa sender with the public contact inbox as reply-to. Resend accepted it on 6 September. This approval applies to that message; other external correspondence still requires explicit authorization.

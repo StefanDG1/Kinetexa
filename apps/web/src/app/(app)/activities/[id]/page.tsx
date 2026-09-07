@@ -1,5 +1,6 @@
 "use client";
-import { useActivityHistory } from "@/components/activity-history";
+import { useServerRead } from "@/components/server-read";
+import { HistoryMore } from "@/components/history-more";
 import { use, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -24,16 +25,37 @@ export default function ActivityPage({
   const { id } = use(params),
     activityId = id as Id<"activities">,
     a = useQuery(api.activities.get, { id: activityId }),
-    provenance = useQuery(api.activities.provenance, { id: activityId }),
+    provenance = useQuery(api.activities.provenance, {
+      id: activityId,
+      overviewOnly: true,
+    }),
+    sourcePages = usePaginatedQuery(
+      api.activities.provenancePage,
+      { id: activityId, kind: "sources" },
+      { initialNumItems: 10 },
+    ),
+    metricPages = usePaginatedQuery(
+      api.activities.provenancePage,
+      { id: activityId, kind: "history" },
+      { initialNumItems: 5 },
+    ),
     duplicate = useQuery(api.activities.duplicate, { id: activityId }),
     mergedMembers = usePaginatedQuery(
       api.activities.mergeMembersPage,
       { id: activityId },
       { initialNumItems: 10 },
     ),
-    workspace = useQuery(api.workspace.overview),
-    all = useActivityHistory({}),
+    gear = useQuery(api.gear.list),
+    workspace = { gear: gear ?? [] },
+    history = usePaginatedQuery(
+      api.activities.browse,
+      { view: "picker" },
+      { initialNumItems: 50 },
+    ),
+    all = history.results,
     getStream = useAction(api.processing.stream),
+    canonical = useAction(api.processing.canonical),
+    original = useAction(api.processing.original),
     update = useMutation(api.activities.update),
     merge = useMutation(api.activities.merge),
     keepSeparate = useMutation(api.activities.keepSeparate);
@@ -44,6 +66,15 @@ export default function ActivityPage({
     [from, setFrom] = useState(0),
     [to, setTo] = useState(100),
     [comparison, setComparison] = useState("");
+  const [intervalRequest, setIntervalRequest] = useState<{
+    id: Id<"activities">;
+    from: number;
+    to: number;
+  } | null>(null);
+  const interval = useServerRead(
+    api.processing.interval,
+    intervalRequest ?? "skip",
+  );
   const [otherStream, setOtherStream] = useState<Activity | null>(null);
   useEffect(() => {
     let active = true;
@@ -164,6 +195,14 @@ export default function ActivityPage({
           <strong>{duration(a.duration)}</strong>
         </div>
         <div className="stat">
+          <span>Timer time</span>
+          <strong>
+            {a.summary.timerDuration === undefined
+              ? "Unavailable"
+              : duration(a.summary.timerDuration)}
+          </strong>
+        </div>
+        <div className="stat">
           <span>Moving time</span>
           <strong>
             {a.summary.movingDuration === undefined
@@ -228,6 +267,10 @@ export default function ActivityPage({
           )}
         </div>
         <div className="metrics-grid">
+          <p>
+            Whole-activity calculations. Use the interval action below for a
+            selected range.
+          </p>
           {Object.values(metrics).map((m) => (
             <div className="metric" key={m.definition}>
               <span>{m.definition}</span>
@@ -268,6 +311,10 @@ export default function ActivityPage({
                 ["altitude", "Elevation · m"],
                 ["temperature", "Temperature · °C"],
                 ["grade", "Grade · %"],
+                ["verticalSpeed", "Vertical speed · m/s"],
+                ["paceSecondsPerKm", "Running pace · seconds/km"],
+                ["runningPower", "Running power · W"],
+                ["distance", "Recorded distance · m"],
               ].map(([v, l]) => (
                 <option key={v} value={v}>
                   {l}
@@ -300,6 +347,80 @@ export default function ActivityPage({
             />
           </label>
         </div>
+        <button
+          disabled={interval.loading || !a.duration}
+          onClick={() => {
+            setIntervalRequest({
+              id: activityId,
+              from: (a.duration * from) / 100,
+              to: (a.duration * to) / 100,
+            });
+            interval.refresh();
+          }}
+        >
+          Calculate selected interval
+        </button>
+        {interval.loading && (
+          <p role="status">Calculating from the full recorded samples…</p>
+        )}
+        {interval.error && <p role="alert">{interval.error}</p>}
+        {interval.data && (
+          <section className="section">
+            <h3>Selected interval result</h3>
+            <p>
+              Requested {duration(interval.data.requested.from)} to{" "}
+              {duration(interval.data.requested.to)}.{" "}
+              {interval.data.sampleCount} samples. {interval.data.caveat}
+            </p>
+            {interval.data.actual && (
+              <p>
+                Actual recorded bounds: {duration(interval.data.actual.from)} to{" "}
+                {duration(interval.data.actual.to)}.
+              </p>
+            )}
+            {interval.data.summary && (
+              <p>
+                Elapsed {duration(interval.data.summary.duration)} · Distance{" "}
+                {number(
+                  interval.data.summary.distance === undefined
+                    ? null
+                    : interval.data.summary.distance / 1000,
+                )}{" "}
+                km · Average HR {number(interval.data.summary.avgHr)} bpm.
+              </p>
+            )}
+            {interval.data.metrics &&
+              Object.entries(interval.data.metrics.metrics).map(([key, m]) => (
+                <details key={key}>
+                  <summary>
+                    {m.definition}: {number(m.value)} {m.unit}
+                  </summary>
+                  <p>{m.formula}</p>
+                  <p>{m.caveat}</p>
+                  <p>
+                    Inputs: {JSON.stringify(m.inputs)}. Version {m.version}.
+                  </p>
+                </details>
+              ))}
+          </section>
+        )}
+        {selected && (
+          <details>
+            <summary>Additional sensor values at the cursor</summary>
+            <pre>
+              {JSON.stringify(
+                {
+                  runningDynamics: selected.runningDynamics,
+                  cyclingDynamics: selected.cyclingDynamics,
+                  verticalSpeed: selected.verticalSpeed,
+                  runningPower: selected.runningPower,
+                },
+                null,
+                2,
+              )}
+            </pre>
+          </details>
+        )}
         {chart.some((r) => r.value !== null) ? (
           <Chart
             data={chart}
@@ -420,6 +541,7 @@ export default function ActivityPage({
       </section>
       <section className="section">
         <h2>Compare a session</h2>
+        <HistoryMore {...history} label="Load earlier comparison activities" />
         <label>
           Other activity
           <select
@@ -454,13 +576,23 @@ export default function ActivityPage({
                 </tr>
                 <tr>
                   <td>Distance · km</td>
-                  <td>{number((a.distance ?? 0) / 1000)}</td>
-                  <td>{number((other.distance ?? 0) / 1000)}</td>
+                  <td>
+                    {number(
+                      a.distance === undefined ? null : a.distance / 1000,
+                    )}
+                  </td>
+                  <td>
+                    {number(
+                      other.distance === undefined
+                        ? null
+                        : other.distance / 1000,
+                    )}
+                  </td>
                 </tr>
                 <tr>
                   <td>Mean heart rate · bpm</td>
                   <td>{number(a.summary.avgHr)}</td>
-                  <td>{number(other.summary.avgHr)}</td>
+                  <td>{number(otherStream?.avgHr)}</td>
                 </tr>
               </tbody>
             </table>
@@ -585,7 +717,18 @@ export default function ActivityPage({
           Parser and normalizer: {a.version}. Imported {date(a.createdAt)}.
           Thresholds: {JSON.stringify(a.metrics.thresholds)}.
         </p>
-        <Link href="/import">Download the original from import history</Link>
+        <button
+          className="secondary"
+          onClick={() =>
+            void canonical({ id: activityId })
+              .then((url) => window.location.assign(url))
+              .catch(() =>
+                setError("Canonical download is unavailable. Please retry."),
+              )
+          }
+        >
+          Download full canonical JSON
+        </button>
         {mergedMembers.results.length > 0 && (
           <div>
             <p>
@@ -626,33 +769,53 @@ export default function ActivityPage({
             <dd>{provenance.source.parserVersion}</dd>
           </dl>
         )}
-        {provenance?.sources && provenance.sources.length > 1 && (
+        {sourcePages.results.length > 0 && (
           <details>
             <summary>
-              All contributing source files · {provenance.sources.length}
+              All contributing source files · {sourcePages.results.length}
             </summary>
-            {provenance.sources.map((s) => (
-              <p key={s.id}>
-                {s.name} · {s.status} · Source record{" "}
-                {s.importMetadata?.sourceRecordId ?? "uploaded file"}
-                <br />
-                <span className="checksum">{s.hash}</span>
-              </p>
-            ))}
+            {sourcePages.results
+              .filter((s) => "id" in s)
+              .map((s) => (
+                <p key={s.id}>
+                  {s.name} · {s.status} · Source record{" "}
+                  {s.importMetadata?.sourceRecordId ?? "uploaded file"}
+                  <br />
+                  <span className="checksum">{s.hash}</span>
+                  <button
+                    className="quiet"
+                    onClick={() =>
+                      void original({ id: s.id })
+                        .then((url) => window.location.assign(url))
+                        .catch(() =>
+                          setError(
+                            "Original download is unavailable. Please retry.",
+                          ),
+                        )
+                    }
+                  >
+                    Download original
+                  </button>
+                </p>
+              ))}
           </details>
         )}
-        {provenance?.history.map((h) => (
-          <details key={h._id}>
-            <summary>
-              Previous calculation · {new Date(h.at).toLocaleString()}
-            </summary>
-            <p>
-              Version {h.metrics.version}. Thresholds{" "}
-              {JSON.stringify(h.metrics.thresholds)}.
-            </p>
-            <p>Load {number(h.metrics.metrics?.load?.value)} points</p>
-          </details>
-        ))}
+        <HistoryMore {...sourcePages} label="More contributing sources" />
+        <HistoryMore {...metricPages} label="Earlier calculation history" />
+        {metricPages.results
+          .filter((h) => "_id" in h)
+          .map((h) => (
+            <details key={h._id}>
+              <summary>
+                Previous calculation · {new Date(h.at).toLocaleString()}
+              </summary>
+              <p>
+                Version {h.metrics.version}. Thresholds{" "}
+                {JSON.stringify(h.metrics.thresholds)}.
+              </p>
+              <p>Load {number(h.metrics.metrics?.load?.value)} points</p>
+            </details>
+          ))}
       </details>
       <Link href={`/ask?activity=${id}`}>Ask about this workout</Link> ·{" "}
       <Link href={`/sharing?activity=${id}`}>Share selected fields</Link>

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.5.0-alpha.1 - 2026-09-07
+
+Functional interface milestone. Production remains closed; authenticated browser acceptance and external release gates remain open.
+
+- Replace the global full-history subscription with page-specific, manually paginated reads. Dashboard, goals, records and gear use deterministic backend calculations with explicit refresh.
+- Expose interval calculations, canonical downloads, complete provenance pagination, AI feedback and server-generated share totals.
+- Add goal, plan, privacy-zone and saved-analysis editing/deletion, analysis copies and pinning, named maintenance reminders and service history. Preserve legacy reminder baselines during conversion.
+- Preserve running FTP and use profile-timezone calendar dates, including daylight-saving transitions, for plans, goals, filters and expiry.
+- Correct individual gear grouping and missing numeric filters. Render pinned number/table analyses and current calculation explanations.
+
 ## 0.4.0-alpha.8 - 2026-09-07
 
 Verified duration, large FIT import, history pagination and duplicate-decision milestone. Production registration remains closed; V1 release gates remain open.

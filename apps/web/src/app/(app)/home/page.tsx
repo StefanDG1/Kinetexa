@@ -1,5 +1,8 @@
 "use client";
-import { useActivityHistory } from "@/components/activity-history";
+import { AnalysisResult } from "@/components/analysis-result";
+import { MetricExplanation } from "@/components/metric-explanation";
+import { useServerRead } from "@/components/server-read";
+import { selectedRange } from "@core/calendar";
 import { useQuery, useMutation } from "convex/react";
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -7,16 +10,12 @@ import dynamic from "next/dynamic";
 import { api } from "@convex/_generated/api";
 import {
   ActivityList,
-  Empty,
   Chart,
   number,
   duration,
   ranges,
-  rangeStart,
 } from "@/components/data-ui";
-import { dashboardData, WIDGETS } from "@core/dashboard";
-import { goalProgress } from "@core/goals";
-import { runQuery } from "@core/query";
+import { WIDGETS } from "@core/dashboard";
 import { AiEvidence } from "@/components/ai-evidence";
 const RouteMap = dynamic(() => import("@/components/route-map"), {
   ssr: false,
@@ -28,40 +27,52 @@ export default function Home() {
     [sport, setSport] = useState(""),
     [customFrom, setCustomFrom] = useState(""),
     [customTo, setCustomTo] = useState("");
-  const items = useActivityHistory({ sport: sport || undefined }),
-    profile = useQuery(api.athletes.current),
-    workspace = useQuery(api.workspace.overview);
-  const [from, to] = useMemo(
-    () => [
-      range === "custom" ? Date.parse(customFrom) || 0 : rangeStart(range),
-      range === "custom"
-        ? Date.parse(customTo) + 86399999 || Date.now()
-        : Date.now(),
-    ],
-    [range, customFrom, customTo],
+  const profile = useQuery(api.athletes.current);
+  const bounds = useMemo(() => {
+    try {
+      return selectedRange(
+        range,
+        customFrom,
+        customTo,
+        profile?.timezone ?? "UTC",
+        Date.now(),
+      );
+    } catch {
+      return null;
+    }
+  }, [range, customFrom, customTo, profile?.timezone]);
+  const read = useServerRead(
+    api.analytics.dashboard,
+    bounds && profile ? { ...bounds, sport: sport || undefined } : "skip",
   );
-  const d = useMemo(
-    () => dashboardData(items ?? [], from, to, profile?.timezone),
-    [items, from, to, profile?.timezone],
+  const recent = useQuery(
+    api.activities.browse,
+    bounds && profile
+      ? {
+          ...bounds,
+          sport: sport || undefined,
+          view: "list",
+          paginationOpts: { numItems: 6, cursor: null },
+        }
+      : "skip",
   );
-  const routes = useMemo(
-    () =>
-      d.selected
-        .filter((a) => (a as any).route.length)
-        .map((a) => ({
-          id: a._id,
-          title: String(a.summary.title),
-          points: (a as any).route,
-          segments: (a as any).routeSegments,
-        })),
-    [d.selected],
-  );
+  const d = read.data,
+    items = recent?.page ?? [],
+    routes = items
+      .filter((a) => a.route.length)
+      .map((a) => ({
+        id: a._id,
+        title: a.title,
+        points: a.route,
+        segments: a.routeSegments,
+      }));
   const order = profile?.dashboard?.length
       ? profile.dashboard
       : WIDGETS.map(([id]) => id),
     hidden = profile?.hiddenWidgets ?? [],
-    latest = d.curve.at(-1);
+    latest = d?.curve.at(-1);
   function widget(id: string) {
+    if (!d) return null;
     switch (id) {
       case "timeline":
         return (
@@ -81,18 +92,8 @@ export default function Home() {
               </div>
             </div>
             <Chart data={d.curve} keys={["fitness", "fatigue", "form"]} />
-            <details>
-              <summary>Explain training state</summary>
-              <p>
-                Fitness and fatigue use exponential daily load decay with 42-day
-                and 7-day time constants. Form is prior-day fitness minus
-                fatigue. The model begins at zero, so early values underestimate
-                established fitness. {d.missingLoad} activities in this period
-                have no measurable load and are treated as zero here. Version
-                0.2.0-alpha.1.
-              </p>
-              <Link href="/activities">View contributing activities</Link>
-            </details>
+            <MetricExplanation metric={d.explanations.fitness} />
+            <Link href="/activities">View contributing activities</Link>
           </>
         );
       case "weekly":
@@ -159,15 +160,7 @@ export default function Home() {
           </div>
         );
       case "recent":
-        return (
-          <ActivityList
-            items={
-              items
-                ?.filter((a) => a.start >= from && a.start <= to)
-                .slice(0, 6) ?? []
-            }
-          />
-        );
+        return <ActivityList items={items} />;
       case "sports":
         return (
           <>
@@ -200,17 +193,8 @@ export default function Home() {
             <p>
               Weekly monotony: {number(d.monotony)}. Strain: {number(d.strain)}.
             </p>
-            <details>
-              <summary>Explain load, monotony and strain</summary>
-              <p>
-                Load uses recorded power and FTP, HR reserve or configured
-                running pace. Monotony is mean daily load divided by its
-                population standard deviation over seven days. Strain is weekly
-                load multiplied by monotony. Constant load gives no finite
-                monotony estimate. These are training descriptions, not injury
-                predictions.
-              </p>
-            </details>
+            <MetricExplanation metric={d.explanations.monotony} />
+            <MetricExplanation metric={d.explanations.strain} />
           </>
         );
       case "records":
@@ -224,9 +208,9 @@ export default function Home() {
           </>
         );
       case "goals":
-        return workspace?.goals.length ? (
-          workspace.goals.map((g) => {
-            const { current, percent } = goalProgress(g, items ?? []);
+        return d.goals.length ? (
+          d.goals.map((g) => {
+            const { current, percent } = g.progress;
             return (
               <div key={g._id}>
                 <Link href="/goals">{g.title}</Link>
@@ -261,7 +245,12 @@ export default function Home() {
         );
       case "map":
         return routes.length ? (
-          <RouteMap routes={routes} />
+          <>
+            <RouteMap routes={routes} />
+            <Link href="/maps">
+              Explore all routes. This preview shows recent sessions.
+            </Link>
+          </>
         ) : (
           <p>No recorded GPS routes in this period.</p>
         );
@@ -294,18 +283,17 @@ export default function Home() {
           </>
         );
       case "analyses":
-        return workspace?.analyses
-          .filter((a) => a.pinned)
-          .map((a) => {
-            const result = runQuery(d.selected, a.query);
-            return (
-              <div key={a._id}>
-                <h3>{a.name}</h3>
-                <Chart data={result} bar={a.query.visual === "bar"} />
-                <Link href="/analysis">Edit analysis</Link>
-              </div>
-            );
-          });
+        return d.analyses.map((a) => {
+          const result = a.results;
+          return (
+            <div key={a.id}>
+              <h3>{a.name}</h3>
+              {a.error && <p role="alert">{a.error}</p>}
+              <AnalysisResult rows={result} visual={a.query.visual} />
+              <Link href={`/analysis?selected=${a.id}`}>Edit analysis</Link>
+            </div>
+          );
+        });
       default:
         return null;
     }
@@ -359,10 +347,17 @@ export default function Home() {
         )}
         <Link href="/settings">Customize dashboard</Link>
       </div>
-      {items === undefined ? (
-        <p>Loading your history…</p>
-      ) : !items.length ? (
-        <Empty />
+      <button className="quiet" onClick={read.refresh} disabled={read.loading}>
+        Refresh dashboard
+      </button>
+      {read.error && <p role="alert">{read.error}</p>}
+      {!bounds && <p>Choose an ordered date range.</p>}
+      {!d ? (
+        <p>
+          {read.loading
+            ? "Calculating your dashboard…"
+            : "Choose a valid period or retry the dashboard."}
+        </p>
       ) : (
         <>
           <div className="period-summary">

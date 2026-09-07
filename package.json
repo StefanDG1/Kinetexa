@@ -1,6 +1,6 @@
 {
   "name": "kinetexa",
-  "version": "0.4.0-alpha.8",
+  "version": "0.5.0-alpha.1",
   "private": true,
   "license": "AGPL-3.0-only",
   "workspaces": [
@@ -26,6 +26,7 @@
     "@aws-sdk/client-s3": "^3.1127.0",
     "@aws-sdk/lib-storage": "^3.1127.0",
     "@aws-sdk/s3-request-presigner": "^3.1127.0",
+    "@internationalized/date": "^3.12.4",
     "@zip.js/zip.js": "^2.11.2",
     "convex": "1.45.0",
     "csv-parse": "^7.0.2",

@@ -195,6 +195,19 @@ it("separates record sports, respects local calendar scopes and applies private 
     });
     expect(zero[0].value).toBe(0);
     expect(zero.at(-1)?.value).toBeNull();
+    const recordPage = await owner.action(api.analytics.records, {
+      scope: "period",
+      from: "2026-09-02",
+      to: "2026-09-02",
+    });
+    expect(recordPage.power.map((r) => [r.value, r.activityIds])).toEqual(
+      zero.map((r) => [r.value, r.activityIds]),
+    );
+    expect(
+      (
+        await other.action(api.analytics.records, { scope: "all-time" })
+      ).power.every((r) => r.value === null),
+    ).toBe(true);
     expect(
       (
         await other.action(api.analytics.calculate, {

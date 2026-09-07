@@ -1,6 +1,11 @@
 "use client";
 import Link from "next/link";
-import { useAction, useQuery, usePaginatedQuery } from "convex/react";
+import {
+  useAction,
+  useQuery,
+  usePaginatedQuery,
+  useMutation,
+} from "convex/react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
@@ -9,7 +14,8 @@ export default function Ask() {
   const profile = useQuery(api.athletes.current),
     usage = useQuery(api.ai.usage),
     messages = usePaginatedQuery(api.ai.messages, {}, { initialNumItems: 20 }),
-    ask = useAction(api.aiActions.ask);
+    ask = useAction(api.aiActions.ask),
+    feedback = useMutation(api.ai.feedback);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   return (
@@ -50,6 +56,35 @@ export default function Ask() {
                 <strong>{m.role === "user" ? "You" : "Kinetexa"}</strong>
                 <p>{m.content}</p>
                 <AiEvidence evidence={m.evidence ?? []} />
+                {m.role === "assistant" &&
+                  m.runId &&
+                  m.evidence?.length > 0 && (
+                    <div aria-label="Answer feedback">
+                      {[true, false].map((helpful) => (
+                        <button
+                          key={String(helpful)}
+                          type="button"
+                          className="quiet"
+                          aria-pressed={m.feedback?.helpful === helpful}
+                          onClick={() =>
+                            void feedback({
+                              messageId: m._id,
+                              helpful:
+                                m.feedback?.helpful === helpful
+                                  ? null
+                                  : helpful,
+                            }).catch(() =>
+                              setError(
+                                "Could not save your feedback. Please retry.",
+                              ),
+                            )
+                          }
+                        >
+                          {helpful ? "Helpful" : "Not helpful"}
+                        </button>
+                      ))}
+                    </div>
+                  )}
               </article>
             ))}
           </div>

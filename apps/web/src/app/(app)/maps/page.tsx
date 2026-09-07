@@ -1,6 +1,7 @@
 "use client";
-import { useActivityHistory } from "@/components/activity-history";
-import { useQuery } from "convex/react";
+import { HistoryMore } from "@/components/history-more";
+import { selectedRange } from "@core/calendar";
+import { useQuery, usePaginatedQuery } from "convex/react";
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -15,31 +16,40 @@ export default function MapsPage() {
     [from, setFrom] = useState(""),
     [to, setTo] = useState(""),
     [selection, setSelection] = useState<string[]>([]),
-    items = useActivityHistory({ sport: sport || undefined }),
+    profile = useQuery(api.athletes.current),
     router = useRouter();
+  const bounds = useMemo(() => {
+    try {
+      return selectedRange(
+        range,
+        from,
+        to,
+        profile?.timezone ?? "UTC",
+        Date.now(),
+      );
+    } catch {
+      return null;
+    }
+  }, [range, from, to, profile?.timezone]);
+  const history = usePaginatedQuery(
+    api.activities.browse,
+    bounds && profile
+      ? { ...bounds, sport: sport || undefined, view: "map" }
+      : "skip",
+    { initialNumItems: 50 },
+  );
+  const items = history.results;
   const routes = useMemo(
     () =>
       items
-        ?.filter(
-          (a) =>
-            a.start >=
-              (range === "custom"
-                ? Date.parse(from) || 0
-                : rangeStart(range)) &&
-            a.start <=
-              (range === "custom"
-                ? Date.parse(to) + 86399999 || Date.now()
-                : Date.now()) &&
-            (!selection.length || selection.includes(a._id)) &&
-            a.route.length,
-        )
+        .filter((a) => !selection.length || selection.includes(a._id))
         .map((a) => ({
           id: a._id,
           title: a.title,
           points: a.route,
           segments: a.routeSegments,
-        })) ?? [],
-    [items, range, from, to, selection],
+        })),
+    [items, selection],
   );
   const select = useCallback(
     (id: string) => router.push(`/activities/${id}`),
@@ -126,6 +136,8 @@ export default function MapsPage() {
             ))}
         </div>
       </details>
+      {!bounds && <p>Choose an ordered date range.</p>}
+      <HistoryMore {...history} label="Load earlier matching routes" />
       {routes.length ? (
         <RouteMap routes={routes} onSelect={select} large />
       ) : (
@@ -135,8 +147,9 @@ export default function MapsPage() {
         />
       )}
       <p className="muted">
-        {routes.length} recorded routes. This map is private. Shared routes use
-        server-side privacy masking.
+        {routes.length} loaded routes
+        {history.status !== "Exhausted" ? "; more history is available" : ""}.
+        This map is private. Shared routes use server-side privacy masking.
       </p>
     </>
   );

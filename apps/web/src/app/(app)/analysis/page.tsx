@@ -1,9 +1,14 @@
 "use client";
+import { HistoryMore } from "@/components/history-more";
+import { useWorkspaceCollection } from "@/components/workspace-collection";
 import { useMutation, useQuery, useAction } from "convex/react";
 import { useState, useEffect, useRef } from "react";
 import { api } from "@convex/_generated/api";
 import { querySchema, type AnalysisQuery } from "@core/query";
-import { Chart, number } from "@/components/data-ui";
+import { AnalysisResult } from "@/components/analysis-result";
+import { dateBounds, calendarDate } from "@core/calendar";
+import { DeleteItem } from "@/components/delete-item";
+import type { Id } from "@convex/_generated/dataModel";
 const initial: AnalysisQuery = {
   filters: [],
   metric: "distance",
@@ -13,13 +18,18 @@ const initial: AnalysisQuery = {
 };
 export default function AnalysisPage() {
   const initialized = useRef(false);
-  const data = useQuery(api.workspace.overview),
+  const analyses = useWorkspaceCollection("analyses"),
+    gear = useQuery(api.gear.list),
+    profile = useQuery(api.athletes.current),
+    data = { analyses: analyses.results, gear: gear ?? [] },
     preview = useAction(api.queryActions.preview),
     save = useMutation(api.workspace.saveAnalysis),
     [q, setQ] = useState(initial),
     [name, setName] = useState(""),
     [rows, setRows] = useState<any[]>([]),
     [error, setError] = useState("");
+  const [editingId, setEditingId] = useState<Id<"analyses"> | undefined>(),
+    [pinned, setPinned] = useState(false);
   useEffect(() => {
     if (initialized.current) return;
     const params = new URLSearchParams(window.location.search),
@@ -31,15 +41,17 @@ export default function AnalysisPage() {
       } catch {
         setError("The linked query is invalid.");
       }
-    } else if (data) {
-      initialized.current = true;
+    } else if (analyses.status !== "LoadingFirstPage") {
       const saved = data.analyses.find((a) => a._id === params.get("selected"));
       if (saved) {
+        initialized.current = true;
         setQ(querySchema.parse(saved.query));
         setName(saved.name);
+        setEditingId(saved._id);
+        setPinned(saved.pinned);
       }
     }
-  }, [data]);
+  }, [analyses.results, analyses.status]);
   const fields = [
     "duration",
     "distance",
@@ -61,11 +73,21 @@ export default function AnalysisPage() {
         <label>
           Saved analysis
           <select
+            value={editingId ?? ""}
             onChange={(e) => {
               const a = data?.analyses.find((a) => a._id === e.target.value);
               if (a) {
                 setQ(a.query);
                 setName(a.name);
+                setEditingId(a._id);
+                setPinned(a.pinned);
+                setRows([]);
+              } else {
+                setEditingId(undefined);
+                setName("");
+                setPinned(false);
+                setQ(initial);
+                setRows([]);
               }
             }}
           >
@@ -78,6 +100,7 @@ export default function AnalysisPage() {
           </select>
         </label>
       </div>
+      <HistoryMore {...analyses} label="More saved analyses" />
       <form
         className="surface"
         onSubmit={async (e) => {
@@ -129,10 +152,24 @@ export default function AnalysisPage() {
             From
             <input
               type="date"
+              value={
+                q.from === undefined
+                  ? ""
+                  : calendarDate(
+                      q.from,
+                      q.timezone ?? profile?.timezone ?? "UTC",
+                    )
+              }
               onChange={(e) =>
                 setQ({
                   ...q,
-                  from: e.target.value ? Date.parse(e.target.value) : undefined,
+                  from: e.target.value
+                    ? dateBounds(
+                        e.target.value,
+                        e.target.value,
+                        q.timezone ?? profile?.timezone ?? "UTC",
+                      ).from
+                    : undefined,
                 })
               }
             />
@@ -145,7 +182,11 @@ export default function AnalysisPage() {
                 setQ({
                   ...q,
                   to: e.target.value
-                    ? Date.parse(e.target.value) + 86399999
+                    ? dateBounds(
+                        e.target.value,
+                        e.target.value,
+                        q.timezone ?? profile?.timezone ?? "UTC",
+                      ).to
                     : undefined,
                 })
               }
@@ -317,46 +358,20 @@ export default function AnalysisPage() {
       </form>
       <section className="section">
         <h2>Results</h2>
-        {rows.length ? (
-          q.visual === "number" ? (
-            rows.map((r) => (
-              <p className="stat" key={r.label}>
-                {r.label}
-                <strong>{number(r.value)}</strong>
-              </p>
-            ))
-          ) : q.visual === "table" ? (
-            <table>
-              <thead>
-                <tr>
-                  <th>Group</th>
-                  <th>Value</th>
-                  <th>Activities</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.label}>
-                    <td>{r.label}</td>
-                    <td>{number(r.value)}</td>
-                    <td>{r.count}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <Chart data={rows} bar={q.visual === "bar"} />
-          )
-        ) : (
-          <p>No results yet. Run a query or broaden your filters.</p>
+        {q.group === "gear" && (
+          <p>
+            Each assigned item has its own group. One activity can contribute to
+            several items; gear totals are not additive.
+          </p>
         )}
+        <AnalysisResult rows={rows} visual={q.visual} />
       </section>
       <form
         onSubmit={async (e) => {
           e.preventDefault();
           const f = new FormData(e.currentTarget);
           try {
-            await save({ name, query: q, pinned: f.get("pin") === "on" });
+            setEditingId(await save({ id: editingId, name, query: q, pinned }));
             setError("");
           } catch {
             setError("Could not save the analysis.");
@@ -372,9 +387,51 @@ export default function AnalysisPage() {
           />
         </label>
         <label className="check">
-          <input name="pin" type="checkbox" /> Pin to dashboard
+          <input
+            name="pin"
+            type="checkbox"
+            checked={pinned}
+            onChange={(e) => setPinned(e.target.checked)}
+          />{" "}
+          Pin to dashboard
         </label>
-        <button>Save analysis</button>
+        <button>{editingId ? "Update analysis" : "Save analysis"}</button>
+        {editingId && (
+          <>
+            <button
+              type="button"
+              className="secondary"
+              onClick={async () => {
+                try {
+                  setEditingId(
+                    await save({
+                      name: `${name} copy`,
+                      query: q,
+                      pinned: false,
+                    }),
+                  );
+                  setName(`${name} copy`);
+                  setPinned(false);
+                  setError("");
+                } catch {
+                  setError("Could not save a copy.");
+                }
+              }}
+            >
+              Save a copy
+            </button>
+            <DeleteItem
+              id={editingId}
+              label="analysis"
+              onDeleted={() => {
+                setEditingId(undefined);
+                setName("");
+                setPinned(false);
+                setRows([]);
+              }}
+            />
+          </>
+        )}
       </form>
     </>
   );

@@ -1,19 +1,28 @@
 "use client";
+import { HistoryMore } from "@/components/history-more";
+import { useWorkspaceCollection } from "@/components/workspace-collection";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import Link from "next/link";
 import { api } from "@convex/_generated/api";
 import { DashboardSettings } from "@/components/dashboard-settings";
 import { ExportJob } from "@/components/export-job";
+import { DeleteItem } from "@/components/delete-item";
+import type { Doc } from "@convex/_generated/dataModel";
 export default function Settings() {
   const profile = useQuery(api.athletes.current),
-    data = useQuery(api.workspace.overview),
+    providers = useQuery(api.providers.catalog),
+    zones = useWorkspaceCollection("privacyZones"),
+    jobs = useWorkspaceCollection("lifecycleJobs"),
     update = useMutation(api.athletes.updateProfile),
     settings = useMutation(api.workspace.settings),
     zone = useMutation(api.workspace.saveZone),
     exportData = useMutation(api.lifecycle.requestExport),
     deleteData = useMutation(api.lifecycle.requestDeletion),
     [message, setMessage] = useState("");
+  const [editingZone, setEditingZone] = useState<Doc<"privacyZones"> | null>(
+    null,
+  );
   if (!profile) return <p>Loading settings…</p>;
   async function attempt(fn: () => Promise<unknown>) {
     try {
@@ -105,7 +114,13 @@ export default function Settings() {
             e.preventDefault();
             const f = new FormData(e.currentTarget),
               thresholds: Record<string, unknown> = {};
-            for (const k of ["restHr", "maxHr", "ftp", "thresholdSpeed"])
+            for (const k of [
+              "restHr",
+              "maxHr",
+              "ftp",
+              "runningFtp",
+              "thresholdSpeed",
+            ])
               if (f.get(k)) thresholds[k] = Number(f.get(k));
             for (const k of ["hrZones", "powerZones", "paceZones"])
               if (f.get(k))
@@ -125,6 +140,7 @@ export default function Settings() {
               ["restHr", "Resting heart rate · bpm"],
               ["maxHr", "Maximum heart rate · bpm"],
               ["ftp", "Cycling FTP · watts"],
+              ["runningFtp", "Running FTP · watts"],
               ["thresholdSpeed", "Threshold running speed · m/s"],
             ].map(([k, l]) => (
               <label key={k}>
@@ -169,17 +185,34 @@ export default function Settings() {
           Public routes hide these areas, add a safety buffer and trim their
           endpoints. Your private map keeps the original recording.
         </p>
-        {data?.privacyZones.map((z) => (
+        {zones.results.map((z) => (
           <p key={z._id}>
             {z.name} · {z.radius} m radius
+            <button
+              type="button"
+              className="quiet"
+              onClick={() => setEditingZone(z)}
+            >
+              Edit zone
+            </button>
+            <DeleteItem
+              id={z._id}
+              label="zone"
+              onDeleted={() => {
+                if (editingZone?._id === z._id) setEditingZone(null);
+              }}
+            />
           </p>
         ))}
+        <HistoryMore {...zones} label="More privacy zones" />
         <form
+          key={editingZone?._id ?? "new-zone"}
           onSubmit={(e) => {
             e.preventDefault();
             const f = new FormData(e.currentTarget);
             void attempt(() =>
               zone({
+                id: editingZone?._id,
                 name: String(f.get("name")),
                 lat: Number(f.get("lat")),
                 lon: Number(f.get("lon")),
@@ -190,13 +223,19 @@ export default function Settings() {
         >
           <label>
             Zone name
-            <input name="name" required placeholder="Home" />
+            <input
+              name="name"
+              required
+              placeholder="Home"
+              defaultValue={editingZone?.name ?? ""}
+            />
           </label>
           <div className="form-columns">
             <label>
               Latitude
               <input
                 name="lat"
+                defaultValue={editingZone?.lat}
                 type="number"
                 step="any"
                 min="-90"
@@ -208,6 +247,7 @@ export default function Settings() {
               Longitude
               <input
                 name="lon"
+                defaultValue={editingZone?.lon}
                 type="number"
                 step="any"
                 min="-180"
@@ -222,12 +262,23 @@ export default function Settings() {
                 type="number"
                 min="100"
                 max="10000"
-                defaultValue="500"
+                defaultValue={editingZone?.radius ?? 500}
                 required
               />
             </label>
           </div>
-          <button>Add privacy zone</button>
+          <button>
+            {editingZone ? "Save privacy zone" : "Add privacy zone"}
+          </button>
+          {editingZone && (
+            <button
+              type="button"
+              className="quiet"
+              onClick={() => setEditingZone(null)}
+            >
+              Cancel editing
+            </button>
+          )}
         </form>
         <p>
           <Link href="/sharing">Manage public links</Link>
@@ -235,14 +286,13 @@ export default function Settings() {
       </section>
       <section className="surface section">
         <h2>Connected sources</h2>
-        <p>
-          Garmin: pending developer approval. Historical and new-activity
-          synchronization are unavailable until access is approved.
-        </p>
-        <p>
-          Strava direct connection: unavailable pending permitted-use review.
-          Your own Strava export can be imported now.
-        </p>
+        {providers?.providers.map((p) => (
+          <article key={p.id}>
+            <h3>{p.name}</h3>
+            <p>{p.reason}</p>
+            <button disabled>Connection unavailable</button>
+          </article>
+        ))}
         <Link href="/import">Import files or an archive</Link>
       </section>
       <section className="surface section">
@@ -257,13 +307,14 @@ export default function Settings() {
         <button onClick={() => void attempt(() => exportData({}))}>
           Request full export
         </button>
-        {data?.jobs
+        {jobs.results
           .filter((j) => j.kind === "export")
           .map((j) => (
             <ExportJob key={j._id} job={j} />
           ))}
       </section>
       <section className="surface section">
+        <HistoryMore {...jobs} label="Earlier export jobs" />
         <h2>Delete account and data</h2>
         <p>
           This locks your account immediately. After 15 minutes, Kinetexa

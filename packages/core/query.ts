@@ -111,7 +111,8 @@ export function runQuery(items: QueryActivity[], input: unknown) {
       q.filters.every((f) => {
         const n = value(a, f.field);
         return (
-          n !== undefined &&
+          typeof n === "number" &&
+          Number.isFinite(n) &&
           (f.op === "gt"
             ? n > f.value
             : f.op === "lt"
@@ -125,19 +126,24 @@ export function runQuery(items: QueryActivity[], input: unknown) {
     const d = new Date(dayKey(a.start, q.timezone ?? "UTC"));
     let key = "Total";
     if (q.group === "sport") key = a.sport;
-    else if (q.group === "gear") key = a.gearIds.join(", ") || "Unassigned";
-    else if (q.group !== "none") {
+    else if (q.group !== "none" && q.group !== "gear") {
       if (q.group === "week")
         d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
       key = d
         .toISOString()
         .slice(0, q.group === "year" ? 4 : q.group === "month" ? 7 : 10);
     }
-    const g = groups.get(key) ?? { values: [], ids: [] };
     const n = value(a, q.metric);
-    if (n !== undefined && n !== null && Number.isFinite(n)) g.values.push(n);
-    g.ids.push(a._id);
-    groups.set(key, g);
+    const keys =
+      q.group === "gear"
+        ? [...new Set(a.gearIds.length ? a.gearIds : ["Unassigned"])]
+        : [key];
+    for (const groupKey of keys) {
+      const g = groups.get(groupKey) ?? { values: [], ids: [] };
+      if (n !== undefined && n !== null && Number.isFinite(n)) g.values.push(n);
+      g.ids.push(a._id);
+      groups.set(groupKey, g);
+    }
   }
   return [...groups]
     .sort(([a], [b]) => a.localeCompare(b))

@@ -8,7 +8,19 @@ export function SharedView({
   data,
   embedded = false,
 }: {
-  data: { kind: string; activities: Record<string, unknown>[] };
+  data: {
+    kind: string;
+    activities: Record<string, unknown>[];
+    totals: Record<
+      string,
+      {
+        value: number | null;
+        measuredCount: number;
+        missingCount: number;
+        unit: string;
+      }
+    >;
+  };
   embedded?: boolean;
 }) {
   const routes = useMemo(
@@ -41,15 +53,10 @@ export function SharedView({
     duration: "Training time",
     elevation: "Elevation gain",
   };
-  const summary = ["distance", "duration", "elevation"]
-    .filter((key) => data.activities.some((a) => typeof a[key] === "number"))
-    .map((key) => ({
-      key,
-      value: data.activities.reduce(
-        (sum, a) => sum + (typeof a[key] === "number" ? (a[key] as number) : 0),
-        0,
-      ),
-    }));
+  const summary = Object.entries(data.totals).map(([key, total]) => ({
+    key,
+    ...total,
+  }));
   const Container = embedded ? "section" : "main",
     Heading = embedded ? "h2" : "h1";
   return (
@@ -71,10 +78,17 @@ export function SharedView({
       {routes.length > 0 && <RouteMap routes={routes} />}
       {["statistics", "dashboard"].includes(data.kind) && (
         <div className="period-summary section">
-          {summary.map(({ key, value }) => (
+          {summary.map(({ key, value, measuredCount, missingCount }) => (
             <div className="stat" key={key}>
               <span>Total {labels[key].toLowerCase()}</span>
               <strong>{format(key, value)}</strong>
+              <small>
+                {measuredCount} measured activities
+                {missingCount > 0
+                  ? `; ${missingCount} missing measurements, total is partial`
+                  : ""}
+                .
+              </small>
             </div>
           ))}
         </div>

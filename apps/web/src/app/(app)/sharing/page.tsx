@@ -1,13 +1,31 @@
 "use client";
-import { useActivityHistory } from "@/components/activity-history";
-import { useMutation, useQuery } from "convex/react";
-import { useState } from "react";
+import { useWorkspaceCollection } from "@/components/workspace-collection";
+import { HistoryMore } from "@/components/history-more";
+import { dateBounds, calendarDate } from "@core/calendar";
+import { useMutation, useQuery, usePaginatedQuery } from "convex/react";
+import { useState, useEffect } from "react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { SharedView } from "@/components/shared-view";
 export default function Sharing() {
-  const data = useQuery(api.workspace.overview),
-    activities = useActivityHistory({}),
+  const [linkedId, setLinkedId] = useState<string | null>(null);
+  useEffect(
+    () =>
+      setLinkedId(new URLSearchParams(window.location.search).get("activity")),
+    [],
+  );
+  const linked = useQuery(
+    api.activities.selection,
+    linkedId ? { id: linkedId } : "skip",
+  );
+  const shares = useWorkspaceCollection("shares"),
+    history = usePaginatedQuery(
+      api.activities.browse,
+      { view: "picker" },
+      { initialNumItems: 50 },
+    ),
+    activities = history.results,
+    profile = useQuery(api.athletes.current),
     create = useMutation(api.sharing.create),
     revoke = useMutation(api.sharing.revoke),
     [message, setMessage] = useState("");
@@ -42,13 +60,19 @@ export default function Sharing() {
             const f = new FormData(e.currentTarget);
             try {
               if (!f.getAll("activities").length || !f.getAll("fields").length)
-                throw new Error("Select fields");
+                throw new Error(
+                  "Select at least one activity and public field",
+                );
               setDraft({
                 kind: String(f.get("kind")),
                 activityIds: f.getAll("activities") as Id<"activities">[],
                 fields: f.getAll("fields").map(String),
                 expires: f.get("expiry")
-                  ? Date.parse(String(f.get("expiry"))) + 86399999
+                  ? dateBounds(
+                      String(f.get("expiry")),
+                      String(f.get("expiry")),
+                      profile?.timezone ?? "UTC",
+                    ).to
                   : undefined,
               });
               setMessage(
@@ -70,13 +94,34 @@ export default function Sharing() {
           </label>
           <fieldset>
             <legend>Activities to include</legend>
+            {linkedId && linked === null && (
+              <p role="alert">The linked activity is unavailable.</p>
+            )}
+            {linked && !activities.some((a) => a._id === linked._id) && (
+              <label className="check">
+                <input
+                  type="checkbox"
+                  name="activities"
+                  value={linked._id}
+                  defaultChecked
+                />
+                {linked.title}
+              </label>
+            )}
             {activities?.map((a) => (
               <label className="check" key={a._id}>
-                <input type="checkbox" name="activities" value={a._id} />
+                <input
+                  key={`${a._id}-${linkedId ?? ""}`}
+                  type="checkbox"
+                  name="activities"
+                  value={a._id}
+                  defaultChecked={a._id === linkedId}
+                />
                 {a.title}
               </label>
             ))}
           </fieldset>
+          <HistoryMore {...history} label="Load earlier activities" />
           <fieldset>
             <legend>These fields will be public</legend>
             {[
@@ -139,7 +184,8 @@ export default function Sharing() {
       )}
       <section className="section">
         <h2>Your links</h2>
-        {data?.shares.map((s) => (
+        <HistoryMore {...shares} label="Earlier share links" />
+        {shares.results.map((s) => (
           <div className="job" key={s._id}>
             <div>
               <a href={`/share/${s.token}`}>{s.kind} share</a>

@@ -1,13 +1,18 @@
 "use client";
-import { useActivityHistory } from "@/components/activity-history";
-import { useQuery } from "convex/react";
+import { HistoryMore } from "@/components/history-more";
+import { usePaginatedQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "@convex/_generated/api";
 import { ActivityList, Empty } from "@/components/data-ui";
 export default function ActivitiesPage() {
   const [sport, setSport] = useState(""),
     [search, setSearch] = useState("");
-  const items = useActivityHistory({ sport: sport || undefined });
+  const history = usePaginatedQuery(
+      api.activities.browse,
+      { sport: sport || undefined, search, view: "list" },
+      { initialNumItems: 50 },
+    ),
+    items = history.results;
   return (
     <>
       <h1>Your activities</h1>
@@ -30,6 +35,10 @@ export default function ActivitiesPage() {
           </select>
         </label>
       </div>
+      <p>
+        History loads in pages. Continue loading to search earlier recordings.
+      </p>
+      <HistoryMore {...history} label="Load earlier activities" />
       {!items ? (
         <p>Loading activities…</p>
       ) : items.length ? (

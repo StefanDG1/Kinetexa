@@ -18,10 +18,10 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { api } from "@convex/_generated/api";
-import { ActivityHistory } from "./activity-history";
 const links = [
   ["/home", "Home", Home],
   ["/activities", "Activities", Activity],
+  ["/records", "Records", Activity],
   ["/maps", "Maps", Map],
   ["/analysis", "Analysis", ChartNoAxesCombined],
   ["/calendar", "Calendar", CalendarDays],
@@ -29,6 +29,7 @@ const links = [
   ["/gear", "Gear", Bike],
   ["/health", "Recovery", Heart],
   ["/ask", "Ask Kinetexa", MessageCircle],
+  ["/sharing", "Sharing", ArrowUpRight],
   ["/settings", "Settings", Settings],
 ] as const;
 export function Shell({ children }: { children: React.ReactNode }) {
@@ -100,8 +101,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 {label}
               </Link>
             ))}
-            <Link href="/records">Records</Link>
-            <Link href="/sharing">Sharing</Link>
             <Link href="/billing">Your plan</Link>
             <a href="/sign-out">Sign out</a>
           </nav>
@@ -113,12 +112,16 @@ export function Shell({ children }: { children: React.ReactNode }) {
         ) : !profile.onboarded ? (
           <Onboarding />
         ) : (
-          <ActivityHistory>{children}</ActivityHistory>
+          children
         )}
       </main>
       <nav className="mobile-nav" aria-label="Mobile navigation">
         {links
-          .filter((_, i) => [0, 1, 2, 8, 9].includes(i))
+          .filter(([href]) =>
+            ["/home", "/activities", "/maps", "/ask", "/settings"].includes(
+              href,
+            ),
+          )
           .map(([href, label, Icon]) => (
             <Link
               key={href}

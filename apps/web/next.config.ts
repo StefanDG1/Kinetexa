@@ -6,6 +6,38 @@ const config: NextConfig = {
   async headers() {
     return [
       {
+        source:
+          "/:asset(offline.html|icon-192.png|icon-512.png|apple-icon.png)",
+        headers: [{ key: "X-Kinetexa-Public-Asset", value: "1" }],
+      },
+      {
+        source: "/sw.js",
+        headers: [
+          {
+            key: "Content-Type",
+            value: "application/javascript; charset=utf-8",
+          },
+          {
+            key: "Cache-Control",
+            value: "no-cache, no-store, must-revalidate",
+          },
+          {
+            key: "Content-Security-Policy",
+            value: "default-src 'self'; script-src 'self'; connect-src 'self'",
+          },
+        ],
+      },
+      {
+        source: "/offline.html",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value:
+              "default-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+          },
+        ],
+      },
+      {
         source: "/:path*",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },

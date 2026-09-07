@@ -47,7 +47,13 @@
     "stagingBuild": "passed"
   },
   "deployments": {
-    "stagingWalkthrough": "dpl_GXXnw4RvSnS7qvrLELgnqFHPcTfC"
+    "stagingWalkthrough": "dpl_GXXnw4RvSnS7qvrLELgnqFHPcTfC",
+    "staging": "dpl_5yvpRUbiijNVQdoA2BZ7Bow1SMk9",
+    "production": "dpl_AK38zbXnMaBxyaHYbmQ8B4trv9u3",
+    "backendStaging": "deployed",
+    "backendProduction": "deployed",
+    "productionHealth": 200,
+    "productionSignIn": "307 to holding page"
   },
   "cleanup": {
     "publicShare": "revoked",
@@ -62,5 +68,11 @@
     "Live billing/payout, business policies and brand review",
     "Vercel commercial eligibility without an agent-initiated upgrade",
     "PostHog erasure credentials before external capture"
-  ]
+  ],
+  "commit": "28b74fc",
+  "ci": {
+    "verify": "success",
+    "secrets": "success",
+    "codeql": "success"
+  }
 }

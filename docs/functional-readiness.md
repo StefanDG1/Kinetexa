@@ -45,3 +45,9 @@ One explicitly labelled synthetic TCX recording supplied 300 metres over two min
 - The activity/Home layouts fit the 1,600-pixel desktop viewport; the public share and analysis layouts fit the 390-pixel mobile viewport. This is not a complete accessibility or device audit.
 
 The staging account retains the labelled recording, analysis, goal, plan, equipment and service record for further functional work and styling. The public share is revoked. [Machine-readable evidence](verification/functional-0.5.0-alpha.3.json).
+
+## Installation and account-action follow-up
+
+The alpha.4 milestone adds PNG/Apple icons, complete manifest scope/identity, Settings installation help and a public-only offline fallback. Local Chrome reported no installability errors and the server-down/reconnection journey passed. Native mobile installation remains unverified. [Behavior and privacy](pwa.md).
+
+Profile changes are bounded before recalculation, and repeated logout suppresses redundant WorkOS requests while preserving local denial during failures. Local boundary and existing registration-lifecycle checks pass. Anonymous auth, first-registration and invalid-token ingress controls remain in the security audit. [Authentication](authentication.md).

@@ -2,7 +2,12 @@
 
 ## Unreleased
 
+## 0.5.0-alpha.4 - 2026-09-07
+
+Installation and account-action milestone. Production remains closed.
+
 - Limit profile changes before they can schedule repeated recalculation. Make confirmed logout idempotent across WorkOS requests and bound failed-provider retries without reopening private access.
+- Complete PWA manifest/icons and install help. Cache only a public reconnect page and icons; verify Chrome installability, unavailable-server navigation and reconnection in a local production build without hosted data tests.
 
 ## 0.5.0-alpha.3 - 2026-09-07
 

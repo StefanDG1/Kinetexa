@@ -35,6 +35,19 @@ export default function Settings() {
   return (
     <>
       <h1>Make Kinetexa yours.</h1>
+      <details className="section">
+        <summary>Install Kinetexa on this device</summary>
+        <p>
+          Use your browser menu to install Kinetexa or add it to your home
+          screen. On iPhone and iPad, use Safari's Share menu, then Add to Home
+          Screen.
+        </p>
+        <p>
+          The installed app needs an internet connection for training data and
+          changes. If you lose connection, reopen the workspace once you are
+          online.
+        </p>
+      </details>
       <DashboardSettings />
       {message && (
         <p role="status" className="privacy-note">

@@ -58,6 +58,6 @@ export default async function proxy(
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icon.svg|manifest.webmanifest|.*\\.(?:png|jpg|svg|woff2)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon.svg|manifest.webmanifest|sw.js$|offline.html$|.*\\.(?:png|jpg|svg|woff2)$).*)",
   ],
 };

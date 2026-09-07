@@ -46,6 +46,8 @@ This file records implemented and verified outcomes separately. Unchecked items 
 
 ## Verification record
 
+The `0.5.0-alpha.4` follow-up adds browser installation assets/help and a public-only reconnect page. Local production-browser installability, server-down navigation and recovery passed with no Convex traffic. Profile changes and WorkOS logout retries are bounded; seven focused local session/registration/workspace tests passed. [Installation](pwa.md) and [account-action limits](authentication.md) record their remaining acceptance boundaries.
+
 The `0.5.0-alpha.3` functional walkthrough used one 4,290-byte synthetic recording. Import, activity inspection/editing, sharing/revocation, saved analysis on Home, goal progress, calendar moves, equipment assignment and maintenance history passed. The equipment journey exposed and fixed client/server clock sensitivity. [Current functional inventory](functional-readiness.md) lists the remaining browser paths, provider implementation, operational and business gates. Styling remains with the user; production stays closed.
 
 The `0.5.0-alpha.2` milestone added reproducible contributor setup and bounded processing/AI phase timings. CI passed; one tiny hosted import emitted storage, parsing and analytics timings. External collector and alert receipt remain unverified. [Evidence](verification/operations-0.5.0-alpha.2.json).
